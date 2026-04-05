@@ -52,6 +52,7 @@
                 <div class="topbar-meta">
                     <span class="meta-pill user-meta">{{ current_user.username|capitalize }} - {{ current_user.role }}</span>
                     <span class="meta-pill">{{ today.strftime("%d %b %Y") }}</span>
+                    <button type="button" id="refresh-app" class="meta-pill btn btn-small btn-light">Refresh</button>
                     <a class="meta-pill logout-pill" href="/logout">Log Out</a>
                 </div>
             </header>

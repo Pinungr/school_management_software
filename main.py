@@ -2,74 +2,42 @@ from __future__ import annotations
 
 import csv
 import io
-from contextlib import asynccontextmanager
 from datetime import date, datetime
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from starlette.middleware.sessions import SessionMiddleware
 
 from school_admin.auth import hash_password, verify_password
-from school_admin.database import Base, SessionLocal, TEMPLATES_DIR, STATIC_DIR, engine
+from school_admin.database import Base, SessionLocal, STATIC_DIR, engine
 from school_admin.models import Course, Hostel, Payment, Setting, Student, TransportRoute, User
-from school_admin.seed import seed_database
-
-
-NAV_ITEMS = [
-    ("dashboard", "Dashboard", "/dashboard"),
-    ("students", "Students", "/students"),
-    ("courses", "Courses", "/courses"),
-    ("hostels", "Hostels", "/hostels"),
-    ("transport", "Transport", "/transport"),
-    ("payments", "Payments", "/payments"),
-    ("users", "Users", "/users"),
-    ("settings", "Settings", "/settings"),
-]
-
-ADMIN_ONLY_PAGES = {"users", "settings"}
-
-MONTH_OPTIONS = [
-    (1, "Jan"),
-    (2, "Feb"),
-    (3, "Mar"),
-    (4, "Apr"),
-    (5, "May"),
-    (6, "Jun"),
-    (7, "Jul"),
-    (8, "Aug"),
-    (9, "Sep"),
-    (10, "Oct"),
-    (11, "Nov"),
-    (12, "Dec"),
-]
-
-
-def format_money(value: float | int | None) -> str:
-    amount = float(value or 0)
-    return f"Rs {amount:,.0f}" if amount.is_integer() else f"Rs {amount:,.2f}"
-
-
-def format_date(value: date | None) -> str:
-    return value.strftime("%d %b %Y") if value else "-"
-
-
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-templates.env.filters["money"] = format_money
-templates.env.filters["datefmt"] = format_date
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    with SessionLocal() as session:
-        seed_database(session)
-    yield
+from school_admin.utils import (
+    active_lookups,
+    calculate_student_fees_and_payments,
+    dashboard_metrics,
+    get_settings,
+    login_redirect,
+    MONTH_OPTIONS,
+    nav_items_for,
+    optional_date,
+    optional_float,
+    optional_int,
+    payment_summary,
+    redirect,
+    render_page,
+    render_public,
+    require_admin,
+    require_user,
+    safe_next_path,
+    student_payment_summary,
+    years_for_filter,
+    lifespan,
+)
 
 
 app = FastAPI(title="School Management System", lifespan=lifespan)
@@ -79,260 +47,6 @@ app.add_middleware(
     same_site="lax",
 )
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-
-def redirect(url: str) -> RedirectResponse:
-    return RedirectResponse(url=url, status_code=303)
-
-
-def optional_int(value: str | None) -> int | None:
-    if value in (None, "", "None"):
-        return None
-    return int(value)
-
-
-def optional_float(value: str | None) -> float:
-    if value in (None, ""):
-        return 0.0
-    return float(value)
-
-
-def optional_date(value: str | None, fallback: date | None = None) -> date:
-    if value:
-        return datetime.strptime(value, "%Y-%m-%d").date()
-    return fallback or date.today()
-
-
-def get_current_user(session: Session, request: Request) -> User | None:
-    user_id = request.session.get("user_id")
-    if not user_id:
-        return None
-    user = session.get(User, user_id)
-    if not user or user.status != "Active":
-        request.session.clear()
-        return None
-    return user
-
-
-def nav_items_for(user: User | None) -> list[tuple[str, str, str]]:
-    if not user:
-        return []
-    if user.role == "Admin":
-        return NAV_ITEMS
-    return [item for item in NAV_ITEMS if item[0] not in ADMIN_ONLY_PAGES]
-
-
-def safe_next_path(value: str | None, fallback: str = "/dashboard") -> str:
-    if not value or not value.startswith("/") or value.startswith("//"):
-        return fallback
-    if value in {"/login", "/logout"}:
-        return fallback
-    return value
-
-
-def login_redirect(request: Request) -> RedirectResponse:
-    return redirect(f"/login?next={quote(request.url.path)}")
-
-
-def require_user(session: Session, request: Request) -> tuple[User | None, RedirectResponse | None]:
-    current_user = get_current_user(session, request)
-    if not current_user:
-        return None, login_redirect(request)
-    return current_user, None
-
-
-def require_admin(session: Session, request: Request) -> tuple[User | None, RedirectResponse | None]:
-    current_user, response = require_user(session, request)
-    if response:
-        return None, response
-    if current_user.role != "Admin":
-        return None, redirect("/dashboard")
-    return current_user, None
-
-
-def render_public(request: Request, template_name: str, **context) -> HTMLResponse:
-    return templates.TemplateResponse(
-        name=template_name,
-        request=request,
-        context={
-            "today": date.today(),
-            **context,
-        },
-    )
-
-
-def render_page(
-    request: Request,
-    session: Session,
-    current_user: User,
-    template_name: str,
-    active_page: str,
-    **context,
-) -> HTMLResponse:
-    return templates.TemplateResponse(
-        name=template_name,
-        request=request,
-        context={
-            "nav_items": nav_items_for(current_user),
-            "active_page": active_page,
-            "today": date.today(),
-            "settings": get_settings(session),
-            "current_user": current_user,
-            **context,
-        },
-    )
-
-
-def get_settings(session: Session) -> Setting:
-    return session.get(Setting, 1)
-
-
-def dashboard_metrics(session: Session) -> dict[str, float | int]:
-    total_students = session.scalar(
-        select(func.count()).select_from(Student).where(Student.status == "Active")
-    ) or 0
-    active_courses = session.scalar(
-        select(func.count()).select_from(Course).where(Course.status == "Active")
-    ) or 0
-    total_collected = session.scalar(select(func.coalesce(func.sum(Payment.amount), 0.0))) or 0.0
-
-    course_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "course")
-    ) or 0.0
-    hostel_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "hostel")
-    ) or 0.0
-    transport_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "transport")
-    ) or 0.0
-
-    expected_course = session.scalar(
-        select(func.coalesce(func.sum(Course.fees), 0.0))
-        .select_from(Student)
-        .join(Course, Student.course_id == Course.id)
-        .where(Student.status == "Active", Course.status == "Active")
-    ) or 0.0
-    expected_hostel = session.scalar(
-        select(func.coalesce(func.sum(Hostel.fee_amount), 0.0))
-        .select_from(Student)
-        .join(Hostel, Student.hostel_id == Hostel.id)
-        .where(Student.status == "Active", Hostel.status == "Active")
-    ) or 0.0
-    expected_transport = session.scalar(
-        select(func.coalesce(func.sum(TransportRoute.fee_amount), 0.0))
-        .select_from(Student)
-        .join(TransportRoute, Student.transport_id == TransportRoute.id)
-        .where(Student.status == "Active", TransportRoute.status == "Active")
-    ) or 0.0
-
-    pending_course = max(expected_course - course_collected, 0.0)
-    pending_hostel = max(expected_hostel - hostel_collected, 0.0)
-    pending_transport = max(expected_transport - transport_collected, 0.0)
-
-    return {
-        "total_students": total_students,
-        "active_courses": active_courses,
-        "total_collected": total_collected,
-        "pending_total": pending_course + pending_hostel + pending_transport,
-        "pending_course": pending_course,
-        "pending_hostel": pending_hostel,
-        "pending_transport": pending_transport,
-    }
-
-
-def payment_summary(session: Session) -> dict[str, float]:
-    return {
-        "total": session.scalar(select(func.coalesce(func.sum(Payment.amount), 0.0))) or 0.0,
-        "course": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "course")
-        )
-        or 0.0,
-        "hostel": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "hostel")
-        )
-        or 0.0,
-        "transport": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "transport")
-        )
-        or 0.0,
-    }
-
-
-def student_payment_summary(session: Session, student_id: int) -> dict[str, float]:
-    """Calculate total paid and pending amounts for a student"""
-    paid_amount = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
-            (Payment.student_id == student_id) & (Payment.status == "Paid")
-        )
-    ) or 0.0
-    pending_amount = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
-            (Payment.student_id == student_id) & (Payment.status == "Pending")
-        )
-    ) or 0.0
-    return {
-        "paid": paid_amount,
-        "pending": pending_amount,
-        "total": paid_amount + pending_amount,
-    }
-
-
-def calculate_student_fees_and_payments(session: Session, student: Student) -> dict[str, float]:
-    """Calculate total fees and payments for a student"""
-    total_fees = 0.0
-    course_fee = 0.0
-    hostel_fee = 0.0
-    transport_fee = 0.0
-
-    # Calculate fees based on enrolled services
-    if student.course:
-        course_fee = student.course.fees
-        total_fees += course_fee
-
-    if student.hostel:
-        hostel_fee = student.hostel.fee_amount
-        total_fees += hostel_fee
-
-    if student.transport_route:
-        transport_fee = student.transport_route.fee_amount
-        total_fees += transport_fee
-
-    # Get payment summary
-    payments = student_payment_summary(session, student.id)
-
-    return {
-        "total_fees": total_fees,
-        "course_fee": course_fee,
-        "hostel_fee": hostel_fee,
-        "transport_fee": transport_fee,
-        "paid_amount": payments["paid"],
-        "pending_amount": payments["pending"],
-        "remaining_balance": total_fees - payments["paid"],
-    }
-
-
-def active_lookups(session: Session) -> dict[str, list]:
-    return {
-        "courses": session.scalars(
-            select(Course).where(Course.status == "Active").order_by(Course.name)
-        ).all(),
-        "hostels": session.scalars(
-            select(Hostel).where(Hostel.status == "Active").order_by(Hostel.name)
-        ).all(),
-        "transport_routes": session.scalars(
-            select(TransportRoute)
-            .where(TransportRoute.status == "Active")
-            .order_by(TransportRoute.route_name)
-        ).all(),
-        "students": session.scalars(
-            select(Student).where(Student.status == "Active").order_by(Student.full_name)
-        ).all(),
-    }
-
-
-def years_for_filter() -> list[int]:
-    current = date.today().year
-    return list(range(current - 3, current + 3))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -434,6 +148,9 @@ async def students_page(
         student_payment_summary_data = (
             student_payment_summary(session, selected_student.id) if selected_student else {}
         )
+        selected_student_fees = {}
+        if selected_student:
+            selected_student_fees = calculate_student_fees_and_payments(session, selected_student)
         
         # Get all students and calculate their fees/payments
         students_data = []
@@ -455,6 +172,7 @@ async def students_page(
             form_student=selected_student if edit else None,
             view_student=selected_student if view else None,
             view_student_payments=student_payment_summary_data,
+            view_student_fees=selected_student_fees,
             search=search,
             lookups=active_lookups(session),
         )
@@ -529,6 +247,152 @@ async def delete_student(student_id: int, request: Request):
             session.delete(student)
             session.commit()
     return redirect("/students")
+
+
+@app.post("/students/{student_id}/notify")
+async def notify_guardian(student_id: int, request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_user(session, request)
+        if response:
+            return response
+        
+        student = session.get(Student, student_id)
+        if not student:
+            return redirect("/students")
+        
+        # Calculate fees and payments
+        fees_data = calculate_student_fees_and_payments(session, student)
+        
+        if fees_data["remaining_balance"] <= 0:
+            return redirect("/students")
+        
+        # Get school settings
+        settings = session.get(Setting, 1) or Setting()
+        
+        # Generate notification HTML
+        course_row = ""
+        if fees_data['course_fee'] > 0:
+            course_row = f"""
+                        <tr>
+                            <td>Course Fee ({student.course.name if student.course else 'N/A'})</td>
+                            <td>{fees_data['course_fee']:.2f}</td>
+                        </tr>"""
+        
+        hostel_row = ""
+        if fees_data['hostel_fee'] > 0:
+            hostel_row = f"""
+                        <tr>
+                            <td>Hostel Fee ({student.hostel.name if student.hostel else 'N/A'})</td>
+                            <td>{fees_data['hostel_fee']:.2f}</td>
+                        </tr>"""
+        
+        transport_row = ""
+        if fees_data['transport_fee'] > 0:
+            transport_row = f"""
+                        <tr>
+                            <td>Transport Fee ({student.transport_route.route_name if student.transport_route else 'N/A'})</td>
+                            <td>{fees_data['transport_fee']:.2f}</td>
+                        </tr>"""
+        
+        notification_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Payment Reminder - {settings.school_name}</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }}
+                .school-info {{ margin-bottom: 30px; }}
+                .student-info {{ margin-bottom: 30px; }}
+                .fee-breakdown {{ margin: 30px 0; }}
+                .fee-table {{ width: 100%; border-collapse: collapse; }}
+                .fee-table th, .fee-table td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                .fee-table th {{ background-color: #f2f2f2; }}
+                .total-row {{ font-weight: bold; }}
+                .balance {{ color: #d9534f; font-size: 18px; }}
+                .footer {{ margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>{settings.school_name}</h1>
+                <p>{settings.address}</p>
+                <p>Phone: {settings.phone_number} | Email: {settings.school_email}</p>
+            </div>
+            
+            <div class="school-info">
+                <p><strong>Date:</strong> {date.today().strftime('%B %d, %Y')}</p>
+            </div>
+            
+            <div class="student-info">
+                <h2>Payment Reminder Notice</h2>
+                <p><strong>Student Name:</strong> {student.full_name}</p>
+                <p><strong>Student Code:</strong> {student.student_code}</p>
+                <p><strong>Parent/Guardian:</strong> {student.parent_name or 'N/A'}</p>
+                <p><strong>Address:</strong> {student.address or 'N/A'}</p>
+                <p><strong>Phone:</strong> {student.phone}</p>
+                <p><strong>Email:</strong> {student.email}</p>
+            </div>
+            
+            <div class="fee-breakdown">
+                <h3>Fee Breakdown</h3>
+                <table class="fee-table">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Amount ({settings.currency})</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {course_row}
+                        {hostel_row}
+                        {transport_row}
+                        <tr class="total-row">
+                            <td>Total Fees</td>
+                            <td>{fees_data['total_fees']:.2f}</td>
+                        </tr>
+                        <tr>
+                            <td>Amount Paid</td>
+                            <td>{fees_data['paid_amount']:.2f}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td>Outstanding Balance</td>
+                            <td class="balance">{fees_data['remaining_balance']:.2f}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div>
+                <p>Dear {student.parent_name or 'Parent/Guardian'},</p>
+                
+                <p>This is to inform you that there is an outstanding balance of <strong>{settings.currency} {fees_data['remaining_balance']:.2f}</strong> 
+                for your ward {student.full_name} (Student Code: {student.student_code}) for the academic year {settings.academic_year}.</p>
+                
+                <p>Please arrange to clear the outstanding amount at the earliest to avoid any disruption in services. 
+                Payment can be made through cash, bank transfer, or other accepted payment methods.</p>
+                
+                <p>For any queries or assistance, please contact the school administration at {settings.phone_number} or {settings.school_email}.</p>
+                
+                <p>Thank you for your attention to this matter.</p>
+                
+                <p>Best regards,<br>
+                {settings.school_name}<br>
+                {settings.address}<br>
+                Phone: {settings.phone_number}<br>
+                Email: {settings.school_email}</p>
+            </div>
+            
+            <div class="footer">
+                <p><em>This is an auto-generated notification from the School Management System.</em></p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # For now, return the HTML as a response that can be printed
+        # In a real implementation, this could be sent as email or saved as PDF
+        return HTMLResponse(content=notification_html, status_code=200)
 
 
 @app.get("/courses", response_class=HTMLResponse)

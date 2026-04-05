@@ -10,4 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
             button.setAttribute("aria-expanded", String(!target.hidden));
         });
     });
+
+    const refreshButton = document.getElementById("refresh-app");
+    if (refreshButton) {
+        refreshButton.addEventListener("click", () => {
+            window.location.reload();
+        });
+    }
 });

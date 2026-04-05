@@ -33,9 +33,13 @@
     <div class="payment-summary">
         <h4>Payment Summary</h4>
         <div class="detail-grid compact">
-            <div><span>Total Amount</span><strong>{{ view_student_payments.total|money }}</strong></div>
+            {% if view_student_payments.total > 0 %}
+            <div><span>Payments Recorded</span><strong>{{ view_student_payments.total|money }}</strong></div>
             <div><span>Paid</span><strong class="text-success">{{ view_student_payments.paid|money }}</strong></div>
-            <div><span>Pending</span><strong class="text-warning">{{ view_student_payments.pending|money }}</strong></div>
+            {% endif %}
+            {% set fees_data = view_student_fees %}
+            <div><span>Total Fees</span><strong>{{ fees_data.total_fees|money }}</strong></div>
+            <div><span>Outstanding Balance</span><strong class="{% if fees_data.remaining_balance > 0 %}text-danger{% else %}text-success{% endif %}">{{ fees_data.remaining_balance|money }}</strong></div>
         </div>
         <a class="btn btn-small btn-light" href="/payments?student_id={{ view_student.id }}">View Payments</a>
     </div>
@@ -180,7 +184,12 @@
                     <td class="actions">
                         <a class="btn btn-small btn-light" href="/students?view={{ student.id }}">View</a>
                         <a class="btn btn-small btn-light" href="/students?edit={{ student.id }}">Edit</a>
-                        <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');">
+                        {% if fees.remaining_balance > 0 %}
+                        <form method="post" action="/students/{{ student.id }}/notify" style="display: inline;">
+                            <button class="btn btn-small btn-warning" type="submit" onclick="return confirm('Send payment reminder to guardian?');">Notify Guardian</button>
+                        </form>
+                        {% endif %}
+                        <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');" style="display: inline;">
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                     </td>
