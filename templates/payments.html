@@ -39,10 +39,29 @@
         </label>
         <label>
             <span>Payment Type</span>
-            <select name="service_type">
+            <select name="service_type" id="service_type">
                 {% for option in ["course", "hostel", "transport"] %}
                 <option value="{{ option }}" {% if form_payment and form_payment.service_type == option %}selected{% endif %}>{{ option.title() }}</option>
                 {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Service</span>
+            <select name="service_id" id="service_id">
+                <option value="">Select a service...</option>
+                {% if form_payment and form_payment.service_type == "course" %}
+                    {% for course in lookups.courses %}
+                    <option value="{{ course.id }}" {% if form_payment.service_id == course.id %}selected{% endif %}>{{ course.name }} ({{ course.fees|money }})</option>
+                    {% endfor %}
+                {% elif form_payment and form_payment.service_type == "hostel" %}
+                    {% for hostel in lookups.hostels %}
+                    <option value="{{ hostel.id }}" {% if form_payment.service_id == hostel.id %}selected{% endif %}>{{ hostel.name }} ({{ hostel.fee_amount|money }})</option>
+                    {% endfor %}
+                {% elif form_payment and form_payment.service_type == "transport" %}
+                    {% for route in lookups.transport_routes %}
+                    <option value="{{ route.id }}" {% if form_payment.service_id == route.id %}selected{% endif %}>{{ route.route_name }} ({{ route.fee_amount|money }})</option>
+                    {% endfor %}
+                {% endif %}
             </select>
         </label>
         <label><span>Amount</span><input type="number" step="0.01" name="amount" value="{{ form_payment.amount if form_payment else '' }}" required></label>
@@ -127,7 +146,22 @@
             <tbody>
                 {% for payment in payments %}
                 <tr>
-                    <td>{{ payment.service_type.title() }}</td>
+                    <td>
+                        {{ payment.service_type.title() }}
+                        {% if payment.service_id %}
+                            <br><small class="text-muted">
+                            {% if payment.service_type == "course" and payment.student.course %}
+                                {{ payment.student.course.name }}
+                            {% elif payment.service_type == "hostel" and payment.student.hostel %}
+                                {{ payment.student.hostel.name }}
+                            {% elif payment.service_type == "transport" and payment.student.transport_route %}
+                                {{ payment.student.transport_route.route_name }}
+                            {% else %}
+                                Service ID: {{ payment.service_id }}
+                            {% endif %}
+                            </small>
+                        {% endif %}
+                    </td>
                     <td><a href="/students?view={{ payment.student.id }}">{{ payment.student.student_code }} - {{ payment.student.full_name }}</a></td>
                     <td>{{ payment.amount|money }}</td>
                     <td>{{ payment.payment_date|datefmt }}</td>
@@ -149,3 +183,48 @@
     </div>
 </section>
 {% endblock %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Dynamic service selection for payments
+    const serviceTypeSelect = document.getElementById("service_type");
+    const serviceIdSelect = document.getElementById("service_id");
+
+    if (serviceTypeSelect && serviceIdSelect) {
+        // Service data from server
+        const services = {
+            course: {{ lookups.courses|tojson|safe }},
+            hostel: {{ lookups.hostels|tojson|safe }},
+            transport: {{ lookups.transport_routes|tojson|safe }}
+        };
+
+        function updateServiceOptions() {
+            const selectedType = serviceTypeSelect.value;
+            serviceIdSelect.innerHTML = '<option value="">Select a service...</option>';
+
+            if (services[selectedType]) {
+                services[selectedType].forEach(service => {
+                    const option = document.createElement("option");
+                    option.value = service.id;
+
+                    // Set display text based on service type
+                    if (selectedType === "course") {
+                        option.textContent = `${service.name} (Rs ${service.fees ? service.fees.toLocaleString() : '0'})`;
+                    } else if (selectedType === "hostel") {
+                        option.textContent = `${service.name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
+                    } else if (selectedType === "transport") {
+                        option.textContent = `${service.route_name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
+                    }
+
+                    serviceIdSelect.appendChild(option);
+                });
+            }
+        }
+
+        serviceTypeSelect.addEventListener("change", updateServiceOptions);
+
+        // Initialize on page load
+        updateServiceOptions();
+    }
+});
+</script>

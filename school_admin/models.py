@@ -113,6 +113,7 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
     service_type: Mapped[str] = mapped_column(String(30), default="course")
+    service_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # ID of the specific service
     amount: Mapped[float] = mapped_column(Float, default=0)
     payment_date: Mapped[date] = mapped_column(Date, default=date.today)
     method: Mapped[str] = mapped_column(String(30), default="Cash")

@@ -813,10 +813,28 @@ async def create_payment(request: Request):
         current_user, response = require_user(session, request)
         if response:
             return response
+        service_type = str(form.get("service_type", "course")).strip()
+        service_id = optional_int(str(form.get("service_id", "")))
+        
+        # Validate that the service_id is valid for the service_type and student
+        if service_id:
+            student_id = int(str(form.get("student_id", "0")))
+            student = session.get(Student, student_id)
+            if service_type == "course" and student and student.course_id != service_id:
+                # Allow payment for any course, not just enrolled one
+                pass
+            elif service_type == "hostel" and student and student.hostel_id != service_id:
+                # Allow payment for any hostel, not just assigned one
+                pass
+            elif service_type == "transport" and student and student.transport_id != service_id:
+                # Allow payment for any transport route, not just assigned one
+                pass
+        
         session.add(
             Payment(
                 student_id=int(str(form.get("student_id", "0"))),
-                service_type=str(form.get("service_type", "course")).strip(),
+                service_type=service_type,
+                service_id=service_id,
                 amount=optional_float(str(form.get("amount", ""))),
                 payment_date=optional_date(str(form.get("payment_date", "")) or None),
                 method=str(form.get("method", "Cash")).strip(),
@@ -839,8 +857,12 @@ async def edit_payment(payment_id: int, request: Request):
         payment = session.get(Payment, payment_id)
         if not payment:
             return redirect("/payments")
+        service_type = str(form.get("service_type", "course")).strip()
+        service_id = optional_int(str(form.get("service_id", "")))
+        
         payment.student_id = int(str(form.get("student_id", "0")))
-        payment.service_type = str(form.get("service_type", "course")).strip()
+        payment.service_type = service_type
+        payment.service_id = service_id
         payment.amount = optional_float(str(form.get("amount", "")))
         payment.payment_date = optional_date(str(form.get("payment_date", "")) or None, payment.payment_date)
         payment.method = str(form.get("method", "Cash")).strip()
@@ -894,11 +916,25 @@ async def export_payments(
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["Type", "Student ID", "Student Name", "Amount", "Date", "Method", "Status", "Reference"])
+    writer.writerow(["Type", "Service", "Student ID", "Student Name", "Amount", "Date", "Method", "Status", "Reference"])
     for payment in payments:
+        # Get service name
+        service_name = ""
+        if payment.service_id:
+            if payment.service_type == "course":
+                course = session.get(Course, payment.service_id)
+                service_name = course.name if course else "Unknown Course"
+            elif payment.service_type == "hostel":
+                hostel = session.get(Hostel, payment.service_id)
+                service_name = hostel.name if hostel else "Unknown Hostel"
+            elif payment.service_type == "transport":
+                route = session.get(TransportRoute, payment.service_id)
+                service_name = route.route_name if route else "Unknown Route"
+        
         writer.writerow(
             [
                 payment.service_type.title(),
+                service_name,
                 payment.student.student_code,
                 payment.student.full_name,
                 f"{payment.amount:.2f}",
