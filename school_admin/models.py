@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -25,6 +25,7 @@ class Setting(Base):
     developer_name: Mapped[str] = mapped_column(String(120), default="")
     developer_email: Mapped[str] = mapped_column(String(120), default="")
     developer_phone: Mapped[str] = mapped_column(String(40), default="")
+    setup_completed: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class User(Base):

@@ -28,12 +28,8 @@ A simple school management system built with FastAPI, SQLAlchemy, and Jinja2.
    python main.py
    ```
 
-4. Open a browser at `http://127.0.0.1:8000`.
-
-## Default accounts
-
-- **Admin**: `admin` / `adminadmin`
-- **Clerk**: `clark` / `clarkclark`
+4. The browser opens automatically to the first-run setup screen.
+5. Create the administrator account and school profile in the one-time setup flow.
 
 ## Testing
 

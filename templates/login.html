@@ -19,7 +19,11 @@
         </section>
         <section class="auth-card">
             <div class="brand brand-card auth-brand">
+                {% if settings and settings.logo_url %}
+                <img class="brand-logo" src="{{ settings.logo_url }}" alt="{{ settings.school_name }} logo">
+                {% else %}
                 <div class="brand-mark">S</div>
+                {% endif %}
                 <div>
                     <h1>SchoolFlow</h1>
                     <p>{{ settings.school_name }}</p>
@@ -27,10 +31,17 @@
             </div>
             <h2>Sign in</h2>
             <p class="auth-copy">Use your school account to continue.</p>
+            {% if setup_success %}
+            <div class="alert-success">Initial setup is complete. Sign in with the admin account you just created.</div>
+            {% endif %}
             {% if error %}
             <div class="alert-error">Incorrect username or password. Please try again.</div>
             {% endif %}
+            {% if csrf_error %}
+            <div class="alert-error">Your session expired. Please try signing in again.</div>
+            {% endif %}
             <form method="post" action="/login" class="auth-form">
+                {% include "partials/csrf_input.html" %}
                 <input type="hidden" name="next_path" value="{{ next_path }}">
                 <label>
                     <span>Username</span>
@@ -43,9 +54,8 @@
                 <button class="btn btn-primary auth-submit" type="submit">Log In</button>
             </form>
             <div class="auth-demo">
-                <strong>Default offline accounts</strong>
-                <div>Admin: <code>admin</code> / <code>adminadmin</code></div>
-                <div>Clerk: <code>clark</code> / <code>clarkclark</code></div>
+                <strong>Offline sign-in</strong>
+                <div>Use the administrator username and password configured during the initial setup.</div>
             </div>
         </section>
     </main>

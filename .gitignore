@@ -1,14 +1,21 @@
-<<<<<<< HEAD
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Packaging and build outputs
 build/
-develop-eggs/
 dist/
 downloads/
+develop-eggs/
 eggs/
 .eggs/
 lib/
@@ -20,116 +27,35 @@ wheels/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
+*.manifest
 MANIFEST
+SchoolFlow/
+SchoolFlow.exe
 
-# Virtual environments
-venv/
-ENV/
-env/
-.venv
+# Test and runtime caches
+.pytest_cache/
+data/session_secret.txt
+uploads/
 
-# IDE
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+
+# Editors and OS files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment variables
-.env
-.env.local
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
-venv/
-ENV/
-env/
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment variables
-.env
-.env.local
-
-# Build artifacts
-build/
-dist/
-SchoolFlow.exe
-SchoolFlow/
+Thumbs.db
 
 # Logs
 *.log
 logs/
-
-# OS
-.DS_Store
-Thumbs.db
-.DS_Store
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment variables
-.env
-.env.local
-
-# Build artifacts
-build/
-dist/
-SchoolFlow.exe
-SchoolFlow/
-
-# Logs
-*.log
-logs/
-
-# OS
-.DS_Store
-Thumbs.db
->>>>>>> 7e974b6a522fb4046bace7d2a06850748cdaffdc

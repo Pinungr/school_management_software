@@ -13,7 +13,11 @@
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand brand-card">
+                {% if settings and settings.logo_url %}
+                <img class="brand-logo" src="{{ settings.logo_url }}" alt="{{ settings.school_name }} logo">
+                {% else %}
                 <div class="brand-mark">S</div>
+                {% endif %}
                 <div>
                     <h1>SchoolFlow</h1>
                     <p>{{ settings.school_name if settings else "Private School" }}</p>

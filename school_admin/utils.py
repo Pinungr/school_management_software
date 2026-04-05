@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import secrets
 from contextlib import asynccontextmanager
 from datetime import date, datetime
 from urllib.parse import quote
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from starlette.datastructures import FormData
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, TEMPLATES_DIR, engine
+from .migrations import run_migrations
 from .models import Course, Hostel, Payment, Setting, Student, TransportRoute, User
 from .seed import seed_database
 
@@ -42,6 +45,8 @@ MONTH_OPTIONS = [
     (12, "Dec"),
 ]
 
+CSRF_SESSION_KEY = "csrf_token"
+
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
@@ -54,14 +59,30 @@ def format_date(value: date | None) -> str:
     return value.strftime("%d %b %Y") if value else "-"
 
 
+def escapejs(value: object | None) -> str:
+    if value is None:
+        return ""
+    escaped = str(value)
+    escaped = escaped.replace("\\", "\\\\")
+    escaped = escaped.replace("\n", "\\n")
+    escaped = escaped.replace("\r", "\\r")
+    escaped = escaped.replace("\u2028", "\\u2028")
+    escaped = escaped.replace("\u2029", "\\u2029")
+    escaped = escaped.replace('"', '\\"')
+    escaped = escaped.replace("'", "\\'")
+    escaped = escaped.replace("</", "<\\/")
+    return escaped
+
 templates.env.filters["money"] = format_money
 templates.env.filters["datefmt"] = format_date
+templates.env.filters["escapejs"] = escapejs
 
 
 @asynccontextmanager
 async def lifespan(_: object):
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
+        run_migrations(session)
         seed_database(session)
     yield
 
@@ -115,14 +136,56 @@ def safe_next_path(value: str | None, fallback: str = "/dashboard") -> str:
     return value
 
 
-def login_redirect(request: Request) -> RedirectResponse:
+def is_setup_complete(session: Session) -> bool:
+    settings = get_settings(session)
+    return bool(settings and settings.setup_completed)
+
+
+def get_csrf_token(request: Request) -> str:
+    token = str(request.session.get(CSRF_SESSION_KEY, "")).strip()
+    if token:
+        return token
+
+    token = secrets.token_urlsafe(32)
+    request.session[CSRF_SESSION_KEY] = token
+    return token
+
+
+def is_valid_csrf_token(request: Request, submitted_token: object | None) -> bool:
+    expected_token = str(request.session.get(CSRF_SESSION_KEY, "")).strip()
+    provided_token = str(submitted_token or "").strip()
+    return bool(expected_token and provided_token) and secrets.compare_digest(
+        expected_token,
+        provided_token,
+    )
+
+
+async def form_with_csrf(
+    request: Request,
+    failure_url: str,
+) -> tuple[FormData | None, RedirectResponse | None]:
+    form = await request.form()
+    if not is_valid_csrf_token(request, form.get("csrf_token")):
+        return None, redirect(failure_url)
+    return form, None
+
+
+def setup_redirect() -> RedirectResponse:
+    return redirect("/setup")
+
+
+def login_redirect(session: Session, request: Request) -> RedirectResponse:
+    if not is_setup_complete(session):
+        return setup_redirect()
     return redirect(f"/login?next={quote(request.url.path)}")
 
 
 def require_user(session: Session, request: Request) -> tuple[User | None, RedirectResponse | None]:
+    if not is_setup_complete(session):
+        return None, setup_redirect()
     current_user = get_current_user(session, request)
     if not current_user:
-        return None, login_redirect(request)
+        return None, login_redirect(session, request)
     return current_user, None
 
 
@@ -140,6 +203,7 @@ def render_public(request: Request, template_name: str, **context) -> HTMLRespon
         name=template_name,
         request=request,
         context={
+            "csrf_token": get_csrf_token(request),
             "today": date.today(),
             **context,
         },
@@ -160,6 +224,7 @@ def render_page(
         context={
             "nav_items": nav_items_for(current_user),
             "active_page": active_page,
+            "csrf_token": get_csrf_token(request),
             "today": date.today(),
             "settings": get_settings(session),
             "current_user": current_user,
@@ -310,6 +375,47 @@ def active_lookups(session: Session) -> dict[str, list]:
             select(Student).where(Student.status == "Active").order_by(Student.full_name)
         ).all(),
     }
+
+
+def payment_service_maps(session: Session) -> dict[str, dict[int, str]]:
+    return {
+        "course": {
+            course.id: course.name
+            for course in session.scalars(select(Course).order_by(Course.name)).all()
+        },
+        "hostel": {
+            hostel.id: hostel.name
+            for hostel in session.scalars(select(Hostel).order_by(Hostel.name)).all()
+        },
+        "transport": {
+            route.id: route.route_name
+            for route in session.scalars(
+                select(TransportRoute).order_by(TransportRoute.route_name)
+            ).all()
+        },
+    }
+
+
+def payment_service_name(
+    payment: Payment, service_maps: dict[str, dict[int, str]]
+) -> str:
+    if payment.service_id is None:
+        return ""
+    return service_maps.get(payment.service_type, {}).get(
+        payment.service_id, f"Service ID: {payment.service_id}"
+    )
+
+
+def validate_service_for_type(session: Session, service_type: str, service_id: int | None) -> bool:
+    if service_id is None:
+        return True
+    if service_type == "course":
+        return session.get(Course, service_id) is not None
+    if service_type == "hostel":
+        return session.get(Hostel, service_id) is not None
+    if service_type == "transport":
+        return session.get(TransportRoute, service_id) is not None
+    return False
 
 
 def years_for_filter() -> list[int]:

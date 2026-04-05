@@ -19,6 +19,10 @@
     <article class="metric-card"><span>Transport Payments</span><strong>{{ summary.transport|money }}</strong></article>
 </section>
 
+{% if error_message %}
+<div class="alert-error">{{ error_message }}</div>
+{% endif %}
+
 {% if form_mode %}
 <section class="card">
     <div class="card-header">
@@ -29,6 +33,7 @@
         <a class="btn btn-light" href="/payments">Cancel</a>
     </div>
     <form method="post" action="{% if form_mode == 'create' %}/payments/create{% else %}/payments/{{ form_payment.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
         <label>
             <span>Student</span>
             <select name="student_id" required>
@@ -148,17 +153,9 @@
                 <tr>
                     <td>
                         {{ payment.service_type.title() }}
-                        {% if payment.service_id %}
+                        {% if payment_service_names.get(payment.id) %}
                             <br><small class="text-muted">
-                            {% if payment.service_type == "course" and payment.student.course %}
-                                {{ payment.student.course.name }}
-                            {% elif payment.service_type == "hostel" and payment.student.hostel %}
-                                {{ payment.student.hostel.name }}
-                            {% elif payment.service_type == "transport" and payment.student.transport_route %}
-                                {{ payment.student.transport_route.route_name }}
-                            {% else %}
-                                Service ID: {{ payment.service_id }}
-                            {% endif %}
+                            {{ payment_service_names.get(payment.id) }}
                             </small>
                         {% endif %}
                     </td>
@@ -171,6 +168,7 @@
                     <td class="actions">
                         <a class="btn btn-small btn-light" href="/payments?edit={{ payment.id }}">Edit</a>
                         <form method="post" action="/payments/{{ payment.id }}/delete" onsubmit="return confirm('Delete this payment?');">
+                            {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                     </td>
@@ -182,49 +180,115 @@
         </table>
     </div>
 </section>
-{% endblock %}
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     // Dynamic service selection for payments
     const serviceTypeSelect = document.getElementById("service_type");
     const serviceIdSelect = document.getElementById("service_id");
+    const amountInput = document.querySelector('input[name="amount"]');
 
     if (serviceTypeSelect && serviceIdSelect) {
-        // Service data from server
         const services = {
-            course: {{ lookups.courses|tojson|safe }},
-            hostel: {{ lookups.hostels|tojson|safe }},
-            transport: {{ lookups.transport_routes|tojson|safe }}
+            course: [
+                {% for course in lookups.courses %}
+                {
+                    id: {{ course.id }},
+                    name: "{{ course.name | escapejs }}",
+                    fees: {{ course.fees or 0 }},
+
+                },
+                {% endfor %}
+            ],
+            hostel: [
+                {% for hostel in lookups.hostels %}
+                {
+                    id: {{ hostel.id }},
+                    name: "{{ hostel.name | escapejs }}",
+                    fee_amount: {{ hostel.fee_amount or 0 }},
+
+                },
+                {% endfor %}
+            ],
+            transport: [
+                {% for route in lookups.transport_routes %}
+                {
+                    id: {{ route.id }},
+                    route_name: "{{ route.route_name | escapejs }}",
+                    fee_amount: {{ route.fee_amount or 0 }},
+
+                },
+                {% endfor %}
+            ],
         };
 
-        function updateServiceOptions() {
+        let preservedServiceId = serviceIdSelect.value;
+
+        function updateAmount() {
+            if (!amountInput) {
+                return;
+            }
             const selectedType = serviceTypeSelect.value;
-            serviceIdSelect.innerHTML = '<option value="">Select a service...</option>';
-
-            if (services[selectedType]) {
-                services[selectedType].forEach(service => {
-                    const option = document.createElement("option");
-                    option.value = service.id;
-
-                    // Set display text based on service type
-                    if (selectedType === "course") {
-                        option.textContent = `${service.name} (Rs ${service.fees ? service.fees.toLocaleString() : '0'})`;
-                    } else if (selectedType === "hostel") {
-                        option.textContent = `${service.name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
-                    } else if (selectedType === "transport") {
-                        option.textContent = `${service.route_name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
-                    }
-
-                    serviceIdSelect.appendChild(option);
-                });
+            const selectedId = serviceIdSelect.value;
+            if (!selectedId) {
+                return;
+            }
+            const service = services[selectedType]?.find(s => String(s.id) === String(selectedId));
+            if (!service) {
+                return;
+            }
+            const feeValue = selectedType === "course" ? service.fees : service.fee_amount;
+            if (feeValue != null && feeValue !== "" && (!amountInput.value || Number(amountInput.value) === 0)) {
+                amountInput.value = feeValue;
             }
         }
 
-        serviceTypeSelect.addEventListener("change", updateServiceOptions);
+        function updateServiceOptions(resetSelection = false) {
+            const selectedType = serviceTypeSelect.value;
+            const placeholderText = selectedType === "course"
+                ? "Select a course..."
+                : selectedType === "hostel"
+                    ? "Select a hostel..."
+                    : "Select a transport route...";
+            serviceIdSelect.innerHTML = `<option value="">${placeholderText}</option>`;
+            const selectedId = resetSelection ? "" : preservedServiceId;
 
-        // Initialize on page load
+            const serviceList = services[selectedType] || [];
+            serviceList.forEach(service => {
+                const option = document.createElement("option");
+                option.value = service.id;
+                if (selectedType === "course") {
+                    option.textContent = `${service.name} (Rs ${service.fees ? service.fees.toLocaleString() : '0'})`;
+                } else if (selectedType === "hostel") {
+                    option.textContent = `${service.name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
+                } else if (selectedType === "transport") {
+                    option.textContent = `${service.route_name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
+                }
+                if (selectedId && String(service.id) === String(selectedId)) {
+                    option.selected = true;
+                }
+                serviceIdSelect.appendChild(option);
+            });
+
+            if (resetSelection) {
+                preservedServiceId = "";
+                serviceIdSelect.value = "";
+                if (amountInput) {
+                    amountInput.value = "";
+                }
+            }
+
+            updateAmount();
+        }
+
+        serviceTypeSelect.addEventListener("change", () => updateServiceOptions(true));
+        serviceIdSelect.addEventListener("change", () => {
+            preservedServiceId = serviceIdSelect.value;
+            updateAmount();
+        });
+
         updateServiceOptions();
     }
 });
 </script>
+{% endblock %}

@@ -47,6 +47,10 @@
 </section>
 {% endif %}
 
+{% if error_message %}
+<div class="alert-error">{{ error_message }}</div>
+{% endif %}
+
 {% if form_mode %}
 <section class="card">
     <div class="card-header">
@@ -57,6 +61,7 @@
         <a class="btn btn-light" href="/students">Cancel</a>
     </div>
     <form method="post" action="{% if form_mode == 'create' %}/students/create{% else %}/students/{{ form_student.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
         <label>
             <span>Student ID</span>
             <input name="student_code" value="{{ form_student.student_code if form_student else '' }}" required>
@@ -186,10 +191,12 @@
                         <a class="btn btn-small btn-light" href="/students?edit={{ student.id }}">Edit</a>
                         {% if fees.remaining_balance > 0 %}
                         <form method="post" action="/students/{{ student.id }}/notify" style="display: inline;">
+                            {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-warning" type="submit" onclick="return confirm('Send payment reminder to guardian?');">Notify Guardian</button>
                         </form>
                         {% endif %}
                         <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');" style="display: inline;">
+                            {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                     </td>

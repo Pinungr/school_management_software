@@ -21,6 +21,7 @@
         <a class="btn btn-light" href="/users">Cancel</a>
     </div>
     <form method="post" action="{% if form_mode == 'create' %}/users/create{% else %}/users/{{ form_user.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
         <label>
             <span>Full Name</span>
             <input name="full_name" value="{{ form_user.full_name if form_user else '' }}" required>
@@ -60,6 +61,20 @@
 </section>
 {% endif %}
 
+{% if error_code == "missing_fields" %}
+<div class="alert-error">Fill in the full name, username, and email before saving a user.</div>
+{% elif error_code == "password_short" %}
+<div class="alert-error">Use a password with at least 8 characters.</div>
+{% elif error_code == "duplicate" %}
+<div class="alert-error">That username or email is already in use.</div>
+{% elif error_code == "invalid_role" %}
+<div class="alert-error">Choose a valid role for the user account.</div>
+{% elif error_code == "invalid_status" %}
+<div class="alert-error">Choose a valid status for the user account.</div>
+{% elif error_code == "last_admin" %}
+<div class="alert-error">Keep at least one active administrator account in the system.</div>
+{% endif %}
+
 <section class="card">
     <div class="card-header">
         <div>
@@ -97,6 +112,7 @@
                         <a class="btn btn-small btn-light" href="/users?edit={{ user.id }}">Edit</a>
                         {% if current_user.id != user.id %}
                         <form method="post" action="/users/{{ user.id }}/delete" onsubmit="return confirm('Delete this user account?');">
+                            {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                         {% endif %}

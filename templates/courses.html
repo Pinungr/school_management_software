@@ -11,6 +11,10 @@
     </div>
 </section>
 
+{% if error_message %}
+<div class="alert-error">{{ error_message }}</div>
+{% endif %}
+
 {% if view_course %}
 <section class="card detail-card">
     <div class="card-header">
@@ -37,6 +41,7 @@
         <a class="btn btn-light" href="/courses">Cancel</a>
     </div>
     <form method="post" action="{% if form_mode == 'create' %}/courses/create{% else %}/courses/{{ form_course.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
         <label><span>Course Name</span><input name="name" value="{{ form_course.name if form_course else '' }}" required></label>
         <label><span>Course Code</span><input name="code" value="{{ form_course.code if form_course else '' }}" required></label>
         <label><span>Fees</span><input type="number" step="0.01" name="fees" value="{{ form_course.fees if form_course else '' }}" required></label>
@@ -97,6 +102,7 @@
                         <a class="btn btn-small btn-light" href="/courses?view={{ course.id }}">View</a>
                         <a class="btn btn-small btn-light" href="/courses?edit={{ course.id }}">Edit</a>
                         <form method="post" action="/courses/{{ course.id }}/delete" onsubmit="return confirm('Delete this course?');">
+                            {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                     </td>

@@ -9,7 +9,7 @@ from tkinter import BOTH, LEFT, RIGHT, Button, Frame, Label, Tk, messagebox
 
 import uvicorn
 
-from main import app
+from main import app, startup_target_path
 from school_admin.database import APP_DATA_DIR
 
 
@@ -171,7 +171,7 @@ class DesktopLauncher:
         )
 
     def open_browser(self) -> None:
-        webbrowser.open(self.url, new=2)
+        webbrowser.open(f"{self.url}{startup_target_path()}", new=2)
         self.browser_opened = True
 
     def open_data_folder(self) -> None:

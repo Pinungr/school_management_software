@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initial Setup | SchoolFlow</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="auth-body">
+    <div class="chrome-bg chrome-bg-a"></div>
+    <div class="chrome-bg chrome-bg-b"></div>
+    <main class="auth-shell">
+        <section class="auth-hero">
+            <span class="meta-pill success">First Run Setup</span>
+            <h1>Set up your school and admin account before the first sign-in.</h1>
+            <p>
+                This one-time step collects the school profile and administrator details that SchoolFlow needs before
+                anyone signs in. You can update them later from Settings.
+            </p>
+            <div class="auth-demo">
+                <strong>What this updates</strong>
+                <div>School identity shown across the app</div>
+                <div>Administrator name, email, and username</div>
+                <div>Logo used on the sidebar and login page</div>
+                <div>Administrator password stored securely with hashing</div>
+            </div>
+        </section>
+        <section class="auth-card">
+            <div class="brand brand-card auth-brand">
+                {% if settings and settings.logo_url %}
+                <img class="brand-logo" src="{{ settings.logo_url }}" alt="{{ settings.school_name }} logo">
+                {% else %}
+                <div class="brand-mark">S</div>
+                {% endif %}
+                <div>
+                    <h1>SchoolFlow</h1>
+                    <p>{{ settings.school_name }}</p>
+                </div>
+            </div>
+            <h2>Initial setup</h2>
+            <p class="auth-copy">Fill in the school profile and the admin login you want to use from the first run.</p>
+            {% if error_code == "school_name_required" %}
+            <div class="alert-error">Enter the school name to continue.</div>
+            {% elif error_code == "full_name_required" %}
+            <div class="alert-error">Enter the administrator's full name to continue.</div>
+            {% elif error_code == "email_required" %}
+            <div class="alert-error">Enter the administrator email to continue.</div>
+            {% elif error_code == "username_required" %}
+            <div class="alert-error">Enter an admin username to continue.</div>
+            {% elif error_code == "password_short" %}
+            <div class="alert-error">Use a password with at least 8 characters.</div>
+            {% elif error_code == "password_mismatch" %}
+            <div class="alert-error">The password confirmation does not match.</div>
+            {% elif error_code == "username_taken" %}
+            <div class="alert-error">That username is already in use. Choose a different one.</div>
+            {% elif error_code == "email_taken" %}
+            <div class="alert-error">That email is already in use. Choose a different one.</div>
+            {% elif error_code == "invalid_logo_file" %}
+            <div class="alert-error">Choose an image file for the school logo.</div>
+            {% elif error_code == "csrf" %}
+            <div class="alert-error">Your setup session expired. Please submit the form again.</div>
+            {% endif %}
+            <form method="post" action="/setup" class="auth-form" enctype="multipart/form-data">
+                {% include "partials/csrf_input.html" %}
+                <label>
+                    <span>School Name</span>
+                    <input name="school_name" value="{{ settings.school_name }}" placeholder="Springfield Public School" required autofocus>
+                </label>
+                <label>
+                    <span>School Email</span>
+                    <input type="email" name="school_email" value="{{ settings.school_email }}" placeholder="info@school.com">
+                </label>
+                <label>
+                    <span>School Phone</span>
+                    <input name="phone_number" value="{{ settings.phone_number }}" placeholder="+91 9876543210">
+                </label>
+                <label class="wide">
+                    <span>School Address</span>
+                    <textarea name="address" rows="3" placeholder="School address">{{ settings.address }}</textarea>
+                </label>
+                <input type="hidden" name="existing_logo_url" value="{{ settings.logo_url }}">
+                <label>
+                    <span>School Logo</span>
+                    <input id="logo_file" type="file" name="logo_file" accept="image/*">
+                    <small>Select a logo image from this PC. If you skip it, the current default logo stays in place.</small>
+                </label>
+                <div class="setup-logo-preview">
+                    <img id="setup-logo-preview-image" src="{{ settings.logo_url }}" alt="Logo preview">
+                </div>
+                <label>
+                    <span>Admin Full Name</span>
+                    <input name="admin_full_name" value="{{ admin_full_name }}" placeholder="System Administrator" required>
+                </label>
+                <label>
+                    <span>Admin Email</span>
+                    <input type="email" name="admin_email" value="{{ admin_email }}" placeholder="admin@school.com" required>
+                </label>
+                <label>
+                    <span>Admin Username</span>
+                    <input name="admin_username" value="{{ admin_username }}" placeholder="admin" required>
+                </label>
+                <label>
+                    <span>Admin Password</span>
+                    <input type="password" name="admin_password" placeholder="Create a secure password" required>
+                </label>
+                <label>
+                    <span>Confirm Password</span>
+                    <input type="password" name="confirm_password" placeholder="Repeat the password" required>
+                </label>
+                <button class="btn btn-primary auth-submit" type="submit">Save Setup</button>
+            </form>
+        </section>
+    </main>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const logoInput = document.getElementById("logo_file");
+        const previewImage = document.getElementById("setup-logo-preview-image");
+        if (!logoInput || !previewImage) {
+            return;
+        }
+
+        const fallbackSrc = "/static/logo.svg";
+        const updatePreview = () => {
+            const [file] = logoInput.files || [];
+            if (!file) {
+                previewImage.src = previewImage.dataset.currentSrc || fallbackSrc;
+                return;
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            previewImage.src = objectUrl;
+        };
+
+        previewImage.dataset.currentSrc = previewImage.src;
+        previewImage.addEventListener("error", () => {
+            previewImage.src = fallbackSrc;
+        });
+        logoInput.addEventListener("change", updatePreview);
+    });
+    </script>
+</body>
+</html>

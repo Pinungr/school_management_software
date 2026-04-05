@@ -28,6 +28,8 @@ else:
 
 DATA_DIR = APP_DATA_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR = APP_DATA_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 DATABASE_URL = f"sqlite:///{(DATA_DIR / 'school.db').as_posix()}"
 
 

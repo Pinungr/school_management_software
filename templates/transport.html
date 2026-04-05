@@ -11,6 +11,10 @@
     </div>
 </section>
 
+{% if error_message %}
+<div class="alert-error">{{ error_message }}</div>
+{% endif %}
+
 {% if view_route %}
 <section class="card detail-card">
     <div class="card-header">
@@ -36,6 +40,7 @@
         <a class="btn btn-light" href="/transport">Cancel</a>
     </div>
     <form method="post" action="{% if form_mode == 'create' %}/transport/create{% else %}/transport/{{ form_route.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
         <label><span>Route Name</span><input name="route_name" value="{{ form_route.route_name if form_route else '' }}" required></label>
         <label><span>Fee Amount</span><input type="number" step="0.01" name="fee_amount" value="{{ form_route.fee_amount if form_route else '' }}" required></label>
         <label>
@@ -95,6 +100,7 @@
                         <a class="btn btn-small btn-light" href="/transport?view={{ route.id }}">View</a>
                         <a class="btn btn-small btn-light" href="/transport?edit={{ route.id }}">Edit</a>
                         <form method="post" action="/transport/{{ route.id }}/delete" onsubmit="return confirm('Delete this route?');">
+                            {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                     </td>

@@ -9,13 +9,24 @@
 </section>
 
 <section class="card">
-    <form method="post" action="/settings" class="settings-grid">
+    {% if request.query_params.get("error") == "invalid_logo_file" %}
+    <div class="alert-error">Choose a PNG, JPG, GIF, or WEBP image under 2 MB for the school logo.</div>
+    {% endif %}
+    <form method="post" action="/settings" class="settings-grid" enctype="multipart/form-data">
+        {% include "partials/csrf_input.html" %}
         <div class="settings-section">
             <h3>School Information</h3>
             <label><span>School Name</span><input name="school_name" value="{{ settings.school_name }}"></label>
             <label><span>School Email</span><input type="email" name="school_email" value="{{ settings.school_email }}"></label>
             <label><span>Phone Number</span><input name="phone_number" value="{{ settings.phone_number }}"></label>
-            <label><span>Logo URL</span><input name="logo_url" value="{{ settings.logo_url }}"></label>
+            <input type="hidden" name="existing_logo_url" value="{{ settings.logo_url }}">
+            <label>
+                <span>School Logo</span>
+                <input id="settings_logo_file" type="file" name="logo_file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
+            </label>
+            <div class="setup-logo-preview">
+                <img id="settings-logo-preview-image" src="{{ settings.logo_url }}" alt="School logo preview">
+            </div>
             <label class="wide"><span>Address</span><textarea name="address" rows="3">{{ settings.address }}</textarea></label>
         </div>
         <div class="settings-section">
@@ -61,4 +72,31 @@
         </div>
     </form>
 </section>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const logoInput = document.getElementById("settings_logo_file");
+    const previewImage = document.getElementById("settings-logo-preview-image");
+    if (!logoInput || !previewImage) {
+        return;
+    }
+
+    const fallbackSrc = "/static/logo.svg";
+    const updatePreview = () => {
+        const [file] = logoInput.files || [];
+        if (!file) {
+            previewImage.src = previewImage.dataset.currentSrc || fallbackSrc;
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        previewImage.src = objectUrl;
+    };
+
+    previewImage.dataset.currentSrc = previewImage.src;
+    previewImage.addEventListener("error", () => {
+        previewImage.src = fallbackSrc;
+    });
+    logoInput.addEventListener("change", updatePreview);
+});
+</script>
 {% endblock %}
