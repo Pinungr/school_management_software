@@ -764,9 +764,9 @@ async def delete_route(route_id: int, request: Request):
 async def payments_page(
     request: Request,
     payment_type: str = "",
-    month: int | None = None,
-    year: int | None = None,
-    student_id: int | None = None,
+    month: str = "",
+    year: str = "",
+    student_id: str = "",
     payment_status: str = "",
     create: int | None = None,
     edit: int | None = None,
@@ -780,12 +780,12 @@ async def payments_page(
         )
         if payment_type:
             statement = statement.where(Payment.service_type == payment_type)
-        if month:
-            statement = statement.where(func.strftime("%m", Payment.payment_date) == f"{month:02d}")
-        if year:
-            statement = statement.where(func.strftime("%Y", Payment.payment_date) == str(year))
-        if student_id:
-            statement = statement.where(Payment.student_id == student_id)
+        if month and month.isdigit():
+            statement = statement.where(func.strftime("%m", Payment.payment_date) == f"{int(month):02d}")
+        if year and year.isdigit():
+            statement = statement.where(func.strftime("%Y", Payment.payment_date) == year)
+        if student_id and student_id.isdigit():
+            statement = statement.where(Payment.student_id == int(student_id))
         if payment_status:
             statement = statement.where(Payment.status == payment_status)
         selected_payment = session.get(Payment, edit) if edit else None
@@ -800,7 +800,7 @@ async def payments_page(
             lookups=active_lookups(session),
             form_mode="create" if create else ("edit" if edit else None),
             form_payment=selected_payment,
-            filters={"payment_type": payment_type, "month": month, "year": year, "student_id": student_id, "payment_status": payment_status},
+            filters={"payment_type": payment_type, "month": int(month) if month and month.isdigit() else None, "year": int(year) if year and year.isdigit() else None, "student_id": int(student_id) if student_id and student_id.isdigit() else None, "payment_status": payment_status},
             month_options=MONTH_OPTIONS,
             year_options=years_for_filter(),
         )
@@ -868,9 +868,9 @@ async def delete_payment(payment_id: int, request: Request):
 async def export_payments(
     request: Request,
     payment_type: str = "",
-    month: int | None = None,
-    year: int | None = None,
-    student_id: int | None = None,
+    month: str = "",
+    year: str = "",
+    student_id: str = "",
     payment_status: str = "",
 ):
     with SessionLocal() as session:
@@ -882,12 +882,12 @@ async def export_payments(
         )
         if payment_type:
             statement = statement.where(Payment.service_type == payment_type)
-        if month:
-            statement = statement.where(func.strftime("%m", Payment.payment_date) == f"{month:02d}")
-        if year:
-            statement = statement.where(func.strftime("%Y", Payment.payment_date) == str(year))
-        if student_id:
-            statement = statement.where(Payment.student_id == student_id)
+        if month and month.isdigit():
+            statement = statement.where(func.strftime("%m", Payment.payment_date) == f"{int(month):02d}")
+        if year and year.isdigit():
+            statement = statement.where(func.strftime("%Y", Payment.payment_date) == year)
+        if student_id and student_id.isdigit():
+            statement = statement.where(Payment.student_id == int(student_id))
         if payment_status:
             statement = statement.where(Payment.status == payment_status)
         payments = session.scalars(statement).all()
