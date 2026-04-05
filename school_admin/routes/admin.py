@@ -15,6 +15,9 @@ from school_admin.utils import form_with_csrf, get_settings, redirect, render_pa
 router = APIRouter()
 USER_ROLES = {"Admin", "Clerk"}
 USER_STATUSES = {"Active", "Inactive"}
+FEE_FREQUENCIES = {"Monthly", "Quarterly", "Half-Yearly", "Yearly"}
+CURRENCIES = {"INR (Rs)", "USD ($)", "EUR (EUR)"}
+TIMEZONES = {"Asia/Kolkata (IST)", "UTC", "Asia/Dubai (GST)"}
 
 
 @router.get("/users", response_class=HTMLResponse)
@@ -139,6 +142,8 @@ async def edit_user(user_id: int, request: Request):
         user.status = status
         password = str(form.get("password", "")).strip()
         if password:
+            if len(password) < 8:
+                return redirect(f"/users?edit={user_id}&error=password_short")
             user.password_hash = hash_password(password)
         try:
             session.commit()
@@ -175,7 +180,7 @@ async def delete_user(user_id: int, request: Request):
 
 
 @router.get("/settings", response_class=HTMLResponse)
-async def settings_page(request: Request):
+async def settings_page(request: Request, error: str = ""):
     with SessionLocal() as session:
         current_user, response = require_admin(session, request)
         if response:
@@ -186,6 +191,7 @@ async def settings_page(request: Request):
             current_user,
             "settings.html",
             "settings",
+            error_code=error,
         )
 
 
@@ -199,6 +205,18 @@ async def update_settings(request: Request):
         if response:
             return response
         settings = get_settings(session)
+        school_name = str(form.get("school_name", "")).strip()
+        fee_frequency = str(form.get("fee_frequency", "Monthly")).strip()
+        currency = str(form.get("currency", "INR (Rs)")).strip()
+        timezone = str(form.get("timezone", "Asia/Kolkata (IST)")).strip()
+        if not school_name:
+            return redirect("/settings?error=school_name_required")
+        if fee_frequency not in FEE_FREQUENCIES:
+            return redirect("/settings?error=invalid_fee_frequency")
+        if currency not in CURRENCIES:
+            return redirect("/settings?error=invalid_currency")
+        if timezone not in TIMEZONES:
+            return redirect("/settings?error=invalid_timezone")
         existing_logo_url = sanitize_logo_url(form.get("existing_logo_url"), settings.logo_url)
         logo_url = existing_logo_url
         logo_file = form.get("logo_file")
@@ -209,16 +227,16 @@ async def update_settings(request: Request):
                 return redirect("/settings?error=invalid_logo_file")
             if logo_url != existing_logo_url:
                 delete_uploaded_logo(existing_logo_url)
-        settings.school_name = str(form.get("school_name", "")).strip()
+        settings.school_name = school_name
         settings.school_email = str(form.get("school_email", "")).strip()
         settings.phone_number = str(form.get("phone_number", "")).strip()
         settings.logo_url = logo_url
         settings.address = str(form.get("address", "")).strip()
         settings.academic_year = str(form.get("academic_year", "")).strip()
         settings.financial_year = str(form.get("financial_year", "")).strip()
-        settings.fee_frequency = str(form.get("fee_frequency", "Monthly")).strip()
-        settings.currency = str(form.get("currency", "INR (Rs)")).strip()
-        settings.timezone = str(form.get("timezone", "Asia/Kolkata (IST)")).strip()
+        settings.fee_frequency = fee_frequency
+        settings.currency = currency
+        settings.timezone = timezone
         settings.developer_name = str(form.get("developer_name", "")).strip()
         settings.developer_email = str(form.get("developer_email", "")).strip()
         settings.developer_phone = str(form.get("developer_phone", "")).strip()

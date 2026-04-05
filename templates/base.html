@@ -57,7 +57,10 @@
                     <span class="meta-pill user-meta">{{ current_user.username|capitalize }} - {{ current_user.role }}</span>
                     <span class="meta-pill">{{ today.strftime("%d %b %Y") }}</span>
                     <button type="button" id="refresh-app" class="meta-pill btn btn-small btn-light">Refresh</button>
-                    <a class="meta-pill logout-pill" href="/logout">Log Out</a>
+                    <form method="post" action="/logout" class="logout-form">
+                        {% include "partials/csrf_input.html" %}
+                        <button type="submit" class="meta-pill logout-pill">Log Out</button>
+                    </form>
                 </div>
             </header>
             <div class="page-stack">

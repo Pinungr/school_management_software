@@ -9,8 +9,16 @@
 </section>
 
 <section class="card">
-    {% if request.query_params.get("error") == "invalid_logo_file" %}
+    {% if error_code == "invalid_logo_file" %}
     <div class="alert-error">Choose a PNG, JPG, GIF, or WEBP image under 2 MB for the school logo.</div>
+    {% elif error_code == "school_name_required" %}
+    <div class="alert-error">Enter the school name before saving settings.</div>
+    {% elif error_code == "invalid_fee_frequency" %}
+    <div class="alert-error">Choose a valid default fee frequency.</div>
+    {% elif error_code == "invalid_currency" %}
+    <div class="alert-error">Choose a valid currency.</div>
+    {% elif error_code == "invalid_timezone" %}
+    <div class="alert-error">Choose a valid timezone.</div>
     {% endif %}
     <form method="post" action="/settings" class="settings-grid" enctype="multipart/form-data">
         {% include "partials/csrf_input.html" %}

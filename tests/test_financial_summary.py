@@ -4,7 +4,7 @@ import re
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import sessionmaker
 
 from school_admin.auth import hash_password
@@ -14,6 +14,7 @@ from school_admin.media import DEFAULT_LOGO_URL
 from school_admin.migrations import run_migrations
 from school_admin.models import Course, Payment, Setting, Student, TransportRoute, User
 from school_admin.seed import seed_database
+from school_admin.utils import dashboard_metrics, payment_summary
 from main import app, calculate_student_fees_and_payments, startup_target_path
 
 
@@ -21,6 +22,7 @@ from main import app, calculate_student_fees_and_payments, startup_target_path
 def seeded_session():
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
+        run_migrations(session)
         seed_database(session)
         yield session
 
@@ -462,6 +464,43 @@ def test_users_page_keeps_last_active_admin_protected(seeded_session, client):
     assert response.headers["location"] == "/users?edit=1&error=last_admin"
 
 
+def test_user_edit_rejects_short_password(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "admin",
+            "password": "adminadmin",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    users_page = client.get("/users?edit=1")
+    edit_csrf_token = extract_csrf_token(users_page.text)
+    response = client.post(
+        "/users/1/edit",
+        data={
+            "csrf_token": edit_csrf_token,
+            "full_name": "System Administrator",
+            "username": "admin",
+            "email": "admin@school.local",
+            "role": "Admin",
+            "status": "Active",
+            "password": "short",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/users?edit=1&error=password_short"
+
+
 def test_settings_rejects_remote_logo_url_and_accepts_uploaded_logo(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
     settings = seeded_session.get(Setting, 1)
@@ -521,6 +560,63 @@ def test_settings_rejects_remote_logo_url_and_accepts_uploaded_logo(seeded_sessi
             uploaded_logo.unlink(missing_ok=True)
         settings.logo_url = original_logo_url
         seeded_session.commit()
+
+
+def test_settings_require_valid_school_name_and_post_logout_csrf(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "admin",
+            "password": "adminadmin",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    settings_page = client.get("/settings")
+    settings_csrf_token = extract_csrf_token(settings_page.text)
+    invalid_settings_response = client.post(
+        "/settings",
+        data={
+            "csrf_token": settings_csrf_token,
+            "school_name": "",
+            "school_email": "secure@school.test",
+            "phone_number": "+91 9000000000",
+            "existing_logo_url": DEFAULT_LOGO_URL,
+            "address": "123 Secure Street",
+            "academic_year": "2026-2027",
+            "financial_year": "2026-2027",
+            "fee_frequency": "Monthly",
+            "currency": "INR (Rs)",
+            "timezone": "Asia/Kolkata (IST)",
+            "developer_name": "",
+            "developer_email": "",
+            "developer_phone": "",
+        },
+        follow_redirects=False,
+    )
+    assert invalid_settings_response.status_code == 303
+    assert invalid_settings_response.headers["location"] == "/settings?error=school_name_required"
+
+    logout_page = client.get("/dashboard")
+    logout_csrf_token = extract_csrf_token(logout_page.text)
+    logout_response = client.post(
+        "/logout",
+        data={"csrf_token": logout_csrf_token},
+        follow_redirects=False,
+    )
+    assert logout_response.status_code == 303
+    assert logout_response.headers["location"] == "/login"
+
+    dashboard_response = client.get("/dashboard", follow_redirects=False)
+    assert dashboard_response.status_code == 303
+    assert dashboard_response.headers["location"].startswith("/login")
 
 
 def test_payments_reject_non_positive_amounts(seeded_session, client):
@@ -604,6 +700,105 @@ def test_courses_reject_negative_fee_values(seeded_session, client):
     assert response.headers["location"] == "/courses?create=1&error=invalid_amount"
 
 
+def test_finance_summaries_exclude_pending_payments(seeded_session):
+    ensure_operational_test_data(seeded_session)
+    student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
+    assert student is not None
+    assert student.course is not None
+
+    baseline_summary = payment_summary(seeded_session)
+    baseline_metrics = dashboard_metrics(seeded_session)
+
+    pending_reference = "TEST-PENDING-ONLY"
+    existing_pending = seeded_session.scalar(
+        select(Payment).where(Payment.reference == pending_reference)
+    )
+    if existing_pending is None:
+        seeded_session.add(
+            Payment(
+                student_id=student.id,
+                service_type="course",
+                service_id=student.course.id,
+                amount=700.0,
+                payment_date=date(2026, 4, 5),
+                method="Cash",
+                reference=pending_reference,
+                status="Pending",
+            )
+        )
+        seeded_session.commit()
+
+    try:
+        summary = payment_summary(seeded_session)
+        metrics = dashboard_metrics(seeded_session)
+
+        assert summary == baseline_summary
+        assert metrics == baseline_metrics
+    finally:
+        pending_payment = seeded_session.scalar(
+            select(Payment).where(Payment.reference == pending_reference)
+        )
+        if pending_payment is not None:
+            seeded_session.delete(pending_payment)
+            seeded_session.commit()
+
+
+def test_notify_guardian_escapes_student_and_school_fields(seeded_session, client):
+    ensure_operational_test_data(seeded_session)
+    configure_setup_state(seeded_session, setup_completed=True)
+    student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
+    settings = seeded_session.get(Setting, 1)
+    assert student is not None
+    assert settings is not None
+
+    original_student_name = student.full_name
+    original_parent_name = student.parent_name
+    original_address = student.address
+    original_school_name = settings.school_name
+
+    try:
+        student.full_name = '<script>alert("student")</script>'
+        student.parent_name = '<img src=x onerror=alert("parent")>'
+        student.address = '<b>unsafe</b>'
+        settings.school_name = '<script>alert("school")</script>'
+        seeded_session.commit()
+
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        students_page = client.get("/students")
+        notify_csrf_token = extract_csrf_token(students_page.text)
+        response = client.post(
+            f"/students/{student.id}/notify",
+            data={"csrf_token": notify_csrf_token},
+        )
+
+        assert response.status_code == 200
+        assert '<script>alert("student")</script>' not in response.text
+        assert '<script>alert("school")</script>' not in response.text
+        assert '&lt;script&gt;alert(&quot;student&quot;)&lt;/script&gt;' in response.text
+        assert '&lt;script&gt;alert(&quot;school&quot;)&lt;/script&gt;' in response.text
+        assert '&lt;img src=x onerror=alert(&quot;parent&quot;)&gt;' in response.text
+        assert '&lt;b&gt;unsafe&lt;/b&gt;' in response.text
+    finally:
+        student.full_name = original_student_name
+        student.parent_name = original_parent_name
+        student.address = original_address
+        settings.school_name = original_school_name
+        seeded_session.commit()
+
+
 def test_seed_database_creates_setup_state_without_default_clerk_account():
     db_path = Path("data") / "seed-bootstrap-test.db"
     db_path.unlink(missing_ok=True)
@@ -621,6 +816,9 @@ def test_seed_database_creates_setup_state_without_default_clerk_account():
 
             assert settings is not None
             assert settings.setup_completed is False
+            assert settings.developer_name == ""
+            assert settings.developer_email == ""
+            assert settings.developer_phone == ""
             assert admin_user is not None
             assert admin_user.status == "Inactive"
             assert clerk_user is None
@@ -671,6 +869,150 @@ def test_migrations_backfill_unique_usernames_for_legacy_user_table():
             assert rows[1][1].startswith("admin")
             assert rows[1][1] != rows[0][1]
             assert rows[2][1] == "user3"
+    finally:
+        test_engine.dispose()
+        db_path.unlink(missing_ok=True)
+
+
+def test_payments_keep_service_name_after_catalog_delete(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+
+    temp_course = Course(
+        name="History Snapshot Course",
+        code="HIST-SNAPSHOT",
+        fees=2500,
+        frequency="Monthly",
+        status="Active",
+        description="Temporary course for history retention tests.",
+    )
+    temp_student = Student(
+        student_code="SNAP-STU-001",
+        full_name="Snapshot Student",
+        email="snapshot.student@example.com",
+        phone="9999990009",
+        parent_name="Snapshot Parent",
+        status="Active",
+        address="Snapshot Address",
+        joined_on=date(2026, 4, 5),
+        course=temp_course,
+    )
+    temp_payment = Payment(
+        student=temp_student,
+        service_type="course",
+        service_name=temp_course.name,
+        amount=2500.0,
+        payment_date=date(2026, 4, 5),
+        method="Cash",
+        reference="SNAP-HISTORY-PAYMENT",
+        status="Paid",
+    )
+    temp_payment.service_id = 0
+    seeded_session.add_all([temp_course, temp_student, temp_payment])
+    seeded_session.flush()
+    temp_payment.service_id = temp_course.id
+    seeded_session.commit()
+
+    try:
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        courses_page = client.get("/courses")
+        delete_csrf_token = extract_csrf_token(courses_page.text)
+        delete_response = client.post(
+            f"/courses/{temp_course.id}/delete",
+            data={"csrf_token": delete_csrf_token},
+            follow_redirects=False,
+        )
+        assert delete_response.status_code == 303
+
+        payments_page = client.get("/payments")
+        assert payments_page.status_code == 200
+        assert "History Snapshot Course" in payments_page.text
+
+        export_response = client.get("/payments/export")
+        assert export_response.status_code == 200
+        assert "History Snapshot Course" in export_response.text
+    finally:
+        payment = seeded_session.scalar(select(Payment).where(Payment.reference == "SNAP-HISTORY-PAYMENT"))
+        if payment is not None:
+            seeded_session.delete(payment)
+        student = seeded_session.scalar(select(Student).where(Student.student_code == "SNAP-STU-001"))
+        if student is not None:
+            seeded_session.delete(student)
+        course = seeded_session.scalar(select(Course).where(Course.code == "HIST-SNAPSHOT"))
+        if course is not None:
+            seeded_session.delete(course)
+        seeded_session.commit()
+
+
+def test_sqlite_foreign_keys_are_enabled_for_sessions():
+    with SessionLocal() as session:
+        assert session.execute(text("PRAGMA foreign_keys")).scalar() == 1
+
+
+def test_migration_clears_placeholder_developer_info_for_unconfigured_system():
+    db_path = Path("data") / "placeholder-settings-test.db"
+    db_path.unlink(missing_ok=True)
+
+    test_engine = create_engine(f"sqlite:///{db_path.as_posix()}", connect_args={"check_same_thread": False})
+    test_session_local = sessionmaker(bind=test_engine, autoflush=False, autocommit=False)
+
+    try:
+        with test_engine.begin() as connection:
+            connection.exec_driver_sql(
+                """
+                CREATE TABLE settings (
+                    id INTEGER PRIMARY KEY,
+                    school_name TEXT,
+                    school_email TEXT,
+                    phone_number TEXT,
+                    logo_url TEXT,
+                    address TEXT,
+                    academic_year TEXT,
+                    financial_year TEXT,
+                    fee_frequency TEXT,
+                    currency TEXT,
+                    timezone TEXT,
+                    developer_name TEXT,
+                    developer_email TEXT,
+                    developer_phone TEXT,
+                    setup_completed INTEGER
+                )
+                """
+            )
+            connection.exec_driver_sql(
+                """
+                INSERT INTO settings (
+                    id, school_name, school_email, phone_number, logo_url, address,
+                    academic_year, financial_year, fee_frequency, currency, timezone,
+                    developer_name, developer_email, developer_phone, setup_completed
+                ) VALUES (
+                    1, 'Private School', 'info@school.com', '+91 9876543210', '/static/logo.svg',
+                    '123 Education Street', '2026-2027', '2026-2027', 'Monthly',
+                    'INR (Rs)', 'Asia/Kolkata (IST)', 'Pinaki Sarangi', 'pinungr@gmail.com',
+                    '7751952860', 0
+                )
+                """
+            )
+
+        with test_session_local() as session:
+            run_migrations(session)
+            settings = session.get(Setting, 1)
+            assert settings is not None
+            assert settings.developer_name == ""
+            assert settings.developer_email == ""
+            assert settings.developer_phone == ""
     finally:
         test_engine.dispose()
         db_path.unlink(missing_ok=True)

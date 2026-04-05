@@ -240,6 +240,16 @@ textarea {
     color: #9f1d40;
 }
 
+.logout-form {
+    margin: 0;
+}
+
+.logout-form .logout-pill {
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(213, 223, 237, 0.95);
+}
+
 .page-stack {
     display: grid;
     gap: 22px;

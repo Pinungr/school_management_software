@@ -6,8 +6,9 @@ This project is set up to package the offline FastAPI app as a desktop-style Win
 
 1. `launcher.py` starts the local FastAPI server in the background.
 2. It opens the browser automatically to the local app.
-3. PyInstaller bundles the launcher, backend, templates, and static assets.
-4. Inno Setup wraps the bundled app into a normal Windows installer.
+3. The packaged launcher keeps a small console window open so the local server stays alive offline.
+4. PyInstaller bundles the launcher, backend, templates, and static assets.
+5. Inno Setup wraps the bundled app into a normal Windows installer.
 
 ## Files used
 
@@ -35,4 +36,6 @@ This project is set up to package the offline FastAPI app as a desktop-style Win
 
 - The packaged app stores its SQLite database under the current user's local app data folder.
 - Templates and static assets are bundled into the executable distribution.
+- The installed app runs fully offline on the target PC. It only opens a browser to a local `127.0.0.1` address.
+- Keep the SchoolFlow console window open while using the app. Closing that window stops the local server.
 - If you want a custom Windows icon in the installer and executable, add `static\logo.ico` before building.

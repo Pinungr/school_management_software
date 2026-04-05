@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from school_admin.database import SessionLocal
 from school_admin.utils import (
     dashboard_metrics,
+    form_with_csrf,
     get_current_user,
     is_setup_complete,
     redirect,
@@ -28,7 +29,15 @@ async def home(request: Request) -> RedirectResponse:
 
 
 @router.get("/logout")
+async def logout_page(request: Request):
+    return redirect("/dashboard")
+
+
+@router.post("/logout")
 async def logout(request: Request):
+    _, response = await form_with_csrf(request, "/dashboard")
+    if response:
+        return response
     request.session.clear()
     return redirect("/login")
 

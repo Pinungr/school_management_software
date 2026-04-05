@@ -5,12 +5,19 @@ import socket
 import threading
 import time
 import webbrowser
-from tkinter import BOTH, LEFT, RIGHT, Button, Frame, Label, Tk, messagebox
 
 import uvicorn
 
 from main import app, startup_target_path
 from school_admin.database import APP_DATA_DIR
+
+
+def should_skip_browser() -> bool:
+    return os.environ.get("SCHOOLFLOW_SKIP_BROWSER") == "1"
+
+
+def is_smoke_test() -> bool:
+    return os.environ.get("SCHOOLFLOW_SMOKE_TEST") == "1"
 
 
 def find_available_port(start_port: int = 8765, max_tries: int = 40) -> int:
@@ -46,133 +53,58 @@ class DesktopLauncher:
             uvicorn.Config(app, host="127.0.0.1", port=self.port, log_level="warning")
         )
         self.server_thread = threading.Thread(target=self.server.run, daemon=True)
-        self.browser_opened = False
-        self.root = self._build_window()
 
-    def _build_window(self) -> Tk:
-        root = Tk()
-        root.title("SchoolFlow Desktop")
-        root.geometry("520x320")
-        root.minsize(520, 320)
-        root.configure(bg="#f4f7fb")
-        root.protocol("WM_DELETE_WINDOW", self.shutdown)
-
-        shell = Frame(root, bg="#f4f7fb", padx=22, pady=22)
-        shell.pack(fill=BOTH, expand=True)
-
-        hero = Frame(shell, bg="#ffffff", highlightbackground="#dfe7f3", highlightthickness=1)
-        hero.pack(fill=BOTH, expand=True)
-
-        Label(
-            hero,
-            text="SchoolFlow",
-            bg="#ffffff",
-            fg="#162235",
-            font=("Segoe UI", 22, "bold"),
-            pady=18,
-        ).pack()
-        Label(
-            hero,
-            text="Your offline school management workspace is launching.",
-            bg="#ffffff",
-            fg="#66758b",
-            font=("Segoe UI", 11),
-        ).pack()
-
-        self.status_label = Label(
-            hero,
-            text="Starting local server...",
-            bg="#ffffff",
-            fg="#2563eb",
-            font=("Segoe UI", 10, "bold"),
-            pady=18,
-        )
-        self.status_label.pack()
-
-        Label(
-            hero,
-            text="This window keeps the desktop app running. You can reopen the browser any time.",
-            bg="#ffffff",
-            fg="#66758b",
-            font=("Segoe UI", 10),
-            wraplength=420,
-            justify=LEFT,
-            padx=24,
-        ).pack()
-
-        actions = Frame(hero, bg="#ffffff", pady=22)
-        actions.pack(fill="x")
-
-        Button(
-            actions,
-            text="Open SchoolFlow",
-            command=self.open_browser,
-            bg="#2563eb",
-            fg="#ffffff",
-            activebackground="#1746a2",
-            activeforeground="#ffffff",
-            relief="flat",
-            padx=18,
-            pady=10,
-            font=("Segoe UI", 10, "bold"),
-        ).pack(side=LEFT, padx=(24, 8))
-
-        Button(
-            actions,
-            text="Open Data Folder",
-            command=self.open_data_folder,
-            bg="#eef3fb",
-            fg="#162235",
-            activebackground="#dfe7f3",
-            relief="flat",
-            padx=18,
-            pady=10,
-            font=("Segoe UI", 10),
-        ).pack(side=LEFT)
-
-        Button(
-            actions,
-            text="Exit",
-            command=self.shutdown,
-            bg="#ffffff",
-            fg="#dc4c64",
-            activebackground="#fff1f3",
-            relief="flat",
-            padx=14,
-            pady=10,
-            font=("Segoe UI", 10),
-        ).pack(side=RIGHT, padx=(8, 24))
-
-        return root
-
-    def start(self) -> None:
+    def start(self) -> int:
+        print("SchoolFlow Desktop")
+        print("==================")
+        print("Starting local server...")
         self.server_thread.start()
-        threading.Thread(target=self._complete_startup, daemon=True).start()
-        self.root.mainloop()
 
-    def _complete_startup(self) -> None:
-        if wait_for_server(self.port):
-            self.root.after(0, self._set_ready_state)
-            self.open_browser()
+        if not wait_for_server(self.port):
+            print("")
+            print("The local server did not start correctly.")
+            print("Close this window and launch SchoolFlow again.")
+            self.shutdown()
+            return 1
+
+        print(f"Running locally at {self.url}")
+        if should_skip_browser():
+            print("Browser launch skipped for this run.")
         else:
-            self.root.after(0, self._set_error_state)
+            print("Opening your browser...")
+            self.open_browser()
 
-    def _set_ready_state(self) -> None:
-        self.status_label.configure(text=f"Running locally at {self.url}", fg="#198754")
+        if is_smoke_test():
+            print("Smoke test startup succeeded.")
+            self.shutdown()
+            return 0
 
-    def _set_error_state(self) -> None:
-        self.status_label.configure(
-            text="The local server did not start correctly. Please restart the app.",
-            fg="#dc4c64",
-        )
-        messagebox.showerror(
-            "SchoolFlow",
-            "The desktop app could not start the local server. Please close the app and try again.",
-        )
+        print("")
+        print("Keep this window open while using SchoolFlow.")
+        print("Commands: press Enter to reopen the browser, type 'data' to open the data folder,")
+        print("type 'exit' to close SchoolFlow.")
+
+        try:
+            while True:
+                command = input("> ").strip().lower()
+                if command in {"", "open"}:
+                    self.open_browser()
+                    continue
+                if command == "data":
+                    self.open_data_folder()
+                    continue
+                if command in {"exit", "quit", "q"}:
+                    break
+                print("Unknown command. Use Enter, 'data', or 'exit'.")
+        except (EOFError, KeyboardInterrupt):
+            print("")
+        finally:
+            print("Shutting down SchoolFlow...")
+            self.shutdown()
+        return 0
 
     def open_browser(self) -> None:
         webbrowser.open(f"{self.url}{startup_target_path()}", new=2)
-        self.browser_opened = True
 
     def open_data_folder(self) -> None:
         APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -180,8 +112,9 @@ class DesktopLauncher:
 
     def shutdown(self) -> None:
         self.server.should_exit = True
-        self.root.after(200, self.root.destroy)
+        if self.server_thread.is_alive():
+            self.server_thread.join(timeout=5)
 
 
 if __name__ == "__main__":
-    DesktopLauncher().start()
+    raise SystemExit(DesktopLauncher().start())

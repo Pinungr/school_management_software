@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from school_admin.database import SessionLocal
-from school_admin.models import Payment, Student
+from school_admin.models import Course, Hostel, Payment, Student, TransportRoute
 from school_admin.utils import (
     MONTH_OPTIONS,
     active_lookups,
@@ -49,6 +49,21 @@ def positive_float(value: str) -> float | None:
     except ValueError:
         return None
     return amount if amount > 0 else None
+
+
+def resolve_service_name(session, service_type: str, service_id: int | None) -> str:
+    if service_id is None:
+        return ""
+    if service_type == "course":
+        course = session.get(Course, service_id)
+        return course.name if course else ""
+    if service_type == "hostel":
+        hostel = session.get(Hostel, service_id)
+        return hostel.name if hostel else ""
+    if service_type == "transport":
+        route = session.get(TransportRoute, service_id)
+        return route.route_name if route else ""
+    return ""
 
 
 @router.get("/payments", response_class=HTMLResponse)
@@ -149,6 +164,7 @@ async def create_payment(request: Request):
                 student_id=student_id,
                 service_type=service_type,
                 service_id=service_id,
+                service_name=resolve_service_name(session, service_type, service_id),
                 amount=amount,
                 payment_date=payment_date,
                 method=method,
@@ -199,6 +215,7 @@ async def edit_payment(payment_id: int, request: Request):
         payment.student_id = student_id
         payment.service_type = service_type
         payment.service_id = service_id
+        payment.service_name = resolve_service_name(session, service_type, service_id)
         payment.amount = amount
         payment.payment_date = payment_date
         payment.method = method

@@ -244,16 +244,27 @@ def dashboard_metrics(session: Session) -> dict[str, float | int]:
     active_courses = session.scalar(
         select(func.count()).select_from(Course).where(Course.status == "Active")
     ) or 0
-    total_collected = session.scalar(select(func.coalesce(func.sum(Payment.amount), 0.0))) or 0.0
+    total_collected = session.scalar(
+        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status == "Paid")
+    ) or 0.0
 
     course_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "course")
+        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+            Payment.service_type == "course",
+            Payment.status == "Paid",
+        )
     ) or 0.0
     hostel_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "hostel")
+        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+            Payment.service_type == "hostel",
+            Payment.status == "Paid",
+        )
     ) or 0.0
     transport_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "transport")
+        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+            Payment.service_type == "transport",
+            Payment.status == "Paid",
+        )
     ) or 0.0
 
     expected_course = session.scalar(
@@ -292,17 +303,29 @@ def dashboard_metrics(session: Session) -> dict[str, float | int]:
 
 def payment_summary(session: Session) -> dict[str, float]:
     return {
-        "total": session.scalar(select(func.coalesce(func.sum(Payment.amount), 0.0))) or 0.0,
+        "total": session.scalar(
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status == "Paid")
+        )
+        or 0.0,
         "course": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "course")
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+                Payment.service_type == "course",
+                Payment.status == "Paid",
+            )
         )
         or 0.0,
         "hostel": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "hostel")
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+                Payment.service_type == "hostel",
+                Payment.status == "Paid",
+            )
         )
         or 0.0,
         "transport": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.service_type == "transport")
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+                Payment.service_type == "transport",
+                Payment.status == "Paid",
+            )
         )
         or 0.0,
     }
@@ -399,6 +422,8 @@ def payment_service_maps(session: Session) -> dict[str, dict[int, str]]:
 def payment_service_name(
     payment: Payment, service_maps: dict[str, dict[int, str]]
 ) -> str:
+    if str(payment.service_name or "").strip():
+        return payment.service_name
     if payment.service_id is None:
         return ""
     return service_maps.get(payment.service_type, {}).get(

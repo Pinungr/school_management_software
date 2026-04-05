@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from html import escape
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
@@ -236,12 +237,24 @@ async def notify_guardian(student_id: int, request: Request):
             return redirect("/students")
 
         settings = session.get(Setting, 1) or Setting()
+        school_name = escape(settings.school_name or "")
+        school_address = escape(settings.address or "")
+        school_phone = escape(settings.phone_number or "")
+        school_email = escape(settings.school_email or "")
+        school_currency = escape(settings.currency or "")
+        academic_year = escape(settings.academic_year or "")
+        student_name = escape(student.full_name or "")
+        student_code = escape(student.student_code or "")
+        parent_name = escape(student.parent_name or "Parent/Guardian")
+        student_address = escape(student.address or "N/A")
+        student_phone = escape(student.phone or "")
+        student_email = escape(student.email or "")
 
         course_row = ""
         if fees_data["course_fee"] > 0:
             course_row = f"""
                         <tr>
-                            <td>Course Fee ({student.course.name if student.course else 'N/A'})</td>
+                            <td>Course Fee ({escape(student.course.name) if student.course else 'N/A'})</td>
                             <td>{fees_data['course_fee']:.2f}</td>
                         </tr>"""
 
@@ -249,7 +262,7 @@ async def notify_guardian(student_id: int, request: Request):
         if fees_data["hostel_fee"] > 0:
             hostel_row = f"""
                         <tr>
-                            <td>Hostel Fee ({student.hostel.name if student.hostel else 'N/A'})</td>
+                            <td>Hostel Fee ({escape(student.hostel.name) if student.hostel else 'N/A'})</td>
                             <td>{fees_data['hostel_fee']:.2f}</td>
                         </tr>"""
 
@@ -257,7 +270,7 @@ async def notify_guardian(student_id: int, request: Request):
         if fees_data["transport_fee"] > 0:
             transport_row = f"""
                         <tr>
-                            <td>Transport Fee ({student.transport_route.route_name if student.transport_route else 'N/A'})</td>
+                            <td>Transport Fee ({escape(student.transport_route.route_name) if student.transport_route else 'N/A'})</td>
                             <td>{fees_data['transport_fee']:.2f}</td>
                         </tr>"""
 
@@ -265,7 +278,7 @@ async def notify_guardian(student_id: int, request: Request):
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Payment Reminder - {settings.school_name}</title>
+            <title>Payment Reminder - {school_name}</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
                 .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }}
@@ -282,9 +295,9 @@ async def notify_guardian(student_id: int, request: Request):
         </head>
         <body>
             <div class="header">
-                <h1>{settings.school_name}</h1>
-                <p>{settings.address}</p>
-                <p>Phone: {settings.phone_number} | Email: {settings.school_email}</p>
+                <h1>{school_name}</h1>
+                <p>{school_address}</p>
+                <p>Phone: {school_phone} | Email: {school_email}</p>
             </div>
 
             <div class="school-info">
@@ -293,12 +306,12 @@ async def notify_guardian(student_id: int, request: Request):
 
             <div class="student-info">
                 <h2>Payment Reminder Notice</h2>
-                <p><strong>Student Name:</strong> {student.full_name}</p>
-                <p><strong>Student Code:</strong> {student.student_code}</p>
-                <p><strong>Parent/Guardian:</strong> {student.parent_name or 'N/A'}</p>
-                <p><strong>Address:</strong> {student.address or 'N/A'}</p>
-                <p><strong>Phone:</strong> {student.phone}</p>
-                <p><strong>Email:</strong> {student.email}</p>
+                <p><strong>Student Name:</strong> {student_name}</p>
+                <p><strong>Student Code:</strong> {student_code}</p>
+                <p><strong>Parent/Guardian:</strong> {parent_name}</p>
+                <p><strong>Address:</strong> {student_address}</p>
+                <p><strong>Phone:</strong> {student_phone}</p>
+                <p><strong>Email:</strong> {student_email}</p>
             </div>
 
             <div class="fee-breakdown">
@@ -307,7 +320,7 @@ async def notify_guardian(student_id: int, request: Request):
                     <thead>
                         <tr>
                             <th>Service</th>
-                            <th>Amount ({settings.currency})</th>
+                            <th>Amount ({school_currency})</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -331,23 +344,23 @@ async def notify_guardian(student_id: int, request: Request):
             </div>
 
             <div>
-                <p>Dear {student.parent_name or 'Parent/Guardian'},</p>
+                <p>Dear {parent_name},</p>
 
-                <p>This is to inform you that there is an outstanding balance of <strong>{settings.currency} {fees_data['remaining_balance']:.2f}</strong>
-                for your ward {student.full_name} (Student Code: {student.student_code}) for the academic year {settings.academic_year}.</p>
+                <p>This is to inform you that there is an outstanding balance of <strong>{school_currency} {fees_data['remaining_balance']:.2f}</strong>
+                for your ward {student_name} (Student Code: {student_code}) for the academic year {academic_year}.</p>
 
                 <p>Please arrange to clear the outstanding amount at the earliest to avoid any disruption in services.
                 Payment can be made through cash, bank transfer, or other accepted payment methods.</p>
 
-                <p>For any queries or assistance, please contact the school administration at {settings.phone_number} or {settings.school_email}.</p>
+                <p>For any queries or assistance, please contact the school administration at {school_phone} or {school_email}.</p>
 
                 <p>Thank you for your attention to this matter.</p>
 
                 <p>Best regards,<br>
-                {settings.school_name}<br>
-                {settings.address}<br>
-                Phone: {settings.phone_number}<br>
-                Email: {settings.school_email}</p>
+                {school_name}<br>
+                {school_address}<br>
+                Phone: {school_phone}<br>
+                Email: {school_email}</p>
             </div>
 
             <div class="footer">

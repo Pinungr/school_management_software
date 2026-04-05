@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 from .auth import hash_password
 from .models import Setting, User
 
-DEFAULT_DEVELOPER_NAME = "Pinaki Sarangi"
-DEFAULT_DEVELOPER_EMAIL = "pinungr@gmail.com"
-DEFAULT_DEVELOPER_PHONE = "7751952860"
+DEFAULT_DEVELOPER_NAME = ""
+DEFAULT_DEVELOPER_EMAIL = ""
+DEFAULT_DEVELOPER_PHONE = ""
 
 
 def ensure_admin_placeholder(session: Session) -> None:
@@ -53,12 +53,6 @@ def seed_database(session: Session) -> None:
             )
         )
     else:
-        if not settings.developer_name:
-            settings.developer_name = DEFAULT_DEVELOPER_NAME
-        if not settings.developer_email:
-            settings.developer_email = DEFAULT_DEVELOPER_EMAIL
-        if not settings.developer_phone:
-            settings.developer_phone = DEFAULT_DEVELOPER_PHONE
         settings.setup_completed = bool(settings.setup_completed)
 
     ensure_admin_placeholder(session)
