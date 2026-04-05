@@ -142,19 +142,40 @@
                     <th>Full Name</th>
                     <th>Email</th>
                     <th>Phone</th>
-                    <th>Parent</th>
+                    <th>Services & Fees</th>
+                    <th>Total Fees</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for student in students %}
+                {% for student_data in students_data %}
+                {% set student = student_data.student %}
+                {% set fees = student_data.fees_payments %}
                 <tr>
                     <td>{{ student.student_code }}</td>
                     <td>{{ student.full_name }}</td>
                     <td>{{ student.email }}</td>
                     <td>{{ student.phone }}</td>
-                    <td>{{ student.parent_name or "N/A" }}</td>
+                    <td>
+                        {% if student.course %}<div><small>Course: {{ student.course.name }} ({{ fees.course_fee|money }})</small></div>{% endif %}
+                        {% if student.hostel %}<div><small>Hostel: {{ student.hostel.name }} ({{ fees.hostel_fee|money }})</small></div>{% endif %}
+                        {% if student.transport_route %}<div><small>Transport: {{ student.transport_route.route_name }} ({{ fees.transport_fee|money }})</small></div>{% endif %}
+                        {% if not student.course and not student.hostel and not student.transport_route %}
+                        <small class="text-muted">No services</small>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ fees.total_fees|money }}</strong></td>
+                    <td><span class="text-success">{{ fees.paid_amount|money }}</span></td>
+                    <td>
+                        {% if fees.remaining_balance > 0 %}
+                        <span class="text-warning"><strong>{{ fees.remaining_balance|money }}</strong></span>
+                        {% else %}
+                        <span class="text-success"><strong>Paid</strong></span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge">{{ student.status }}</span></td>
                     <td class="actions">
                         <a class="btn btn-small btn-light" href="/students?view={{ student.id }}">View</a>
@@ -165,7 +186,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="7" class="empty-state">No students found.</td></tr>
+                <tr><td colspan="10" class="empty-state">No students found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

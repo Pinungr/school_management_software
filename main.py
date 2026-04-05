@@ -277,6 +277,40 @@ def student_payment_summary(session: Session, student_id: int) -> dict[str, floa
     }
 
 
+def calculate_student_fees_and_payments(session: Session, student: Student) -> dict[str, float]:
+    """Calculate total fees and payments for a student"""
+    total_fees = 0.0
+    course_fee = 0.0
+    hostel_fee = 0.0
+    transport_fee = 0.0
+
+    # Calculate fees based on enrolled services
+    if student.course:
+        course_fee = student.course.fees
+        total_fees += course_fee
+
+    if student.hostel:
+        hostel_fee = student.hostel.fee_amount
+        total_fees += hostel_fee
+
+    if student.transport_route:
+        transport_fee = student.transport_route.fee_amount
+        total_fees += transport_fee
+
+    # Get payment summary
+    payments = student_payment_summary(session, student.id)
+
+    return {
+        "total_fees": total_fees,
+        "course_fee": course_fee,
+        "hostel_fee": hostel_fee,
+        "transport_fee": transport_fee,
+        "paid_amount": payments["paid"],
+        "pending_amount": payments["pending"],
+        "remaining_balance": total_fees - payments["paid"],
+    }
+
+
 def active_lookups(session: Session) -> dict[str, list]:
     return {
         "courses": session.scalars(
@@ -400,13 +434,23 @@ async def students_page(
         student_payment_summary_data = (
             student_payment_summary(session, selected_student.id) if selected_student else {}
         )
+        
+        # Get all students and calculate their fees/payments
+        students_data = []
+        for student in session.scalars(statement).all():
+            fees_payments = calculate_student_fees_and_payments(session, student)
+            students_data.append({
+                "student": student,
+                "fees_payments": fees_payments
+            })
+        
         return render_page(
             request,
             session,
             current_user,
             "students.html",
             "students",
-            students=session.scalars(statement).all(),
+            students_data=students_data,
             form_mode="create" if create else ("edit" if edit else None),
             form_student=selected_student if edit else None,
             view_student=selected_student if view else None,
