@@ -1,0 +1,2 @@
+"""School management system package."""
+

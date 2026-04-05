@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Dashboard Overview</h2>
+        <p>See enrollment health, collection performance, and pending fees at a glance.</p>
+    </div>
+</section>
+
+<section class="metrics-grid">
+    <article class="metric-card accent-blue"><span>Total Students</span><strong>{{ metrics.total_students }}</strong></article>
+    <article class="metric-card accent-green"><span>Active Courses</span><strong>{{ metrics.active_courses }}</strong></article>
+    <article class="metric-card accent-gold"><span>Total Collected</span><strong>{{ metrics.total_collected|money }}</strong></article>
+    <article class="metric-card accent-red"><span>Total Pending Fees</span><strong>{{ metrics.pending_total|money }}</strong></article>
+</section>
+
+<section class="mini-grid">
+    <article class="mini-card">
+        <span>Pending Course Fees</span>
+        <strong>{{ metrics.pending_course|money }}</strong>
+    </article>
+    <article class="mini-card">
+        <span>Pending Hostel Fees</span>
+        <strong>{{ metrics.pending_hostel|money }}</strong>
+    </article>
+    <article class="mini-card">
+        <span>Pending Transport Fees</span>
+        <strong>{{ metrics.pending_transport|money }}</strong>
+    </article>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Quick Actions</h3>
+            <p>Open the most-used areas directly from here.</p>
+        </div>
+    </div>
+    <div class="quick-grid">
+        <a class="quick-card" href="/students">
+            <h4>Manage Students</h4>
+            <p>Add, review, and update student records.</p>
+        </a>
+        <a class="quick-card" href="/courses">
+            <h4>Manage Courses</h4>
+            <p>Create courses and maintain the fee structure.</p>
+        </a>
+        <a class="quick-card" href="/payments">
+            <h4>View Payments</h4>
+            <p>Track every payment by student, date, and type.</p>
+        </a>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Courses{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Courses Management</h2>
+        <p>Create and manage courses and fee structures.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-primary" href="/courses?create=1">Add Course</a>
+    </div>
+</section>
+
+{% if view_course %}
+<section class="card detail-card">
+    <div class="card-header">
+        <h3>{{ view_course.name }}</h3>
+        <a class="btn btn-light" href="/courses">Close</a>
+    </div>
+    <div class="detail-grid">
+        <div><span>Code</span><strong>{{ view_course.code }}</strong></div>
+        <div><span>Fees</span><strong>{{ view_course.fees|money }}</strong></div>
+        <div><span>Frequency</span><strong>{{ view_course.frequency }}</strong></div>
+        <div><span>Status</span><strong class="badge">{{ view_course.status }}</strong></div>
+        <div class="wide"><span>Description</span><strong>{{ view_course.description or "N/A" }}</strong></div>
+    </div>
+</section>
+{% endif %}
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add Course{% else %}Edit Course{% endif %}</h3>
+            <p>Configure course fees, frequency, and status.</p>
+        </div>
+        <a class="btn btn-light" href="/courses">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/courses/create{% else %}/courses/{{ form_course.id }}/edit{% endif %}" class="form-grid">
+        <label><span>Course Name</span><input name="name" value="{{ form_course.name if form_course else '' }}" required></label>
+        <label><span>Course Code</span><input name="code" value="{{ form_course.code if form_course else '' }}" required></label>
+        <label><span>Fees</span><input type="number" step="0.01" name="fees" value="{{ form_course.fees if form_course else '' }}" required></label>
+        <label>
+            <span>Frequency</span>
+            <select name="frequency">
+                {% for option in ["Monthly", "Quarterly", "Half-Yearly", "Yearly"] %}
+                <option value="{{ option }}" {% if form_course and form_course.frequency == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_course and form_course.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide"><span>Description</span><textarea name="description" rows="3">{{ form_course.description if form_course else '' }}</textarea></label>
+        <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Course{% else %}Update Course{% endif %}</button></div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Course List</h3>
+            <p>Search by course name or code.</p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search courses by name or code">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Course Name</th>
+                    <th>Code</th>
+                    <th>Fee Amount</th>
+                    <th>Frequency</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr>
+                    <td>{{ course.name }}</td>
+                    <td>{{ course.code }}</td>
+                    <td>{{ course.fees|money }}</td>
+                    <td>{{ course.frequency }}</td>
+                    <td><span class="badge">{{ course.status }}</span></td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/courses?view={{ course.id }}">View</a>
+                        <a class="btn btn-small btn-light" href="/courses?edit={{ course.id }}">Edit</a>
+                        <form method="post" action="/courses/{{ course.id }}/delete" onsubmit="return confirm('Delete this course?');">
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty-state">No courses found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

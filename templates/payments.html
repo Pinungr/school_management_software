@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Payments{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Payments Management</h2>
+        <p>View and manage all fee payments.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-light" href="/payments/export?payment_type={{ filters.payment_type }}{% if filters.student_id %}&student_id={{ filters.student_id }}{% endif %}{% if filters.payment_status %}&payment_status={{ filters.payment_status }}{% endif %}{% if filters.month %}&month={{ filters.month }}{% endif %}{% if filters.year %}&year={{ filters.year }}{% endif %}">Export</a>
+        <a class="btn btn-primary" href="/payments?create=1">Add Payment</a>
+    </div>
+</section>
+
+<section class="metrics-grid compact">
+    <article class="metric-card"><span>Total Payments</span><strong>{{ summary.total|money }}</strong></article>
+    <article class="metric-card"><span>Course Payments</span><strong>{{ summary.course|money }}</strong></article>
+    <article class="metric-card"><span>Hostel Payments</span><strong>{{ summary.hostel|money }}</strong></article>
+    <article class="metric-card"><span>Transport Payments</span><strong>{{ summary.transport|money }}</strong></article>
+</section>
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add Payment{% else %}Edit Payment{% endif %}</h3>
+            <p>Capture payment type, student, date, and receipt details.</p>
+        </div>
+        <a class="btn btn-light" href="/payments">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/payments/create{% else %}/payments/{{ form_payment.id }}/edit{% endif %}" class="form-grid">
+        <label>
+            <span>Student</span>
+            <select name="student_id" required>
+                {% for student in lookups.students %}
+                <option value="{{ student.id }}" {% if form_payment and form_payment.student_id == student.id %}selected{% endif %}>{{ student.student_code }} - {{ student.full_name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Payment Type</span>
+            <select name="service_type">
+                {% for option in ["course", "hostel", "transport"] %}
+                <option value="{{ option }}" {% if form_payment and form_payment.service_type == option %}selected{% endif %}>{{ option.title() }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label><span>Amount</span><input type="number" step="0.01" name="amount" value="{{ form_payment.amount if form_payment else '' }}" required></label>
+        <label><span>Payment Date</span><input type="date" name="payment_date" value="{{ form_payment.payment_date.isoformat() if form_payment else today.isoformat() }}"></label>
+        <label>
+            <span>Method</span>
+            <select name="method">
+                {% for option in ["Cash", "UPI", "Card", "Bank Transfer"] %}
+                <option value="{{ option }}" {% if form_payment and form_payment.method == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label><span>Reference</span><input name="reference" value="{{ form_payment.reference if form_payment else '' }}"></label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Paid", "Pending"] %}
+                <option value="{{ option }}" {% if form_payment and form_payment.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide"><span>Notes</span><textarea name="notes" rows="3">{{ form_payment.notes if form_payment else '' }}</textarea></label>
+        <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Payment{% else %}Update Payment{% endif %}</button></div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header column">
+        <div>
+            <h3>Payment Records</h3>
+            <p>Filter by type and date to find transactions quickly.</p>
+        </div>
+        <form method="get" class="filter-row">
+            <select name="payment_type">
+                <option value="">All Types</option>
+                {% for option in ["course", "hostel", "transport"] %}
+                <option value="{{ option }}" {% if filters.payment_type == option %}selected{% endif %}>{{ option.title() }}</option>
+                {% endfor %}
+            </select>
+            <select name="student_id">
+                <option value="">All Students</option>
+                {% for student in lookups.students %}
+                <option value="{{ student.id }}" {% if filters.student_id == student.id %}selected{% endif %}>{{ student.student_code }} - {{ student.full_name }}</option>
+                {% endfor %}
+            </select>
+            <select name="payment_status">
+                <option value="">All Status</option>
+                {% for option in ["Paid", "Pending"] %}
+                <option value="{{ option }}" {% if filters.payment_status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            <select name="month">
+                <option value="">All Months</option>
+                {% for value, label in month_options %}
+                <option value="{{ value }}" {% if filters.month == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="year">
+                <option value="">All Years</option>
+                {% for value in year_options %}
+                <option value="{{ value }}" {% if filters.year == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-light" type="submit">Apply Filters</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Student</th>
+                    <th>Amount</th>
+                    <th>Payment Date</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Receipt</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.service_type.title() }}</td>
+                    <td><a href="/students?view={{ payment.student.id }}">{{ payment.student.student_code }} - {{ payment.student.full_name }}</a></td>
+                    <td>{{ payment.amount|money }}</td>
+                    <td>{{ payment.payment_date|datefmt }}</td>
+                    <td>{{ payment.method }}</td>
+                    <td><span class="badge{% if payment.status == 'Paid' %} badge-success{% else %} badge-warning{% endif %}">{{ payment.status }}</span></td>
+                    <td>{{ payment.reference or "-" }}</td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/payments?edit={{ payment.id }}">Edit</a>
+                        <form method="post" action="/payments/{{ payment.id }}/delete" onsubmit="return confirm('Delete this payment?');">
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="empty-state">No payments found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

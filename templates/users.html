@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>User Management</h2>
+        <p>Create staff accounts, assign roles, and control access to admin features.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-primary" href="/users?create=1">Add User</a>
+    </div>
+</section>
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add User{% else %}Edit User{% endif %}</h3>
+            <p>Set access level, login username, contact email, and account status.</p>
+        </div>
+        <a class="btn btn-light" href="/users">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/users/create{% else %}/users/{{ form_user.id }}/edit{% endif %}" class="form-grid">
+        <label>
+            <span>Full Name</span>
+            <input name="full_name" value="{{ form_user.full_name if form_user else '' }}" required>
+        </label>
+        <label>
+            <span>Username</span>
+            <input name="username" value="{{ form_user.username if form_user else '' }}" required>
+        </label>
+        <label>
+            <span>Email Address</span>
+            <input type="email" name="email" value="{{ form_user.email if form_user else '' }}" required>
+        </label>
+        <label>
+            <span>Role</span>
+            <select name="role">
+                {% for option in ["Admin", "Clerk"] %}
+                <option value="{{ option }}" {% if form_user and form_user.role == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_user and form_user.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide">
+            <span>{% if form_mode == "create" %}Password{% else %}New Password{% endif %}</span>
+            <input type="password" name="password" {% if form_mode == "create" %}required{% endif %}>
+        </label>
+        <div class="wide form-actions">
+            <button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save User{% else %}Update User{% endif %}</button>
+        </div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Staff Accounts</h3>
+            <p>Search by name, username, email, or role.</p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search users by name, username, email, or role">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created On</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.full_name }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
+                    <td><span class="badge">{{ user.status }}</span></td>
+                    <td>{{ user.created_on|datefmt }}</td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/users?edit={{ user.id }}">Edit</a>
+                        {% if current_user.id != user.id %}
+                        <form method="post" action="/users/{{ user.id }}/delete" onsubmit="return confirm('Delete this user account?');">
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state">No user accounts found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

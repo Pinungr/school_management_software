@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Transport{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Transport Management</h2>
+        <p>Create and manage transport routes.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-primary" href="/transport?create=1">Add Route</a>
+    </div>
+</section>
+
+{% if view_route %}
+<section class="card detail-card">
+    <div class="card-header">
+        <h3>{{ view_route.route_name }}</h3>
+        <a class="btn btn-light" href="/transport">Close</a>
+    </div>
+    <div class="detail-grid">
+        <div><span>Pickup Points</span><strong>{{ view_route.pickup_points }}</strong></div>
+        <div><span>Fee</span><strong>{{ view_route.fee_amount|money }}</strong></div>
+        <div><span>Frequency</span><strong>{{ view_route.frequency }}</strong></div>
+        <div><span>Status</span><strong class="badge">{{ view_route.status }}</strong></div>
+    </div>
+</section>
+{% endif %}
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add Route{% else %}Edit Route{% endif %}</h3>
+            <p>Track pickup points, fee amount, and route status.</p>
+        </div>
+        <a class="btn btn-light" href="/transport">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/transport/create{% else %}/transport/{{ form_route.id }}/edit{% endif %}" class="form-grid">
+        <label><span>Route Name</span><input name="route_name" value="{{ form_route.route_name if form_route else '' }}" required></label>
+        <label><span>Fee Amount</span><input type="number" step="0.01" name="fee_amount" value="{{ form_route.fee_amount if form_route else '' }}" required></label>
+        <label>
+            <span>Frequency</span>
+            <select name="frequency">
+                {% for option in ["Monthly", "Quarterly", "Half-Yearly", "Yearly"] %}
+                <option value="{{ option }}" {% if form_route and form_route.frequency == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_route and form_route.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide"><span>Pickup Points</span><textarea name="pickup_points" rows="3">{{ form_route.pickup_points if form_route else '' }}</textarea></label>
+        <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Route{% else %}Update Route{% endif %}</button></div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Transport Routes</h3>
+            <p>Search by route name or pickup point.</p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search routes">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Route Name</th>
+                    <th>Pickup Points</th>
+                    <th>Fee Amount</th>
+                    <th>Frequency</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for route in routes %}
+                <tr>
+                    <td>{{ route.route_name }}</td>
+                    <td>{{ route.pickup_points }}</td>
+                    <td>{{ route.fee_amount|money }}</td>
+                    <td>{{ route.frequency }}</td>
+                    <td><span class="badge">{{ route.status }}</span></td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/transport?view={{ route.id }}">View</a>
+                        <a class="btn btn-small btn-light" href="/transport?edit={{ route.id }}">Edit</a>
+                        <form method="post" action="/transport/{{ route.id }}/delete" onsubmit="return confirm('Delete this route?');">
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty-state">No routes found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

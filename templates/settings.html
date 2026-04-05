@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>System Settings</h2>
+        <p>Configure school information and system preferences.</p>
+    </div>
+</section>
+
+<section class="card">
+    <form method="post" action="/settings" class="settings-grid">
+        <div class="settings-section">
+            <h3>School Information</h3>
+            <label><span>School Name</span><input name="school_name" value="{{ settings.school_name }}"></label>
+            <label><span>School Email</span><input type="email" name="school_email" value="{{ settings.school_email }}"></label>
+            <label><span>Phone Number</span><input name="phone_number" value="{{ settings.phone_number }}"></label>
+            <label><span>Logo URL</span><input name="logo_url" value="{{ settings.logo_url }}"></label>
+            <label class="wide"><span>Address</span><textarea name="address" rows="3">{{ settings.address }}</textarea></label>
+        </div>
+        <div class="settings-section">
+            <h3>Academic Settings</h3>
+            <label><span>Academic Year</span><input name="academic_year" value="{{ settings.academic_year }}"></label>
+            <label><span>Financial Year</span><input name="financial_year" value="{{ settings.financial_year }}"></label>
+        </div>
+        <div class="settings-section">
+            <h3>System Configuration</h3>
+            <label>
+                <span>Default Fee Frequency</span>
+                <select name="fee_frequency">
+                    {% for option in ["Monthly", "Quarterly", "Half-Yearly", "Yearly"] %}
+                    <option value="{{ option }}" {% if settings.fee_frequency == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Currency</span>
+                <select name="currency">
+                    {% for option in ["INR (Rs)", "USD ($)", "EUR (EUR)"] %}
+                    <option value="{{ option }}" {% if settings.currency == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Timezone</span>
+                <select name="timezone">
+                    {% for option in ["Asia/Kolkata (IST)", "UTC", "Asia/Dubai (GST)"] %}
+                    <option value="{{ option }}" {% if settings.timezone == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <div class="settings-section">
+            <h3>Developer Footer</h3>
+            <label><span>Developer Name</span><input name="developer_name" value="{{ settings.developer_name or '' }}"></label>
+            <label><span>Developer Email</span><input type="email" name="developer_email" value="{{ settings.developer_email or '' }}"></label>
+            <label><span>Developer Phone</span><input name="developer_phone" value="{{ settings.developer_phone or '' }}"></label>
+        </div>
+        <div class="wide form-actions">
+            <button class="btn btn-primary" type="submit">Save Settings</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

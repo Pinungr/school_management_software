@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | SchoolFlow</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="auth-body">
+    <div class="chrome-bg chrome-bg-a"></div>
+    <div class="chrome-bg chrome-bg-b"></div>
+    <main class="auth-shell">
+        <section class="auth-hero">
+            <h1>Welcome to SchoolFlow</h1>
+            <p>
+                Sign in to access your offline school management workspace. Roles keep sensitive areas like settings and
+                user accounts limited to administrators.
+            </p>
+        </section>
+        <section class="auth-card">
+            <div class="brand brand-card auth-brand">
+                <div class="brand-mark">S</div>
+                <div>
+                    <h1>SchoolFlow</h1>
+                    <p>{{ settings.school_name }}</p>
+                </div>
+            </div>
+            <h2>Sign in</h2>
+            <p class="auth-copy">Use your school account to continue.</p>
+            {% if error %}
+            <div class="alert-error">Incorrect username or password. Please try again.</div>
+            {% endif %}
+            <form method="post" action="/login" class="auth-form">
+                <input type="hidden" name="next_path" value="{{ next_path }}">
+                <label>
+                    <span>Username</span>
+                    <input name="identifier" placeholder="admin" required autofocus>
+                </label>
+                <label>
+                    <span>Password</span>
+                    <input type="password" name="password" placeholder="Enter your password" required>
+                </label>
+                <button class="btn btn-primary auth-submit" type="submit">Log In</button>
+            </form>
+            <div class="auth-demo">
+                <strong>Default offline accounts</strong>
+                <div>Admin: <code>admin</code> / <code>adminadmin</code></div>
+                <div>Clerk: <code>clark</code> / <code>clarkclark</code></div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

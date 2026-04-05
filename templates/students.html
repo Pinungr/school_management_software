@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Students Management</h2>
+        <p>Manage student records and enrollment details.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-primary" href="/students?create=1">Add Student</a>
+    </div>
+</section>
+
+{% if view_student %}
+<section class="card detail-card">
+    <div class="card-header">
+        <h3>{{ view_student.full_name }}</h3>
+        <a class="btn btn-light" href="/students">Close</a>
+    </div>
+    <div class="detail-grid">
+        <div><span>Student ID</span><strong>{{ view_student.student_code }}</strong></div>
+        <div><span>Email</span><strong>{{ view_student.email }}</strong></div>
+        <div><span>Phone</span><strong>{{ view_student.phone }}</strong></div>
+        <div><span>Status</span><strong class="badge">{{ view_student.status }}</strong></div>
+        <div><span>Parent</span><strong>{{ view_student.parent_name or "N/A" }}</strong></div>
+        <div><span>Joined On</span><strong>{{ view_student.joined_on|datefmt }}</strong></div>
+        <div><span>Course</span><strong>{{ view_student.course.name if view_student.course else "Not assigned" }}</strong></div>
+        <div><span>Hostel</span><strong>{{ view_student.hostel.name if view_student.hostel else "Not assigned" }}</strong></div>
+        <div><span>Transport</span><strong>{{ view_student.transport_route.route_name if view_student.transport_route else "Not assigned" }}</strong></div>
+        <div class="wide"><span>Address</span><strong>{{ view_student.address or "N/A" }}</strong></div>
+    </div>
+    {% if view_student_payments %}
+    <div class="payment-summary">
+        <h4>Payment Summary</h4>
+        <div class="detail-grid compact">
+            <div><span>Total Amount</span><strong>{{ view_student_payments.total|money }}</strong></div>
+            <div><span>Paid</span><strong class="text-success">{{ view_student_payments.paid|money }}</strong></div>
+            <div><span>Pending</span><strong class="text-warning">{{ view_student_payments.pending|money }}</strong></div>
+        </div>
+        <a class="btn btn-small btn-light" href="/payments?student_id={{ view_student.id }}">View Payments</a>
+    </div>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add Student{% else %}Edit Student{% endif %}</h3>
+            <p>Store complete student profile information.</p>
+        </div>
+        <a class="btn btn-light" href="/students">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/students/create{% else %}/students/{{ form_student.id }}/edit{% endif %}" class="form-grid">
+        <label>
+            <span>Student ID</span>
+            <input name="student_code" value="{{ form_student.student_code if form_student else '' }}" required>
+        </label>
+        <label>
+            <span>Full Name</span>
+            <input name="full_name" value="{{ form_student.full_name if form_student else '' }}" required>
+        </label>
+        <label>
+            <span>Email</span>
+            <input type="email" name="email" value="{{ form_student.email if form_student else '' }}" required>
+        </label>
+        <label>
+            <span>Phone</span>
+            <input name="phone" value="{{ form_student.phone if form_student else '' }}" required>
+        </label>
+        <label>
+            <span>Parent Name</span>
+            <input name="parent_name" value="{{ form_student.parent_name if form_student else '' }}">
+        </label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_student and form_student.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Joined On</span>
+            <input type="date" name="joined_on" value="{{ form_student.joined_on.isoformat() if form_student else today.isoformat() }}">
+        </label>
+        <label>
+            <span>Course</span>
+            <select name="course_id">
+                <option value="">Not assigned</option>
+                {% for course in lookups.courses %}
+                <option value="{{ course.id }}" {% if form_student and form_student.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Hostel</span>
+            <select name="hostel_id">
+                <option value="">Not assigned</option>
+                {% for hostel in lookups.hostels %}
+                <option value="{{ hostel.id }}" {% if form_student and form_student.hostel_id == hostel.id %}selected{% endif %}>{{ hostel.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Transport</span>
+            <select name="transport_id">
+                <option value="">Not assigned</option>
+                {% for route in lookups.transport_routes %}
+                <option value="{{ route.id }}" {% if form_student and form_student.transport_id == route.id %}selected{% endif %}>{{ route.route_name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide">
+            <span>Address</span>
+            <textarea name="address" rows="3">{{ form_student.address if form_student else '' }}</textarea>
+        </label>
+        <div class="wide form-actions">
+            <button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Student{% else %}Update Student{% endif %}</button>
+        </div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Student Records</h3>
+            <p>Search, review, and manage student profiles.</p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by student ID, name, or email">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Parent</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.student_code }}</td>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.email }}</td>
+                    <td>{{ student.phone }}</td>
+                    <td>{{ student.parent_name or "N/A" }}</td>
+                    <td><span class="badge">{{ student.status }}</span></td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/students?view={{ student.id }}">View</a>
+                        <a class="btn btn-small btn-light" href="/students?edit={{ student.id }}">Edit</a>
+                        <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');">
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state">No students found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

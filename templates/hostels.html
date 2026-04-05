@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Hostels{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Hostels Management</h2>
+        <p>Create and manage hostel facilities.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-primary" href="/hostels?create=1">Add Hostel</a>
+    </div>
+</section>
+
+{% if view_hostel %}
+<section class="card detail-card">
+    <div class="card-header">
+        <h3>{{ view_hostel.name }}</h3>
+        <a class="btn btn-light" href="/hostels">Close</a>
+    </div>
+    <div class="detail-grid">
+        <div><span>Type</span><strong>{{ view_hostel.hostel_type }}</strong></div>
+        <div><span>Rooms</span><strong>{{ view_hostel.rooms }}</strong></div>
+        <div><span>Fee</span><strong>{{ view_hostel.fee_amount|money }}</strong></div>
+        <div><span>Status</span><strong class="badge">{{ view_hostel.status }}</strong></div>
+        <div class="wide"><span>Description</span><strong>{{ view_hostel.description or "N/A" }}</strong></div>
+    </div>
+</section>
+{% endif %}
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add Hostel{% else %}Edit Hostel{% endif %}</h3>
+            <p>Track hostel capacity, type, and fees.</p>
+        </div>
+        <a class="btn btn-light" href="/hostels">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/hostels/create{% else %}/hostels/{{ form_hostel.id }}/edit{% endif %}" class="form-grid">
+        <label><span>Hostel Name</span><input name="name" value="{{ form_hostel.name if form_hostel else '' }}" required></label>
+        <label>
+            <span>Type</span>
+            <select name="hostel_type">
+                {% for option in ["Boys", "Girls", "Co-ed"] %}
+                <option value="{{ option }}" {% if form_hostel and form_hostel.hostel_type == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label><span>Rooms</span><input type="number" name="rooms" value="{{ form_hostel.rooms if form_hostel else 0 }}" required></label>
+        <label><span>Fee Amount</span><input type="number" step="0.01" name="fee_amount" value="{{ form_hostel.fee_amount if form_hostel else '' }}" required></label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_hostel and form_hostel.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide"><span>Description</span><textarea name="description" rows="3">{{ form_hostel.description if form_hostel else '' }}</textarea></label>
+        <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Hostel{% else %}Update Hostel{% endif %}</button></div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Hostel Records</h3>
+            <p>Search and maintain hostel facilities.</p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search hostels">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Hostel Name</th>
+                    <th>Type</th>
+                    <th>Rooms</th>
+                    <th>Fee Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hostel in hostels %}
+                <tr>
+                    <td>{{ hostel.name }}</td>
+                    <td>{{ hostel.hostel_type }}</td>
+                    <td>{{ hostel.rooms }}</td>
+                    <td>{{ hostel.fee_amount|money }}</td>
+                    <td><span class="badge">{{ hostel.status }}</span></td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/hostels?view={{ hostel.id }}">View</a>
+                        <a class="btn btn-small btn-light" href="/hostels?edit={{ hostel.id }}">Edit</a>
+                        <form method="post" action="/hostels/{{ hostel.id }}/delete" onsubmit="return confirm('Delete this hostel?');">
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty-state">No hostels found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

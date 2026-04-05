@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}School Admin{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+</head>
+<body>
+    <div class="chrome-bg chrome-bg-a"></div>
+    <div class="chrome-bg chrome-bg-b"></div>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand brand-card">
+                <div class="brand-mark">S</div>
+                <div>
+                    <h1>SchoolFlow</h1>
+                    <p>{{ settings.school_name if settings else "Private School" }}</p>
+                </div>
+            </div>
+            <div class="sidebar-caption">Operations Workspace</div>
+            <nav class="nav-list">
+                {% for key, label, href in nav_items %}
+                <a class="nav-link {% if key == active_page %}active{% endif %}" href="{{ href }}">
+                    <span class="nav-icon">
+                        {% if key == "dashboard" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z"/></svg>
+                        {% elif key == "students" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.67 0-8 1.34-8 4v2h10v-2c0-.73.2-1.41.54-2C9.33 14.76 8.48 14 8 14Zm8 0c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z"/></svg>
+                        {% elif key == "courses" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm14 0H6v13h12V5ZM8 7h8v2H8V7Zm0 4h8v2H8v-2Z"/></svg>
+                        {% elif key == "hostels" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8v13h6v-6h6v6h6V8l-9-5Zm-1 8H8V9h3v2Zm5 0h-3V9h3v2Z"/></svg>
+                        {% elif key == "transport" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 4H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3v2h2v-2h8v2h2v-2a3 3 0 0 0 3-3V9l-3-5Zm-12 2h10.85L18 8H6V6Zm0 10a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 6 16Zm12 0a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 18 16ZM5 13v-3h14v3Z"/></svg>
+                        {% elif key == "payments" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 17.93A7 7 0 0 1 5 11h2a5 5 0 1 0 5-5V4a7 7 0 0 1 0 13.93ZM13 6.07A5 5 0 0 1 17 11h2A7 7 0 0 0 13 4.07V6.07Zm-1 2.18a1 1 0 0 1 1 1h2a3 3 0 0 0-2-2.82V5h-2v1.43A3 3 0 0 0 12 15a1 1 0 1 1-1 1H9a3 3 0 0 0 2 2.82V20h2v-1.43A3 3 0 0 0 12 8.25Z"/></svg>
+                        {% elif key == "users" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.21 0-4.89.9-5.8 2.2A1.5 1.5 0 0 0 3.42 19H11v-1c0-1.23.62-2.33 1.64-3.07A10.38 10.38 0 0 0 8 14Zm8 0c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4Z"/></svg>
+                        {% else %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.49 7.49 0 0 0 .05-.94 7.49 7.49 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.28 7.28 0 0 0-1.63-.94L14.4 2.8a.5.5 0 0 0-.49-.4h-3.82a.5.5 0 0 0-.49.4l-.36 2.52a7.28 7.28 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.49 7.49 0 0 0-.05.94 7.49 7.49 0 0 0 .05.94L2.82 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.38 1.05.7 1.63.94l.36 2.52a.5.5 0 0 0 .49.4h3.82a.5.5 0 0 0 .49-.4l.36-2.52a7.28 7.28 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5Z"/></svg>
+                        {% endif %}
+                    </span>
+                    <span>{{ label }}</span>
+                </a>
+                {% endfor %}
+            </nav>
+        </aside>
+        <main class="content">
+            <header class="topbar">
+                <div class="topbar-meta">
+                    <span class="meta-pill user-meta">{{ current_user.username|capitalize }} - {{ current_user.role }}</span>
+                    <span class="meta-pill">{{ today.strftime("%d %b %Y") }}</span>
+                    <a class="meta-pill logout-pill" href="/logout">Log Out</a>
+                </div>
+            </header>
+            <div class="page-stack">
+                {% block content %}{% endblock %}
+            </div>
+            <footer class="app-footer">
+                <div class="footer-copy">SchoolFlow offline school management system.</div>
+                <div class="footer-meta">
+                    {% if settings and settings.developer_name %}
+                    <span>Developed by {{ settings.developer_name }}</span>
+                    {% endif %}
+                    {% if settings and settings.developer_email %}
+                    <span>{{ settings.developer_email }}</span>
+                    {% endif %}
+                    {% if settings and settings.developer_phone %}
+                    <span>{{ settings.developer_phone }}</span>
+                    {% endif %}
+                    {% if settings and not (settings.developer_name or settings.developer_email or settings.developer_phone) %}
+                    <span>Add developer details in Settings to show them here.</span>
+                    {% endif %}
+                </div>
+            </footer>
+        </main>
+    </div>
+</body>
+</html>
