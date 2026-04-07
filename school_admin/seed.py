@@ -28,7 +28,7 @@ def ensure_admin_placeholder(session: Session) -> None:
             email="admin@school.local",
             password_hash=hash_password(secrets.token_urlsafe(32)),
             role="Admin",
-            status="Inactive",
+            status="Active",
         )
     )
 

@@ -496,6 +496,15 @@ def normalize_payment_type(value: str) -> str:
     return str(value or "").strip().lower()
 
 
+def normalize_fee_category(value: str | None) -> str:
+    normalized = str(value or "").strip().title()
+    if normalized == "General":
+        return "Other"
+    if normalized in FEE_CATEGORIES:
+        return normalized
+    return "Other"
+
+
 def build_fee_index(fees: list[Fee]) -> dict[str, object]:
     positions = {fee.id: index for index, fee in enumerate(fees)}
     fees_by_target_type: dict[str, dict[int, list[Fee]]] = {
@@ -579,13 +588,14 @@ def calculate_student_fees_and_payments_from_data(
         cycle_count = fee_cycle_count(student.joined_on, fee.frequency)
         current_cycle_fee = current_month_amount(fee.amount, fee.frequency, student.joined_on)
         due_amount = current_cycle_fee * cycle_count
-        category_totals[fee.category] = category_totals.get(fee.category, 0.0) + due_amount
+        normalized_category = normalize_fee_category(fee.category)
+        category_totals[normalized_category] = category_totals.get(normalized_category, 0.0) + due_amount
         current_cycle_amount += current_cycle_fee
         fee_items.append(
             {
                 "id": fee.id,
                 "name": fee.name,
-                "category": fee.category,
+                "category": normalized_category,
                 "frequency": fee.frequency,
                 "cycles_due": cycle_count,
                 "unit_amount": float(fee.amount or 0),
@@ -609,9 +619,8 @@ def calculate_student_fees_and_payments_from_data(
     }
     current_cycle_amount = 0.0
     for item in fee_items:
-        category_totals[str(item["category"])] = category_totals.get(str(item["category"]), 0.0) + float(
-            item["due_amount"]
-        )
+        normalized_category = normalize_fee_category(str(item["category"]))
+        category_totals[normalized_category] = category_totals.get(normalized_category, 0.0) + float(item["due_amount"])
         current_cycle_amount += float(item["current_month_amount"])
 
     remaining_paid = float(paid_amount or 0.0)
@@ -711,7 +720,7 @@ def _calculate_dashboard_metrics(session: Session) -> dict[str, float | int]:
     for student in active_students:
         fees_data = fee_snapshots.get(student.id, {})
         for item in fees_data["fee_items"]:
-            pending_by_category[item["category"]] += max(item["remaining_amount"], 0.0)
+            pending_by_category[normalize_fee_category(str(item["category"]))] += max(item["remaining_amount"], 0.0)
 
     return {
         "total_students": total_students,

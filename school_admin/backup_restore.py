@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from contextlib import closing
 import io
 import json
 import shutil
 import sqlite3
+import tempfile
+import uuid
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -27,7 +30,7 @@ def create_backup_archive() -> tuple[bytes, str]:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     filename = f"pinaki-backup-{timestamp}{BACKUP_EXTENSION}"
 
-    with sqlite3.connect(str(DATABASE_PATH)) as source_connection:
+    with closing(sqlite3.connect(str(DATABASE_PATH))) as source_connection:
         database_bytes = source_connection.serialize()
 
     archive_buffer = io.BytesIO()
@@ -101,14 +104,24 @@ def restore_backup_archive(archive_bytes: bytes) -> None:
 
 def _restore_sqlite_database(database_bytes: bytes, destination_path: Path) -> None:
     destination_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(":memory:") as source_connection:
-        source_connection.deserialize(database_bytes)
-        with sqlite3.connect(str(destination_path)) as destination_connection:
-            source_connection.backup(destination_connection)
+    with tempfile.TemporaryDirectory(dir=destination_path.parent) as temp_dir_name:
+        temp_dir = Path(temp_dir_name)
+        temporary_database_path = temp_dir / destination_path.name
+        with closing(sqlite3.connect(":memory:")) as source_connection:
+            source_connection.deserialize(database_bytes)
+            with closing(sqlite3.connect(str(temporary_database_path))) as destination_connection:
+                source_connection.backup(destination_connection)
+                destination_connection.execute("PRAGMA wal_checkpoint(FULL)")
+                destination_connection.execute("PRAGMA journal_mode=DELETE")
+                destination_connection.commit()
+
+        _remove_sqlite_sidecar_files(destination_path)
+        temporary_database_path.replace(destination_path)
+        _remove_sqlite_sidecar_files(destination_path)
 
 
 def _validate_pinaki_database(database_bytes: bytes) -> None:
-    with sqlite3.connect(":memory:") as connection:
+    with closing(sqlite3.connect(":memory:")) as connection:
         connection.deserialize(database_bytes)
         table_names = {
             row[0]
@@ -132,13 +145,31 @@ def _replace_uploads_from_archive(
     source_entries: list[tuple[PurePosixPath, bytes]],
     destination_dir: Path,
 ) -> None:
-    destination_dir.mkdir(parents=True, exist_ok=True)
-    for child in list(destination_dir.iterdir()):
-        if child.is_dir():
-            shutil.rmtree(child)
-        else:
-            child.unlink()
-    for relative_path, file_bytes in source_entries:
-        destination_path = destination_dir / Path(*relative_path.parts[1:])
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
-        destination_path.write_bytes(file_bytes)
+    destination_dir.parent.mkdir(parents=True, exist_ok=True)
+    temporary_uploads_dir = destination_dir.parent / f".uploads-restore-{uuid.uuid4().hex}"
+    previous_uploads_dir = destination_dir.parent / f".uploads-previous-{uuid.uuid4().hex}"
+    temporary_uploads_dir.mkdir(parents=True, exist_ok=False)
+
+    try:
+        for relative_path, file_bytes in source_entries:
+            destination_path = temporary_uploads_dir / Path(*relative_path.parts[1:])
+            destination_path.parent.mkdir(parents=True, exist_ok=True)
+            destination_path.write_bytes(file_bytes)
+
+        if destination_dir.exists():
+            destination_dir.rename(previous_uploads_dir)
+        temporary_uploads_dir.rename(destination_dir)
+    except Exception:
+        if not destination_dir.exists() and previous_uploads_dir.exists():
+            previous_uploads_dir.rename(destination_dir)
+        raise
+    finally:
+        if temporary_uploads_dir.exists():
+            shutil.rmtree(temporary_uploads_dir, ignore_errors=True)
+        if previous_uploads_dir.exists():
+            shutil.rmtree(previous_uploads_dir, ignore_errors=True)
+
+
+def _remove_sqlite_sidecar_files(database_path: Path) -> None:
+    for suffix in ("-wal", "-shm", "-journal"):
+        database_path.with_name(f"{database_path.name}{suffix}").unlink(missing_ok=True)

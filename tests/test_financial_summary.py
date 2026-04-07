@@ -274,6 +274,39 @@ def test_dashboard_metrics_reuses_cached_snapshot_until_signature_changes(seeded
     assert third == first
 
 
+def test_dashboard_metrics_treats_general_fee_category_as_other(seeded_session):
+    ensure_operational_test_data(seeded_session)
+    app_utils.clear_dashboard_metrics_cache()
+
+    student = seeded_session.scalar(
+        select(Student).where(Student.status == "Active").order_by(Student.id)
+    )
+    assert student is not None
+
+    fee = Fee(
+        name="Restore General Fee",
+        category="General",
+        amount=875,
+        frequency="One Time",
+        status="Active",
+        target_type="General",
+        target_id=None,
+        description="Covers restore-style general backup categories.",
+    )
+    seeded_session.add(fee)
+    seeded_session.commit()
+
+    try:
+        metrics = dashboard_metrics(seeded_session)
+        assert metrics["pending_other"] >= 875
+    finally:
+        fee_to_delete = seeded_session.get(Fee, fee.id)
+        if fee_to_delete is not None:
+            seeded_session.delete(fee_to_delete)
+            seeded_session.commit()
+        app_utils.clear_dashboard_metrics_cache()
+
+
 def test_run_migrations_ensures_large_dataset_indexes_exist(seeded_session):
     student_indexes = {row[1] for row in index_rows(seeded_session, "students")}
     payment_indexes = {row[1] for row in index_rows(seeded_session, "payments")}
@@ -2403,6 +2436,56 @@ def test_course_fee_uses_course_table_as_subcategory(seeded_session, client):
     seeded_session.commit()
 
 
+def test_admission_fee_uses_course_table_as_subcategory(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+    course = seeded_session.scalar(select(Course).where(Course.code == "TEST-COURSE"))
+    assert course is not None
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "admin",
+            "password": "adminadmin",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    fees_page = client.get("/fees?create=1")
+    fee_csrf_token = extract_csrf_token(fees_page.text)
+    response = client.post(
+        "/fees/create",
+        data={
+            "csrf_token": fee_csrf_token,
+            "name": "Admission Subcategory Test",
+            "category": "Admission",
+            "amount": "1800",
+            "frequency": "Monthly",
+            "target_id": str(course.id),
+            "status": "Active",
+            "description": "",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/fees"
+
+    fee = seeded_session.scalar(select(Fee).where(Fee.name == "Admission Subcategory Test"))
+    assert fee is not None
+    assert fee.frequency == "One Time"
+    assert fee.target_type == "Course"
+    assert fee.target_id == course.id
+
+    seeded_session.delete(fee)
+    seeded_session.commit()
+
+
 def test_transport_route_saves_vehicle_and_driver_details(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
 
@@ -2989,7 +3072,7 @@ def test_seed_database_creates_setup_state_without_default_clerk_account():
             assert settings.developer_email == ""
             assert settings.developer_phone == ""
             assert admin_user is not None
-            assert admin_user.status == "Inactive"
+            assert admin_user.status == "Active"
             assert clerk_user is None
             recovery_user = session.scalar(select(User).where(User.role == "SuperAdmin").order_by(User.id))
             assert recovery_user is not None

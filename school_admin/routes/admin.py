@@ -322,7 +322,7 @@ async def import_data_repair_table(table: str, request: Request):
             return response
         search = str(form.get("search", "")).strip()
         import_file = form.get("import_file")
-        if not isinstance(import_file, UploadFile) and not getattr(import_file, "filename", "").strip():
+        if not getattr(import_file, "filename", "").strip():
             return data_repair_redirect(get_table_spec(table).key, search=search, error="missing_import_file")
         file_bytes = await import_file.read()
         try:
@@ -344,7 +344,7 @@ async def export_data_repair_database(request: Request):
     archive_bytes, filename = create_backup_archive()
     return Response(
         content=archive_bytes,
-        media_type="application/zip",
+        media_type="application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -359,7 +359,7 @@ async def import_data_repair_database(request: Request):
         if response:
             return response
         backup_file = form.get("backup_file")
-        if not isinstance(backup_file, UploadFile) and not getattr(backup_file, "filename", "").strip():
+        if not getattr(backup_file, "filename", "").strip():
             return data_repair_redirect("students", error="missing_import_file")
         archive_bytes = await backup_file.read()
     try:
@@ -428,7 +428,7 @@ async def backup_settings(request: Request):
     archive_bytes, filename = create_backup_archive()
     return Response(
         content=archive_bytes,
-        media_type="application/zip",
+        media_type="application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -443,7 +443,7 @@ async def restore_settings_backup(request: Request):
         if response:
             return response
         backup_file = form.get("backup_file")
-        if not isinstance(backup_file, UploadFile) and not getattr(backup_file, "filename", "").strip():
+        if not getattr(backup_file, "filename", "").strip():
             return redirect("/settings?error=backup_file_required")
         archive_bytes = await backup_file.read()
 

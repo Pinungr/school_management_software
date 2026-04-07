@@ -40,7 +40,7 @@ CATALOG_ERROR_MESSAGES = {
 }
 
 CATEGORY_TARGET_TYPE_MAP = {
-    "Admission": "General",
+    "Admission": "Course",
     "Course": "Course",
     "Hostel": "Hostel",
     "Transport": "Transport",

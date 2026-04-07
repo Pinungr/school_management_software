@@ -157,7 +157,7 @@ async def setup_submit(request: Request):
                 email="admin@school.local",
                 password_hash=hash_password(secrets.token_urlsafe(32)),
                 role="Admin",
-                status="Inactive",
+                status="Active",
             )
             session.add(admin_user)
             session.flush()

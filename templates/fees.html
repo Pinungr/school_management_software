@@ -162,6 +162,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const selectedTargetId = "{{ form_fee.target_id if form_fee and form_fee.target_id is not none else '' }}";
     const targetOptions = {
+        Admission: {
+            label: "Course",
+            empty: "Select course",
+            options: [
+            {% for course in lookups.courses %}
+            { id: {{ course.id }}, name: "{{ course.name | escapejs }}" },
+            {% endfor %}
+            ],
+        },
         Course: {
             label: "Course",
             empty: "Select course",
