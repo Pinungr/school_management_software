@@ -3,6 +3,7 @@
 {% block content %}
 <section class="page-header">
     <div>
+        <div class="page-kicker">Collections Register</div>
         <h2>Payments Management</h2>
         <p>View and manage fee collections from the central fee register.</p>
     </div>
@@ -18,6 +19,19 @@
     <article class="metric-card"><span>Hostel Payments</span><strong>{{ summary.hostel|money }}</strong></article>
     <article class="metric-card"><span>Transport Payments</span><strong>{{ summary.transport|money }}</strong></article>
     <article class="metric-card"><span>Other Payments</span><strong>{{ summary.other|money }}</strong></article>
+</section>
+
+<section class="card section-intro">
+    <div class="section-intro-grid">
+        <div>
+            <h3>Fast Collection Workflow</h3>
+            <p>Use student lookup, payment type filters, and direct receipt access to keep front-desk collection work quick and clean.</p>
+        </div>
+        <div class="section-intro-stat">
+            <span>Receipt Flow</span>
+            <strong>New payment receipts open separately</strong>
+        </div>
+    </div>
 </section>
 
 {% if error_message %}

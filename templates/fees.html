@@ -3,6 +3,7 @@
 {% block content %}
 <section class="page-header">
     <div>
+        <div class="page-kicker">Fee Architecture</div>
         <h2>Fees Management</h2>
         <p>Maintain admission, course, hostel, transport, and custom fees in one shared register.</p>
     </div>
@@ -31,6 +32,19 @@
         <div><span>Linked To</span><strong>{{ view_fee_target }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_fee.status }}</strong></div>
         <div class="wide"><span>Description</span><strong>{{ view_fee.description or "N/A" }}</strong></div>
+    </div>
+</section>
+
+<section class="card section-intro">
+    <div class="section-intro-grid">
+        <div>
+            <h3>One Shared Fee Register</h3>
+            <p>Define fees once, target them to the right groups, and let the rest of the application reuse the same billing logic everywhere.</p>
+        </div>
+        <div class="section-intro-stat">
+            <span>Best Practice</span>
+            <strong>Keep class rules here, not inside student records</strong>
+        </div>
     </div>
 </section>
 {% endif %}

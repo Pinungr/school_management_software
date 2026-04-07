@@ -366,5 +366,9 @@ class DesktopLauncher:
         remove_path_safely(self.browser_profile_path)
 
 
+def main() -> int:
+    return DesktopLauncher().start()
+
+
 if __name__ == "__main__":
-    raise SystemExit(DesktopLauncher().start())
+    raise SystemExit(main())

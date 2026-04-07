@@ -1,3 +1,4 @@
+import csv
 from datetime import date
 import io
 from pathlib import Path
@@ -20,8 +21,8 @@ from school_admin.migrations import index_rows, run_migrations
 from school_admin.models import Course, Fee, Payment, Section, Setting, Student, TransportRoute, User
 from school_admin.routes.students import reminder_message
 from school_admin.seed import SUPERADMIN_PASSWORD, SUPERADMIN_USERNAME, seed_database
-from school_admin.utils import dashboard_metrics, payment_summary
-from main import app, calculate_student_fees_and_payments, startup_target_path
+from school_admin.utils import calculate_student_fees_and_payments, dashboard_metrics, payment_summary
+from main import app, startup_target_path
 
 
 @pytest.fixture(scope="module")
@@ -1973,6 +1974,184 @@ def test_settings_restore_rejects_non_pinaki_backup(seeded_session, client):
     assert restore_response.headers["location"] == "/settings?error=invalid_backup_file"
 
 
+def test_data_repair_page_loads_for_admin(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "admin",
+            "password": "adminadmin",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    response = client.get("/settings/data-repair?table=students")
+    assert response.status_code == 200
+    assert "Data Repair" in response.text
+    assert "Export Full Database" in response.text
+    assert "Import Full Database" in response.text
+    assert "Export Students CSV" in response.text
+
+
+def test_data_repair_can_update_student_record(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+    course = seeded_session.scalar(select(Course).where(Course.code == "TEST-COURSE"))
+    assert course is not None
+    student = seeded_session.scalar(select(Student).where(Student.student_code == "REPAIR-STU-001"))
+    if student is None:
+        student = Student(
+            student_code="REPAIR-STU-001",
+            full_name="Repair Student",
+            email="repair.student@example.com",
+            phone="9999990099",
+            parent_name="Repair Parent",
+            status="Active",
+            address="Repair Address",
+            joined_on=date(2026, 4, 7),
+            course_id=course.id,
+        )
+        seeded_session.add(student)
+        seeded_session.commit()
+    assert student is not None
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "admin",
+            "password": "adminadmin",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    edit_page = client.get(f"/settings/data-repair?table=students&edit={student.id}")
+    assert edit_page.status_code == 200
+    edit_csrf_token = extract_csrf_token(edit_page.text)
+
+    response = client.post(
+        f"/settings/data-repair/students/{student.id}/update",
+        data={
+            "csrf_token": edit_csrf_token,
+            "search": "",
+            "student_code": student.student_code,
+            "full_name": "Data Repair Student",
+            "email": student.email,
+            "phone": "8888888888",
+            "parent_name": "Data Repair Parent",
+            "status": "Active",
+            "joined_on": student.joined_on.isoformat(),
+            "course_id": str(student.course_id),
+            "section_id": str(student.section_id or ""),
+            "hostel_id": str(student.hostel_id or ""),
+            "transport_id": str(student.transport_id or ""),
+            "address": "Updated from data repair",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/settings/data-repair?table=students&success=row_saved"
+
+    seeded_session.expire_all()
+    updated_student = seeded_session.get(Student, student.id)
+    assert updated_student is not None
+    assert updated_student.full_name == "Data Repair Student"
+    assert updated_student.phone == "8888888888"
+    assert updated_student.parent_name == "Data Repair Parent"
+    assert updated_student.address == "Updated from data repair"
+    seeded_session.delete(updated_student)
+    seeded_session.commit()
+
+
+def test_data_repair_can_export_and_import_students_csv(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+    course = seeded_session.scalar(select(Course).where(Course.code == "TEST-COURSE"))
+    assert course is not None
+    student = seeded_session.scalar(select(Student).where(Student.student_code == "REPAIR-STU-CSV"))
+    if student is None:
+        student = Student(
+            student_code="REPAIR-STU-CSV",
+            full_name="Repair CSV Student",
+            email="repair.csv@example.com",
+            phone="9999990088",
+            parent_name="Repair CSV Parent",
+            status="Active",
+            address="Repair CSV Address",
+            joined_on=date(2026, 4, 8),
+            course_id=course.id,
+        )
+        seeded_session.add(student)
+        seeded_session.commit()
+    assert student is not None
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "admin",
+            "password": "adminadmin",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    export_response = client.get("/settings/data-repair/students/export")
+    assert export_response.status_code == 200
+    assert export_response.headers["content-type"].startswith("text/csv")
+
+    reader = csv.DictReader(io.StringIO(export_response.text))
+    rows = list(reader)
+    target_row = next(row for row in rows if row["id"] == str(student.id))
+    target_row["full_name"] = "CSV Import Student"
+    target_row["phone"] = "7777777777"
+
+    csv_buffer = io.StringIO()
+    writer = csv.DictWriter(csv_buffer, fieldnames=reader.fieldnames)
+    writer.writeheader()
+    writer.writerow(target_row)
+
+    data_repair_page = client.get("/settings/data-repair?table=students")
+    import_csrf_token = extract_csrf_token(data_repair_page.text)
+    import_response = client.post(
+        "/settings/data-repair/students/import",
+        data={
+            "csrf_token": import_csrf_token,
+            "search": "",
+        },
+        files={
+            "import_file": ("students.csv", csv_buffer.getvalue(), "text/csv"),
+        },
+        follow_redirects=False,
+    )
+
+    assert import_response.status_code == 303
+    assert import_response.headers["location"] == "/settings/data-repair?table=students&success=table_imported"
+
+    seeded_session.expire_all()
+    updated_student = seeded_session.get(Student, student.id)
+    assert updated_student is not None
+    assert updated_student.full_name == "CSV Import Student"
+    assert updated_student.phone == "7777777777"
+    seeded_session.delete(updated_student)
+    seeded_session.commit()
+
+
 def test_get_logout_clears_the_session(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
 
@@ -2719,12 +2898,17 @@ def test_students_page_uses_guardian_contact_labels(seeded_session, client):
     assert "Search by student ID, name, section, guardian email, or guardian phone" in response.text
 
 
-def test_whatsapp_reminder_redirect_uses_student_phone_and_message(seeded_session, client):
+def test_whatsapp_reminder_opens_external_target_and_returns_to_student_view(seeded_session, client, monkeypatch):
     ensure_operational_test_data(seeded_session)
     configure_setup_state(seeded_session, setup_completed=True)
     student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
     assert student is not None
     assert student.course is not None
+    opened_urls = []
+    monkeypatch.setattr(
+        "school_admin.routes.students.webbrowser.open",
+        lambda url, new=0: opened_urls.append((url, new)),
+    )
 
     login_page = client.get("/login")
     csrf_token = extract_csrf_token(login_page.text)
@@ -2742,16 +2926,23 @@ def test_whatsapp_reminder_redirect_uses_student_phone_and_message(seeded_sessio
 
     response = client.get(f"/students/{student.id}/notify/whatsapp", follow_redirects=False)
     assert response.status_code == 303
-    assert response.headers["location"].startswith("whatsapp://send?phone=")
-    assert "".join(character for character in student.phone if character.isdigit()) in response.headers["location"]
-    assert "Payment%20reminder" in response.headers["location"] or "payment%20reminder" in response.headers["location"].lower()
+    assert response.headers["location"] == f"/students?view={student.id}"
+    assert len(opened_urls) == 1
+    assert opened_urls[0][0].startswith("whatsapp://send?phone=")
+    assert "".join(character for character in student.phone if character.isdigit()) in opened_urls[0][0]
+    assert "Payment%20Reminder" in opened_urls[0][0] or "payment%20reminder" in opened_urls[0][0].lower()
 
 
-def test_gmail_reminder_redirect_uses_student_email_and_message(seeded_session, client):
+def test_gmail_reminder_opens_external_browser_and_returns_to_student_view(seeded_session, client, monkeypatch):
     ensure_operational_test_data(seeded_session)
     configure_setup_state(seeded_session, setup_completed=True)
     student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
     assert student is not None
+    opened_urls = []
+    monkeypatch.setattr(
+        "school_admin.routes.students.webbrowser.open",
+        lambda url, new=0: opened_urls.append((url, new)),
+    )
 
     login_page = client.get("/login")
     csrf_token = extract_csrf_token(login_page.text)
@@ -2769,7 +2960,9 @@ def test_gmail_reminder_redirect_uses_student_email_and_message(seeded_session, 
 
     response = client.get(f"/students/{student.id}/notify/gmail", follow_redirects=False)
     assert response.status_code == 303
-    location = unquote(response.headers["location"])
+    assert response.headers["location"] == f"/students?view={student.id}"
+    assert len(opened_urls) == 1
+    location = unquote(opened_urls[0][0])
     assert location.startswith("https://mail.google.com/mail/?view=cm&fs=1")
     assert f"to={student.email}" in location
     assert "Payment Reminder" in location

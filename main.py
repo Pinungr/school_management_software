@@ -20,7 +20,6 @@ from school_admin.routes.recovery import router as recovery_router
 from school_admin.routes.students import router as students_router
 from school_admin.utils import (
     SESSION_IDLE_TIMEOUT_SECONDS,
-    calculate_student_fees_and_payments,
     is_setup_complete,
     lifespan,
 )
@@ -84,8 +83,12 @@ def open_browser_when_ready(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) 
         webbrowser.open(f"http://{host}:{port}{startup_target_path()}", new=2)
 
 
-if __name__ == "__main__":
+def main() -> None:
     import uvicorn
 
     threading.Thread(target=open_browser_when_ready, daemon=True).start()
     uvicorn.run("main:app", host=DEFAULT_HOST, port=DEFAULT_PORT, reload=False)
+
+
+if __name__ == "__main__":
+    main()

@@ -55,10 +55,16 @@
                 </a>
                 {% endfor %}
             </nav>
+            <section class="sidebar-note">
+                <span class="sidebar-note-label">Today</span>
+                <strong>{{ today.strftime("%d %b %Y") }}</strong>
+                <p>{{ settings.school_name if settings else "Private School" }} is running in offline desktop mode with local data.</p>
+            </section>
         </aside>
         <main class="content">
             <header class="topbar">
                 <div class="topbar-meta">
+                    <span class="meta-pill success">Offline Ready</span>
                     <span class="meta-pill user-meta">{{ current_user.username|capitalize }} - {{ current_user.role }}</span>
                     <span class="meta-pill">{{ today.strftime("%d %b %Y") }}</span>
                     <button type="button" id="refresh-app" class="meta-pill btn btn-small btn-light">Refresh</button>

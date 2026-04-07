@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pinaki"
+version = "1.0.0"
+description = "Desktop school management system built with FastAPI, SQLAlchemy, and a Windows app-style launcher."
+readme = "README.md"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "alembic>=1.14,<2.0",
+]
+
+[project.scripts]
+pinaki = "launcher:main"
+pinaki-web = "main:main"
+
+[tool.setuptools]
+py-modules = ["main", "launcher"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["school_admin*", "templates*", "static*"]
+
+[tool.setuptools.package-data]
+templates = ["*.html"]
+"templates.partials" = ["*.html"]
+static = ["*.css", "*.ico", "*.js", "*.png", "*.svg"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }

@@ -3,6 +3,7 @@
 {% block content %}
 <section class="page-header">
     <div>
+        <div class="page-kicker">Academic Structure</div>
         <h2>Courses Management</h2>
         <p>Create and manage courses. Fee amounts now live in the separate Fees tab.</p>
     </div>
@@ -27,6 +28,19 @@
         <div><span>Code</span><strong>{{ view_course.code }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_course.status }}</strong></div>
         <div class="wide"><span>Description</span><strong>{{ view_course.description or "N/A" }}</strong></div>
+    </div>
+</section>
+
+<section class="card section-intro">
+    <div class="section-intro-grid">
+        <div>
+            <h3>Build the Learning Structure</h3>
+            <p>Courses define the academic ladder, while sections organize class groups, teachers, and rooms without changing billing logic.</p>
+        </div>
+        <div class="section-intro-stat">
+            <span>Designed For</span>
+            <strong>Promotion-ready class and section organization</strong>
+        </div>
     </div>
 </section>
 {% endif %}

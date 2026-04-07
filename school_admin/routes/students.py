@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import threading
+import webbrowser
 from datetime import date
 from html import escape
 from types import SimpleNamespace
@@ -218,6 +220,10 @@ def reminder_message(settings: Setting, student: Student, fees_data: dict[str, f
 
 def normalized_whatsapp_phone(phone: str) -> str:
     return "".join(character for character in str(phone or "") if character.isdigit())
+
+
+def open_external_target(url: str) -> None:
+    threading.Thread(target=webbrowser.open, args=(url,), kwargs={"new": 2}, daemon=True).start()
 
 
 def first_applicable_admission_fee(session, student: Student) -> Fee | None:
@@ -872,7 +878,8 @@ async def notify_guardian_whatsapp(student_id: int, request: Request, return_to:
 
         settings = session.get(Setting, 1) or Setting()
         message = reminder_message(settings, student, fees_data)
-    return redirect(f"whatsapp://send?phone={phone}&text={quote(message)}")
+    open_external_target(f"whatsapp://send?phone={phone}&text={quote(message)}")
+    return redirect(f"{return_path}?view={student_id}")
 
 
 @router.get("/students/{student_id}/notify/gmail")
@@ -898,9 +905,11 @@ async def notify_guardian_gmail(student_id: int, request: Request, return_to: st
         settings = session.get(Setting, 1) or Setting()
         subject = reminder_subject(settings, student)
         body = reminder_message(settings, student, fees_data)
-    return redirect(
+    gmail_url = (
         "https://mail.google.com/mail/?view=cm&fs=1"
         f"&to={quote(recipient_email)}"
         f"&su={quote(subject)}"
         f"&body={quote(body)}"
     )
+    open_external_target(gmail_url)
+    return redirect(f"{return_path}?view={student_id}")

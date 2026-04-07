@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import func, or_, select
@@ -8,6 +10,13 @@ from sqlalchemy.exc import IntegrityError
 from school_admin.auth import hash_password
 from school_admin.backup_restore import BackupRestoreError, create_backup_archive, restore_backup_archive
 from school_admin.database import SessionLocal
+from school_admin.data_repair import (
+    DataRepairError,
+    build_data_repair_page,
+    export_table_csv,
+    get_table_spec,
+    import_table_csv,
+)
 from school_admin.media import delete_uploaded_logo, sanitize_logo_url, store_uploaded_logo
 from school_admin.models import User
 from school_admin.utils import form_with_csrf, get_settings, redirect, render_page, require_admin
@@ -18,6 +27,41 @@ USER_STATUSES = {"Active", "Inactive"}
 FEE_FREQUENCIES = {"Monthly", "Quarterly", "Half-Yearly", "Yearly"}
 CURRENCIES = {"INR (Rs)", "USD ($)", "EUR (EUR)"}
 TIMEZONES = {"Asia/Kolkata (IST)", "UTC", "Asia/Dubai (GST)"}
+DATA_REPAIR_ERROR_MESSAGES = {
+    "missing_import_file": "Choose a CSV or backup file before importing.",
+    "invalid_import_file": "The selected import file is not valid for this table.",
+    "duplicate_or_invalid_data": "The import or edit contains duplicate or invalid values.",
+    "record_not_found": "The selected record could not be found.",
+    "missing_required_field": "Fill in the required fields before saving.",
+    "invalid_numeric_value": "Enter a valid numeric value before saving.",
+    "invalid_lookup": "Choose valid linked records for the selected row.",
+    "invalid_status": "Choose a valid status before saving.",
+    "invalid_method": "Choose a valid payment method before saving.",
+    "invalid_frequency": "Choose a valid frequency before saving.",
+    "invalid_category": "Choose a valid fee category before saving.",
+    "invalid_role": "Choose a valid user role before saving.",
+    "invalid_service_type": "Choose a valid payment service type before saving.",
+    "last_admin": "Keep at least one active administrator account in the system.",
+    "invalid_backup_file": "Choose a valid Pinaki backup file to restore.",
+}
+DATA_REPAIR_SUCCESS_MESSAGES = {
+    "row_saved": "Row updated successfully.",
+    "table_imported": "Table imported successfully.",
+    "database_imported": "Database backup restored successfully.",
+}
+
+
+def data_repair_redirect(table: str, *, search: str = "", edit: int | None = None, error: str = "", success: str = ""):
+    query_items: list[tuple[str, str | int]] = [("table", table)]
+    if search.strip():
+        query_items.append(("search", search.strip()))
+    if edit is not None:
+        query_items.append(("edit", edit))
+    if error:
+        query_items.append(("error", error))
+    if success:
+        query_items.append(("success", success))
+    return redirect(f"/settings/data-repair?{urlencode(query_items)}")
 
 
 @router.get("/users", response_class=HTMLResponse)
@@ -192,6 +236,137 @@ async def settings_page(request: Request, error: str = "", success: str = ""):
             error_code=error,
             success_code=success,
         )
+
+
+@router.get("/settings/data-repair", response_class=HTMLResponse)
+async def data_repair_page(
+    request: Request,
+    table: str = "students",
+    search: str = "",
+    page: int = 1,
+    edit: int | None = None,
+    error: str = "",
+    success: str = "",
+):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        return render_page(
+            request,
+            session,
+            current_user,
+            "data_repair.html",
+            "settings",
+            error_message=DATA_REPAIR_ERROR_MESSAGES.get(error, ""),
+            success_message=DATA_REPAIR_SUCCESS_MESSAGES.get(success, ""),
+            **build_data_repair_page(
+                session,
+                table_key=table,
+                search=search,
+                page=page,
+                edit_id=edit,
+            ),
+        )
+
+
+@router.post("/settings/data-repair/{table}/{row_id}/update")
+async def update_data_repair_row(table: str, row_id: int, request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        failure_url = f"/settings/data-repair?table={get_table_spec(table).key}&edit={row_id}"
+        form, response = await form_with_csrf(request, failure_url)
+        if response:
+            return response
+        search = str(form.get("search", "")).strip()
+        form_data = {key: value for key, value in form.items()}
+        try:
+            from school_admin.data_repair import update_row_from_form
+
+            update_row_from_form(session, table, row_id, form_data)
+        except DataRepairError as exc:
+            return data_repair_redirect(
+                get_table_spec(table).key,
+                search=search,
+                edit=row_id,
+                error=exc.args[0],
+            )
+    return data_repair_redirect(get_table_spec(table).key, search=search, success="row_saved")
+
+
+@router.get("/settings/data-repair/{table}/export")
+async def export_data_repair_table(table: str, request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        file_bytes, filename = export_table_csv(session, table)
+    return Response(
+        content=file_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/settings/data-repair/{table}/import")
+async def import_data_repair_table(table: str, request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        failure_url = f"/settings/data-repair?table={get_table_spec(table).key}"
+        form, response = await form_with_csrf(request, failure_url)
+        if response:
+            return response
+        search = str(form.get("search", "")).strip()
+        import_file = form.get("import_file")
+        if not isinstance(import_file, UploadFile) and not getattr(import_file, "filename", "").strip():
+            return data_repair_redirect(get_table_spec(table).key, search=search, error="missing_import_file")
+        file_bytes = await import_file.read()
+        try:
+            import_table_csv(session, table, file_bytes)
+        except DataRepairError as exc:
+            return data_repair_redirect(get_table_spec(table).key, search=search, error=exc.args[0])
+    return data_repair_redirect(get_table_spec(table).key, search=search, success="table_imported")
+
+
+@router.post("/settings/data-repair/database/export")
+async def export_data_repair_database(request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        _, response = await form_with_csrf(request, "/settings/data-repair?table=students")
+        if response:
+            return response
+    archive_bytes, filename = create_backup_archive()
+    return Response(
+        content=archive_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/settings/data-repair/database/import")
+async def import_data_repair_database(request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        form, response = await form_with_csrf(request, "/settings/data-repair?table=students")
+        if response:
+            return response
+        backup_file = form.get("backup_file")
+        if not isinstance(backup_file, UploadFile) and not getattr(backup_file, "filename", "").strip():
+            return data_repair_redirect("students", error="missing_import_file")
+        archive_bytes = await backup_file.read()
+    try:
+        restore_backup_archive(archive_bytes)
+    except BackupRestoreError as exc:
+        return data_repair_redirect("students", error=exc.args[0])
+    return data_repair_redirect("students", success="database_imported")
 
 
 @router.post("/settings")

@@ -45,20 +45,26 @@
             <div><span>Outstanding Balance</span><strong class="{% if fees_data.remaining_balance > 0 %}text-danger{% else %}text-success{% endif %}">{{ fees_data.remaining_balance|money }}</strong></div>
         </div>
         <p class="auth-copy">WhatsApp uses the guardian phone field, and Gmail uses the guardian email field from the student record.</p>
-        <a class="btn btn-small btn-light" href="/payments?student_query={{ view_student.student_code }}">View Payments</a>
-        <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ view_student.id }}">Record Payment</a>
-        {% if view_student_next_course %}
-        <a class="btn btn-small btn-light" href="/admissions?promote={{ view_student.id }}">Promote</a>
-        {% endif %}
-        {% if fees_data.remaining_balance > 0 %}
-        <a class="btn btn-small btn-warning" href="/students/{{ view_student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp Reminder</a>
-        <a class="btn btn-small btn-light" href="/students/{{ view_student.id }}/notify/gmail?return_to={{ base_path }}">Gmail Reminder</a>
-        <form method="post" action="/students/{{ view_student.id }}/notify" style="display: inline;">
-            {% include "partials/csrf_input.html" %}
-            <input type="hidden" name="return_path" value="{{ return_path }}">
-            <button class="btn btn-small btn-light" type="submit">Preview Reminder</button>
-        </form>
-        {% endif %}
+        <div class="student-action-cluster">
+            <div class="student-action-row">
+                <a class="btn btn-small btn-light" href="/payments?student_query={{ view_student.student_code }}">View Payments</a>
+                <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ view_student.id }}">Record Payment</a>
+                {% if view_student_next_course %}
+                <a class="btn btn-small btn-light" href="/admissions?promote={{ view_student.id }}">Promote</a>
+                {% endif %}
+            </div>
+            {% if fees_data.remaining_balance > 0 %}
+            <div class="student-action-row student-action-row-secondary">
+                <a class="btn btn-small btn-warning" href="/students/{{ view_student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
+                <a class="btn btn-small btn-light" href="/students/{{ view_student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
+                <form method="post" action="/students/{{ view_student.id }}/notify">
+                    {% include "partials/csrf_input.html" %}
+                    <input type="hidden" name="return_path" value="{{ return_path }}">
+                    <button class="btn btn-small btn-light" type="submit">Preview</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </section>
@@ -284,21 +290,27 @@
                     </td>
                     <td><span class="badge">{{ student.status }}</span></td>
                     <td class="actions">
-                        <a class="btn btn-small btn-light" href="{{ base_path }}?view={{ student.id }}">View</a>
-                        <a class="btn btn-small btn-light" href="{{ base_path }}?edit={{ student.id }}">Edit</a>
-                        {% if student_data.promotion_next_course %}
-                        <a class="btn btn-small btn-light" href="/admissions?promote={{ student.id }}">Promote</a>
-                        {% endif %}
-                        <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ student.id }}">Payment</a>
-                        {% if fees.remaining_balance > 0 %}
-                        <a class="btn btn-small btn-warning" href="/students/{{ student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
-                        <a class="btn btn-small btn-light" href="/students/{{ student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
-                        {% endif %}
-                        <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');" style="display: inline;">
-                            {% include "partials/csrf_input.html" %}
-                            <input type="hidden" name="return_path" value="{{ return_path }}">
-                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
-                        </form>
+                        <div class="student-action-cluster">
+                            <div class="student-action-row">
+                                <a class="btn btn-small btn-light" href="{{ base_path }}?view={{ student.id }}">View</a>
+                                <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ student.id }}">Payment</a>
+                            </div>
+                            <div class="student-action-row student-action-row-secondary">
+                                <a class="btn btn-small btn-light" href="{{ base_path }}?edit={{ student.id }}">Edit</a>
+                                {% if student_data.promotion_next_course %}
+                                <a class="btn btn-small btn-light" href="/admissions?promote={{ student.id }}">Promote</a>
+                                {% endif %}
+                                {% if fees.remaining_balance > 0 %}
+                                <a class="btn btn-small btn-warning" href="/students/{{ student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
+                                <a class="btn btn-small btn-light" href="/students/{{ student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
+                                {% endif %}
+                                <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');">
+                                    {% include "partials/csrf_input.html" %}
+                                    <input type="hidden" name="return_path" value="{{ return_path }}">
+                                    <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </div>
                     </td>
                 </tr>
                 {% else %}

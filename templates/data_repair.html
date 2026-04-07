@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Data Repair{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Data Repair</h2>
+        <p>Browse, search, edit, export, and import approved tables directly as an administrator.</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-light" href="/settings">Back to Settings</a>
+    </div>
+</section>
+
+{% if error_message %}
+<div class="alert-error">{{ error_message }}</div>
+{% endif %}
+{% if success_message %}
+<div class="alert-success">{{ success_message }}</div>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Database Tools</h3>
+            <p>Export or restore the full application database separately from individual table tools.</p>
+        </div>
+    </div>
+    <div class="settings-grid">
+        <div class="settings-section">
+            <h3>Export Full Database</h3>
+            <p>Download the full Pinaki backup file with database and uploaded files.</p>
+            <form method="post" action="/settings/data-repair/database/export">
+                {% include "partials/csrf_input.html" %}
+                <button class="btn btn-light" type="submit">Export Full Database</button>
+            </form>
+        </div>
+        <div class="settings-section">
+            <h3>Import Full Database</h3>
+            <p>Restore the full application database from a backup archive.</p>
+            <form method="post" action="/settings/data-repair/database/import" enctype="multipart/form-data">
+                {% include "partials/csrf_input.html" %}
+                <label>
+                    <span>Backup File</span>
+                    <input type="file" name="backup_file" accept=".pinaki-backup,.zip,application/zip">
+                </label>
+                <div class="form-actions">
+                    <button class="btn btn-danger" type="submit" onclick="return confirm('Import this full database backup? This will replace the current application data.');">Import Full Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Approved Tables</h3>
+            <p>Choose a table to browse and update. Changes save directly for admins.</p>
+        </div>
+    </div>
+    <div class="repair-tabs">
+        {% for item in table_specs %}
+        <a class="repair-tab {% if item.key == table_spec.key %}active{% endif %}" href="/settings/data-repair?table={{ item.key }}">{{ item.label }}</a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{{ table_spec.label }}</h3>
+            <p>
+                Showing {{ pagination.page_start }}-{{ pagination.page_end }} of {{ pagination.total_items }} rows.
+                Page {{ pagination.page }} of {{ pagination.total_pages }}.
+            </p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="hidden" name="table" value="{{ table_spec.key }}">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search {{ table_spec.label|lower }}">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="header-actions repair-actions">
+        <a class="btn btn-light" href="/settings/data-repair/{{ table_spec.key }}/export">Export {{ table_spec.label }} CSV</a>
+        <form method="post" action="/settings/data-repair/{{ table_spec.key }}/import" enctype="multipart/form-data" class="repair-import-form">
+            {% include "partials/csrf_input.html" %}
+            <input type="hidden" name="search" value="{{ search }}">
+            <input type="file" name="import_file" accept=".csv,text/csv" required>
+            <button class="btn btn-light" type="submit">Import {{ table_spec.label }} CSV</button>
+        </form>
+        {% if pagination.has_previous %}
+        <a class="btn btn-light" href="/settings/data-repair?table={{ table_spec.key }}&search={{ search }}&page={{ pagination.page - 1 }}">Previous</a>
+        {% endif %}
+        {% if pagination.has_next %}
+        <a class="btn btn-light" href="/settings/data-repair?table={{ table_spec.key }}&search={{ search }}&page={{ pagination.page + 1 }}">Next</a>
+        {% endif %}
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    {% for field in table_spec.fields %}
+                    <th>{{ field.label }}</th>
+                    {% endfor %}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_rows %}
+                <tr>
+                    {% for field in table_spec.fields %}
+                    <td>
+                        {% set value = row[field.name] %}
+                        {% if field.input_type == "textarea" and value %}
+                        {{ value[:80] }}{% if value|length > 80 %}...{% endif %}
+                        {% else %}
+                        {{ value or "-" }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/settings/data-repair?table={{ table_spec.key }}&search={{ search }}&edit={{ row.id }}">Edit</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ table_spec.fields|length + 1 }}" class="empty-state">No rows found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if edit_row %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Edit {{ table_spec.label[:-1] if table_spec.label.endswith('s') else table_spec.label }}</h3>
+            <p>Save changes directly to the selected table row.</p>
+        </div>
+        <a class="btn btn-light" href="/settings/data-repair?table={{ table_spec.key }}&search={{ search }}">Close</a>
+    </div>
+    <form method="post" action="/settings/data-repair/{{ table_spec.key }}/{{ edit_row.id }}/update" class="form-grid">
+        {% include "partials/csrf_input.html" %}
+        <input type="hidden" name="search" value="{{ search }}">
+        {% for field in table_spec.fields %}
+        <label class="{% if field.input_type == 'textarea' %}wide{% endif %}">
+            <span>{{ field.label }}</span>
+            {% if not field.editable %}
+            <input value="{{ edit_row[field.name] }}" disabled>
+            {% elif field.input_type == "textarea" %}
+            <textarea name="{{ field.name }}" rows="3">{{ edit_row[field.name] }}</textarea>
+            {% elif field.input_type == "select" %}
+            <select name="{{ field.name }}" {% if field.required %}required{% endif %}>
+                {% for option in field_options[field.options_key] %}
+                <option value="{{ option.value }}" {% if option.value|string == edit_row[field.name]|string %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <input
+                {% if field.input_type != "text" %}type="{{ field.input_type }}"{% endif %}
+                name="{{ field.name }}"
+                value="{{ edit_row[field.name] }}"
+                {% if field.required %}required{% endif %}
+                {% if field.input_type == "number" %}step="0.01"{% endif %}
+            >
+            {% endif %}
+            {% if field.help_text %}
+            <small class="text-muted">{{ field.help_text }}</small>
+            {% endif %}
+        </label>
+        {% endfor %}
+        <div class="wide form-actions">
+            <button class="btn btn-primary" type="submit">Save Changes</button>
+        </div>
+    </form>
+</section>
+{% endif %}
+{% endblock %}

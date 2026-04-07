@@ -3,8 +3,14 @@
 {% block content %}
 <section class="page-header">
     <div>
+        <div class="page-kicker">School Command Center</div>
         <h2>Dashboard Overview</h2>
         <p>See enrollment health, collection performance, and pending fees at a glance.</p>
+    </div>
+    <div class="hero-panel">
+        <span class="hero-chip">Collections</span>
+        <strong>{{ metrics.total_collected|money }}</strong>
+        <p>Live operational snapshot covering student movement, dues, and cashflow.</p>
     </div>
 </section>
 
@@ -38,6 +44,32 @@
     </article>
 </section>
 
+<section class="card spotlight-card">
+    <div class="card-header">
+        <div>
+            <h3>Operational Spotlight</h3>
+            <p>Use this as the day-start pulse for collection pressure and service load.</p>
+        </div>
+    </div>
+    <div class="spotlight-grid">
+        <div class="spotlight-panel">
+            <span class="spotlight-label">Collection Health</span>
+            <strong>{{ metrics.total_collected|money }}</strong>
+            <p>Money already collected across admission, course, hostel, transport, and other charges.</p>
+        </div>
+        <div class="spotlight-panel">
+            <span class="spotlight-label">Outstanding Pressure</span>
+            <strong>{{ metrics.pending_total|money }}</strong>
+            <p>The current due amount still waiting to be cleared by families.</p>
+        </div>
+        <div class="spotlight-panel">
+            <span class="spotlight-label">High-Focus Area</span>
+            <strong>{% if metrics.pending_course >= metrics.pending_hostel and metrics.pending_course >= metrics.pending_transport %}Course Fees{% elif metrics.pending_hostel >= metrics.pending_transport %}Hostel Fees{% else %}Transport Fees{% endif %}</strong>
+            <p>Prioritize reminder and follow-up work where the pending balance is currently most concentrated.</p>
+        </div>
+    </div>
+</section>
+
 <section class="card">
     <div class="card-header">
         <div>
@@ -47,18 +79,22 @@
     </div>
     <div class="quick-grid">
         <a class="quick-card" href="/admissions">
+            <div class="quick-card-kicker">Intake</div>
             <h4>Admissions</h4>
             <p>Create admissions that flow directly into the student register.</p>
         </a>
         <a class="quick-card" href="/students">
+            <div class="quick-card-kicker">Directory</div>
             <h4>Manage Students</h4>
             <p>Add, review, and update student records.</p>
         </a>
         <a class="quick-card" href="/fees">
+            <div class="quick-card-kicker">Billing Rules</div>
             <h4>Manage Fees</h4>
             <p>Maintain admission, course, hostel, transport, and custom fee items in one place.</p>
         </a>
         <a class="quick-card" href="/payments">
+            <div class="quick-card-kicker">Collections</div>
             <h4>View Payments</h4>
             <p>Track every payment by student, date, and type.</p>
         </a>

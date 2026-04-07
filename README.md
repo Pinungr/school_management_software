@@ -45,3 +45,33 @@ Run tests:
 ```bash
 pytest
 ```
+
+## Database Migrations
+
+Alembic is now configured for developer-managed schema migrations.
+
+Install development dependencies first:
+```bash
+pip install -r requirements-dev.txt
+```
+
+Create a new revision:
+```bash
+alembic revision --autogenerate -m "describe the change"
+```
+
+Apply migrations to a fresh or Alembic-managed database:
+```bash
+alembic upgrade head
+```
+
+Important:
+- The app still keeps its existing built-in startup migration runner for current installs and packaged desktops.
+- The Alembic baseline revision in `alembic/versions/20260407_0001_baseline_schema.py` represents the current schema for new databases.
+- If you already have a database created by the app, stamp it once instead of replaying the baseline:
+
+```bash
+alembic stamp head
+```
+
+- To target a different database when using the CLI, set `SCHOOLFLOW_DATABASE_URL` before running Alembic.
