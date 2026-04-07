@@ -17,4 +17,35 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.reload();
         });
     }
+
+    const logoutForm = document.querySelector(".logout-form");
+    const sessionTimeoutMs = Number(logoutForm?.dataset.sessionTimeoutMs || 0);
+    if (logoutForm && Number.isFinite(sessionTimeoutMs) && sessionTimeoutMs > 0) {
+        let timeoutHandle = null;
+        let isLoggingOut = false;
+
+        const triggerIdleLogout = () => {
+            if (isLoggingOut) {
+                return;
+            }
+            isLoggingOut = true;
+            logoutForm.submit();
+        };
+
+        const resetIdleTimer = () => {
+            if (isLoggingOut) {
+                return;
+            }
+            if (timeoutHandle) {
+                window.clearTimeout(timeoutHandle);
+            }
+            timeoutHandle = window.setTimeout(triggerIdleLogout, sessionTimeoutMs);
+        };
+
+        ["click", "keydown", "mousemove", "scroll", "touchstart"].forEach((eventName) => {
+            window.addEventListener(eventName, resetIdleTimer, { passive: true });
+        });
+
+        resetIdleTimer();
+    }
 });

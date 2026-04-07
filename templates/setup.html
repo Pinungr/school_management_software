@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Initial Setup | SchoolFlow</title>
+    <title>Initial Setup | Pinaki</title>
+    <link rel="icon" href="/static/app_icon.png" type="image/png">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="auth-body">
@@ -14,7 +15,7 @@
             <span class="meta-pill success">First Run Setup</span>
             <h1>Set up your school and admin account before the first sign-in.</h1>
             <p>
-                This one-time step collects the school profile and administrator details that SchoolFlow needs before
+                This one-time step collects the school profile and administrator details that Pinaki needs before
                 anyone signs in. You can update them later from Settings.
             </p>
             <div class="auth-demo">
@@ -30,10 +31,10 @@
                 {% if settings and settings.logo_url %}
                 <img class="brand-logo" src="{{ settings.logo_url }}" alt="{{ settings.school_name }} logo">
                 {% else %}
-                <div class="brand-mark">S</div>
+                <div class="brand-mark">P</div>
                 {% endif %}
                 <div>
-                    <h1>SchoolFlow</h1>
+                    <h1>Pinaki</h1>
                     <p>{{ settings.school_name }}</p>
                 </div>
             </div>

@@ -3,28 +3,31 @@
 {% block content %}
 <section class="page-header">
     <div>
-        <h2>Students Management</h2>
-        <p>Manage student records and enrollment details.</p>
+        <h2>{{ labels.page_title }}</h2>
+        <p>{{ labels.page_description }}</p>
     </div>
+    {% if allow_manual_create %}
     <div class="header-actions">
-        <a class="btn btn-primary" href="/students?create=1">Add Student</a>
+        <a class="btn btn-primary" href="{{ base_path }}?create=1">{{ labels.create_button_label }}</a>
     </div>
+    {% endif %}
 </section>
 
 {% if view_student %}
 <section class="card detail-card">
     <div class="card-header">
         <h3>{{ view_student.full_name }}</h3>
-        <a class="btn btn-light" href="/students">Close</a>
+        <a class="btn btn-light" href="{{ base_path }}">Close</a>
     </div>
     <div class="detail-grid">
         <div><span>Student ID</span><strong>{{ view_student.student_code }}</strong></div>
-        <div><span>Email</span><strong>{{ view_student.email }}</strong></div>
-        <div><span>Phone</span><strong>{{ view_student.phone }}</strong></div>
+        <div><span>Guardian Email</span><strong>{{ view_student.email }}</strong></div>
+        <div><span>Guardian Phone</span><strong>{{ view_student.phone }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_student.status }}</strong></div>
         <div><span>Parent</span><strong>{{ view_student.parent_name or "N/A" }}</strong></div>
         <div><span>Joined On</span><strong>{{ view_student.joined_on|datefmt }}</strong></div>
         <div><span>Course</span><strong>{{ view_student.course.name if view_student.course else "Not assigned" }}</strong></div>
+        <div><span>Section</span><strong>{{ view_student.section.name if view_student.section else "Not assigned" }}</strong></div>
         <div><span>Hostel</span><strong>{{ view_student.hostel.name if view_student.hostel else "Not assigned" }}</strong></div>
         <div><span>Transport</span><strong>{{ view_student.transport_route.route_name if view_student.transport_route else "Not assigned" }}</strong></div>
         <div class="wide"><span>Address</span><strong>{{ view_student.address or "N/A" }}</strong></div>
@@ -41,7 +44,21 @@
             <div><span>Total Fees</span><strong>{{ fees_data.total_fees|money }}</strong></div>
             <div><span>Outstanding Balance</span><strong class="{% if fees_data.remaining_balance > 0 %}text-danger{% else %}text-success{% endif %}">{{ fees_data.remaining_balance|money }}</strong></div>
         </div>
-        <a class="btn btn-small btn-light" href="/payments?student_id={{ view_student.id }}">View Payments</a>
+        <p class="auth-copy">WhatsApp uses the guardian phone field, and Gmail uses the guardian email field from the student record.</p>
+        <a class="btn btn-small btn-light" href="/payments?student_query={{ view_student.student_code }}">View Payments</a>
+        <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ view_student.id }}">Record Payment</a>
+        {% if view_student_next_course %}
+        <a class="btn btn-small btn-light" href="/admissions?promote={{ view_student.id }}">Promote</a>
+        {% endif %}
+        {% if fees_data.remaining_balance > 0 %}
+        <a class="btn btn-small btn-warning" href="/students/{{ view_student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp Reminder</a>
+        <a class="btn btn-small btn-light" href="/students/{{ view_student.id }}/notify/gmail?return_to={{ base_path }}">Gmail Reminder</a>
+        <form method="post" action="/students/{{ view_student.id }}/notify" style="display: inline;">
+            {% include "partials/csrf_input.html" %}
+            <input type="hidden" name="return_path" value="{{ return_path }}">
+            <button class="btn btn-small btn-light" type="submit">Preview Reminder</button>
+        </form>
+        {% endif %}
     </div>
     {% endif %}
 </section>
@@ -55,13 +72,31 @@
 <section class="card">
     <div class="card-header">
         <div>
-            <h3>{% if form_mode == "create" %}Add Student{% else %}Edit Student{% endif %}</h3>
-            <p>Store complete student profile information.</p>
+            <h3>
+                {% if promotion_context %}
+                Promote Student
+                {% elif form_mode == "create" %}
+                {{ labels.form_title_create }}
+                {% else %}
+                {{ labels.form_title_edit }}
+                {% endif %}
+            </h3>
+            <p>
+                {% if promotion_context %}
+                Review the promoted admission details for {{ promotion_context.source_student.full_name }}. The course has been moved from {{ promotion_context.source_student.course.name if promotion_context.source_student.course else "the current class" }} to {{ promotion_context.next_course.name }} and you can adjust the form before saving.
+                {% else %}
+                {{ labels.form_description }}
+                {% endif %}
+            </p>
         </div>
-        <a class="btn btn-light" href="/students">Cancel</a>
+        <a class="btn btn-light" href="{{ base_path }}">Cancel</a>
     </div>
-    <form method="post" action="{% if form_mode == 'create' %}/students/create{% else %}/students/{{ form_student.id }}/edit{% endif %}" class="form-grid">
+    <form method="post" action="{% if form_mode == 'create' %}/students/create{% else %}/students/{{ form_student.id }}/edit{% endif %}" class="form-grid"{% if allow_manual_create and form_mode == "create" %} target="_blank"{% endif %}>
         {% include "partials/csrf_input.html" %}
+        <input type="hidden" name="return_path" value="{{ return_path }}">
+        {% if promotion_context %}
+        <input type="hidden" name="promotion_source_student_id" value="{{ promotion_context.source_student.id }}">
+        {% endif %}
         <label>
             <span>Student ID</span>
             <input name="student_code" value="{{ form_student.student_code if form_student else '' }}" required>
@@ -71,11 +106,11 @@
             <input name="full_name" value="{{ form_student.full_name if form_student else '' }}" required>
         </label>
         <label>
-            <span>Email</span>
+            <span>Guardian Email</span>
             <input type="email" name="email" value="{{ form_student.email if form_student else '' }}" required>
         </label>
         <label>
-            <span>Phone</span>
+            <span>Guardian Phone</span>
             <input name="phone" value="{{ form_student.phone if form_student else '' }}" required>
         </label>
         <label>
@@ -96,11 +131,17 @@
         </label>
         <label>
             <span>Course</span>
-            <select name="course_id">
-                <option value="">Not assigned</option>
+            <select name="course_id" id="student_course_id" required>
+                <option value="">Select course</option>
                 {% for course in lookups.courses %}
                 <option value="{{ course.id }}" {% if form_student and form_student.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
                 {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Section</span>
+            <select name="section_id" id="student_section_id">
+                <option value="">Select section</option>
             </select>
         </label>
         <label>
@@ -125,8 +166,41 @@
             <span>Address</span>
             <textarea name="address" rows="3">{{ form_student.address if form_student else '' }}</textarea>
         </label>
+        {% if allow_manual_create and form_mode == "create" %}
+        <div class="wide auth-copy">
+            {% if promotion_context %}
+            Saving this promotion will update the student to the new class, record a fresh admission fee automatically, and open the receipt.
+            {% else %}
+            The admission fee is mandatory for every new admission. Saving this form will record that fee automatically and open the receipt.
+            {% endif %}
+        </div>
+        <label>
+            <span>Admission Payment Method</span>
+            <select name="admission_method">
+                {% for option in admission_payment_methods %}
+                <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Admission Receipt Reference</span>
+            <input name="admission_reference" placeholder="Optional custom receipt number">
+        </label>
+        <label class="wide">
+            <span>Admission Notes</span>
+            <textarea name="admission_notes" rows="3" placeholder="Optional note for the admission receipt"></textarea>
+        </label>
+        {% endif %}
         <div class="wide form-actions">
-            <button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Student{% else %}Update Student{% endif %}</button>
+            <button class="btn btn-primary" type="submit">
+                {% if promotion_context %}
+                Save Promotion
+                {% elif form_mode == "create" %}
+                Save {{ labels.record_label }}
+                {% else %}
+                Update {{ labels.record_label }}
+                {% endif %}
+            </button>
         </div>
     </form>
 </section>
@@ -135,13 +209,27 @@
 <section class="card">
     <div class="card-header">
         <div>
-            <h3>Student Records</h3>
-            <p>Search, review, and manage student profiles.</p>
+            <h3>{{ labels.list_title }}</h3>
+            <p>{{ labels.list_description }}</p>
         </div>
         <form method="get" class="search-form">
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by student ID, name, or email">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by student ID, name, section, guardian email, or guardian phone">
             <button class="btn btn-light" type="submit">Search</button>
         </form>
+    </div>
+    <div class="card-header">
+        <p>
+            Showing {{ pagination.page_start }}-{{ pagination.page_end }} of {{ pagination.total_items }} records.
+            Page {{ pagination.page }} of {{ pagination.total_pages }}.
+        </p>
+        <div class="header-actions">
+            {% if pagination.has_previous %}
+            <a class="btn btn-light" href="{{ base_path }}?{{ pagination.previous_query }}">Previous</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="btn btn-light" href="{{ base_path }}?{{ pagination.next_query }}">Next</a>
+            {% endif %}
+        </div>
     </div>
     <div class="table-wrap">
         <table>
@@ -149,8 +237,9 @@
                 <tr>
                     <th>Student ID</th>
                     <th>Full Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
+                    <th>Course / Section</th>
+                    <th>Guardian Email</th>
+                    <th>Guardian Phone</th>
                     <th>Services & Fees</th>
                     <th>Total Fees</th>
                     <th>Paid</th>
@@ -166,13 +255,21 @@
                 <tr>
                     <td>{{ student.student_code }}</td>
                     <td>{{ student.full_name }}</td>
+                    <td>
+                        {{ student.course.name if student.course else "Not assigned" }}
+                        <br><small class="text-muted">{{ student.section.name if student.section else "No section" }}</small>
+                    </td>
                     <td>{{ student.email }}</td>
                     <td>{{ student.phone }}</td>
                     <td>
-                        {% if student.course %}<div><small>Course: {{ student.course.name }} ({{ fees.course_fee|money }})</small></div>{% endif %}
-                        {% if student.hostel %}<div><small>Hostel: {{ student.hostel.name }} ({{ fees.hostel_fee|money }})</small></div>{% endif %}
-                        {% if student.transport_route %}<div><small>Transport: {{ student.transport_route.route_name }} ({{ fees.transport_fee|money }})</small></div>{% endif %}
-                        {% if not student.course and not student.hostel and not student.transport_route %}
+                        {% for item in fees.fee_items %}
+                        {% if item.current_month_amount > 0 %}
+                        <div><small>{{ item.name }} - {{ item.current_month_amount|money }} / month{% if item.frequency != "Monthly" and item.frequency != "One Time" %} from {{ item.unit_amount|money }} {{ item.frequency|lower }} fee{% endif %}</small></div>
+                        {% else %}
+                        <div><small>{{ item.name }} - pending from earlier balance</small></div>
+                        {% endif %}
+                        {% endfor %}
+                        {% if not fees.fee_items %}
                         <small class="text-muted">No services</small>
                         {% endif %}
                     </td>
@@ -187,25 +284,72 @@
                     </td>
                     <td><span class="badge">{{ student.status }}</span></td>
                     <td class="actions">
-                        <a class="btn btn-small btn-light" href="/students?view={{ student.id }}">View</a>
-                        <a class="btn btn-small btn-light" href="/students?edit={{ student.id }}">Edit</a>
+                        <a class="btn btn-small btn-light" href="{{ base_path }}?view={{ student.id }}">View</a>
+                        <a class="btn btn-small btn-light" href="{{ base_path }}?edit={{ student.id }}">Edit</a>
+                        {% if student_data.promotion_next_course %}
+                        <a class="btn btn-small btn-light" href="/admissions?promote={{ student.id }}">Promote</a>
+                        {% endif %}
+                        <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ student.id }}">Payment</a>
                         {% if fees.remaining_balance > 0 %}
-                        <form method="post" action="/students/{{ student.id }}/notify" style="display: inline;">
-                            {% include "partials/csrf_input.html" %}
-                            <button class="btn btn-small btn-warning" type="submit" onclick="return confirm('Send payment reminder to guardian?');">Notify Guardian</button>
-                        </form>
+                        <a class="btn btn-small btn-warning" href="/students/{{ student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
+                        <a class="btn btn-small btn-light" href="/students/{{ student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
                         {% endif %}
                         <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');" style="display: inline;">
                             {% include "partials/csrf_input.html" %}
+                            <input type="hidden" name="return_path" value="{{ return_path }}">
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="10" class="empty-state">No students found.</td></tr>
+                <tr><td colspan="11" class="empty-state">No students found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </section>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const courseSelect = document.getElementById("student_course_id");
+    const sectionSelect = document.getElementById("student_section_id");
+    if (!courseSelect || !sectionSelect) {
+        return;
+    }
+
+    const selectedSectionId = "{{ form_student.section_id if form_student and form_student.section_id else '' }}";
+    const sections = [
+        {% for section in lookups.sections %}
+        {
+            id: {{ section.id }},
+            course_id: {{ section.course_id }},
+            name: "{{ section.name | escapejs }}",
+            code: "{{ section.code | escapejs }}",
+        },
+        {% endfor %}
+    ];
+
+    function updateSectionOptions() {
+        const courseId = courseSelect.value;
+        const availableSections = sections.filter((section) => String(section.course_id) === String(courseId));
+        sectionSelect.innerHTML = '<option value="">Select section</option>';
+        if (!courseId) {
+            sectionSelect.setAttribute("disabled", "disabled");
+            return;
+        }
+        sectionSelect.removeAttribute("disabled");
+        availableSections.forEach((section) => {
+            const option = document.createElement("option");
+            option.value = section.id;
+            option.textContent = section.code ? `${section.name} (${section.code})` : section.name;
+            if (String(section.id) === String(selectedSectionId)) {
+                option.selected = true;
+            }
+            sectionSelect.appendChild(option);
+        });
+    }
+
+    courseSelect.addEventListener("change", updateSectionOptions);
+    updateSectionOptions();
+});
+</script>
 {% endblock %}

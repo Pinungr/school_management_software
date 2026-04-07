@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}School Admin{% endblock %}</title>
+    <title>{% block title %}Pinaki{% endblock %}</title>
+    <link rel="icon" href="/static/app_icon.png" type="image/png">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="/static/app.js" defer></script>
 </head>
@@ -16,10 +17,10 @@
                 {% if settings and settings.logo_url %}
                 <img class="brand-logo" src="{{ settings.logo_url }}" alt="{{ settings.school_name }} logo">
                 {% else %}
-                <div class="brand-mark">S</div>
+                <div class="brand-mark">P</div>
                 {% endif %}
                 <div>
-                    <h1>SchoolFlow</h1>
+                    <h1>Pinaki</h1>
                     <p>{{ settings.school_name if settings else "Private School" }}</p>
                 </div>
             </div>
@@ -30,8 +31,12 @@
                     <span class="nav-icon">
                         {% if key == "dashboard" %}
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z"/></svg>
+                        {% elif key == "admissions" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3Zm0 9.83L5.74 9.41 12 6l6.26 3.41L12 12.83ZM4 14.74v3.67L12 23l8-4.59v-3.67l-8 4.59-8-4.59Z"/></svg>
                         {% elif key == "students" %}
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.67 0-8 1.34-8 4v2h10v-2c0-.73.2-1.41.54-2C9.33 14.76 8.48 14 8 14Zm8 0c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z"/></svg>
+                        {% elif key == "fees" %}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Zm1 17.93V20h-2v-1.07A3.99 3.99 0 0 1 8 15h2a2 2 0 1 0 2-2 4 4 0 1 1 4-4h-2a2 2 0 1 0-2 2 4 4 0 0 1 1 7.93Z"/></svg>
                         {% elif key == "courses" %}
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm14 0H6v13h12V5ZM8 7h8v2H8V7Zm0 4h8v2H8v-2Z"/></svg>
                         {% elif key == "hostels" %}
@@ -57,7 +62,7 @@
                     <span class="meta-pill user-meta">{{ current_user.username|capitalize }} - {{ current_user.role }}</span>
                     <span class="meta-pill">{{ today.strftime("%d %b %Y") }}</span>
                     <button type="button" id="refresh-app" class="meta-pill btn btn-small btn-light">Refresh</button>
-                    <form method="post" action="/logout" class="logout-form">
+                    <form method="post" action="/logout" class="logout-form" data-session-timeout-ms="{{ session_timeout_ms }}">
                         {% include "partials/csrf_input.html" %}
                         <button type="submit" class="meta-pill logout-pill">Log Out</button>
                     </form>
@@ -67,20 +72,11 @@
                 {% block content %}{% endblock %}
             </div>
             <footer class="app-footer">
-                <div class="footer-copy">SchoolFlow offline school management system.</div>
+                <div class="footer-copy">Pinaki offline school management system.</div>
                 <div class="footer-meta">
-                    {% if settings and settings.developer_name %}
-                    <span>Developed by {{ settings.developer_name }}</span>
-                    {% endif %}
-                    {% if settings and settings.developer_email %}
-                    <span>{{ settings.developer_email }}</span>
-                    {% endif %}
-                    {% if settings and settings.developer_phone %}
-                    <span>{{ settings.developer_phone }}</span>
-                    {% endif %}
-                    {% if settings and not (settings.developer_name or settings.developer_email or settings.developer_phone) %}
-                    <span>Add developer details in Settings to show them here.</span>
-                    {% endif %}
+                    <span>Developed by {{ branding.developer_name }}</span>
+                    <span>{{ branding.developer_email }}</span>
+                    <span>{{ branding.developer_phone }}</span>
                 </div>
             </footer>
         </main>

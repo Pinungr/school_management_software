@@ -4,10 +4,10 @@
 <section class="page-header">
     <div>
         <h2>Payments Management</h2>
-        <p>View and manage all fee payments.</p>
+        <p>View and manage fee collections from the central fee register.</p>
     </div>
     <div class="header-actions">
-        <a class="btn btn-light" href="/payments/export?payment_type={{ filters.payment_type }}{% if filters.student_id %}&student_id={{ filters.student_id }}{% endif %}{% if filters.payment_status %}&payment_status={{ filters.payment_status }}{% endif %}{% if filters.month %}&month={{ filters.month }}{% endif %}{% if filters.year %}&year={{ filters.year }}{% endif %}">Export</a>
+        <a class="btn btn-light" href="/payments/export{% if export_query_string %}?{{ export_query_string }}{% endif %}">Export</a>
         <a class="btn btn-primary" href="/payments?create=1">Add Payment</a>
     </div>
 </section>
@@ -17,6 +17,7 @@
     <article class="metric-card"><span>Course Payments</span><strong>{{ summary.course|money }}</strong></article>
     <article class="metric-card"><span>Hostel Payments</span><strong>{{ summary.hostel|money }}</strong></article>
     <article class="metric-card"><span>Transport Payments</span><strong>{{ summary.transport|money }}</strong></article>
+    <article class="metric-card"><span>Other Payments</span><strong>{{ summary.other|money }}</strong></article>
 </section>
 
 {% if error_message %}
@@ -28,45 +29,44 @@
     <div class="card-header">
         <div>
             <h3>{% if form_mode == "create" %}Add Payment{% else %}Edit Payment{% endif %}</h3>
-            <p>Capture payment type, student, date, and receipt details.</p>
+            <p>Select the student, fee category, and fee item before recording the payment.</p>
+            {% if form_mode == "create" %}
+            <p class="auth-copy">The receipt opens in a new tab so the Payments screen stays available.</p>
+            {% endif %}
         </div>
         <a class="btn btn-light" href="/payments">Cancel</a>
     </div>
-    <form method="post" action="{% if form_mode == 'create' %}/payments/create{% else %}/payments/{{ form_payment.id }}/edit{% endif %}" class="form-grid">
+    <form method="post" action="{% if form_mode == 'create' %}/payments/create{% else %}/payments/{{ form_payment.id }}/edit{% endif %}" class="form-grid"{% if form_mode == "create" %} target="_blank"{% endif %}>
         {% include "partials/csrf_input.html" %}
+        <label class="wide">
+            <span>Find Student</span>
+            <input type="text" id="student_lookup" placeholder="Type student ID or full name" value="{% if form_students %}{{ form_students[0].student_code }} - {{ form_students[0].full_name }}{% endif %}" list="payment-student-lookup-options" autocomplete="off">
+            <datalist id="payment-student-lookup-options"></datalist>
+        </label>
         <label>
             <span>Student</span>
-            <select name="student_id" required>
-                {% for student in lookups.students %}
-                <option value="{{ student.id }}" {% if form_payment and form_payment.student_id == student.id %}selected{% endif %}>{{ student.student_code }} - {{ student.full_name }}</option>
+            <select name="student_id" id="student_id" required>
+                <option value="">Select a student...</option>
+                {% for student in form_students %}
+                <option value="{{ student.id }}" {% if form_student_id == student.id %}selected{% endif %}>{{ student.student_code }} - {{ student.full_name }}</option>
                 {% endfor %}
             </select>
         </label>
         <label>
             <span>Payment Type</span>
             <select name="service_type" id="service_type">
-                {% for option in ["course", "hostel", "transport"] %}
-                <option value="{{ option }}" {% if form_payment and form_payment.service_type == option %}selected{% endif %}>{{ option.title() }}</option>
+                {% for option in manual_payment_types %}
+                <option value="{{ option }}" {% if form_payment and form_payment.service_type == option %}selected{% elif not form_payment and loop.first %}selected{% endif %}>{{ option.title() }}</option>
                 {% endfor %}
             </select>
         </label>
         <label>
-            <span>Service</span>
-            <select name="service_id" id="service_id">
-                <option value="">Select a service...</option>
-                {% if form_payment and form_payment.service_type == "course" %}
-                    {% for course in lookups.courses %}
-                    <option value="{{ course.id }}" {% if form_payment.service_id == course.id %}selected{% endif %}>{{ course.name }} ({{ course.fees|money }})</option>
-                    {% endfor %}
-                {% elif form_payment and form_payment.service_type == "hostel" %}
-                    {% for hostel in lookups.hostels %}
-                    <option value="{{ hostel.id }}" {% if form_payment.service_id == hostel.id %}selected{% endif %}>{{ hostel.name }} ({{ hostel.fee_amount|money }})</option>
-                    {% endfor %}
-                {% elif form_payment and form_payment.service_type == "transport" %}
-                    {% for route in lookups.transport_routes %}
-                    <option value="{{ route.id }}" {% if form_payment.service_id == route.id %}selected{% endif %}>{{ route.route_name }} ({{ route.fee_amount|money }})</option>
-                    {% endfor %}
-                {% endif %}
+            <span>Fee Item</span>
+            <select name="service_id" id="service_id" required>
+                <option value="">Select a fee item...</option>
+                {% for fee in form_available_fees %}
+                <option value="{{ fee.id }}" {% if form_service_id == fee.id %}selected{% endif %}>{{ fee.name }} ({{ fee.amount|monthly_equivalent(fee.frequency)|money }} / month{% if fee.frequency != "Monthly" %} from {{ fee.amount|money }} {{ fee.frequency|lower }} fee{% endif %})</option>
+                {% endfor %}
             </select>
         </label>
         <label><span>Amount</span><input type="number" step="0.01" name="amount" value="{{ form_payment.amount if form_payment else '' }}" required></label>
@@ -83,8 +83,8 @@
         <label>
             <span>Status</span>
             <select name="status">
-                {% for option in ["Paid", "Pending"] %}
-                <option value="{{ option }}" {% if form_payment and form_payment.status == option %}selected{% endif %}>{{ option }}</option>
+                {% for option in ["Paid", "Pending", "Cancelled"] %}
+                <option value="{{ option }}" {% if form_payment and form_payment.status == option %}selected{% elif not form_payment and option == "Paid" %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
             </select>
         </label>
@@ -98,24 +98,19 @@
     <div class="card-header column">
         <div>
             <h3>Payment Records</h3>
-            <p>Filter by type and date to find transactions quickly.</p>
+            <p>Filter by student, fee category, and date to find transactions quickly.</p>
         </div>
         <form method="get" class="filter-row">
             <select name="payment_type">
                 <option value="">All Types</option>
-                {% for option in ["course", "hostel", "transport"] %}
+                {% for option in manual_payment_types %}
                 <option value="{{ option }}" {% if filters.payment_type == option %}selected{% endif %}>{{ option.title() }}</option>
                 {% endfor %}
             </select>
-            <select name="student_id">
-                <option value="">All Students</option>
-                {% for student in lookups.students %}
-                <option value="{{ student.id }}" {% if filters.student_id == student.id %}selected{% endif %}>{{ student.student_code }} - {{ student.full_name }}</option>
-                {% endfor %}
-            </select>
+            <input type="text" name="student_query" value="{{ filters.student_query }}" placeholder="Search by student ID or name">
             <select name="payment_status">
                 <option value="">All Status</option>
-                {% for option in ["Paid", "Pending"] %}
+                {% for option in ["Paid", "Pending", "Cancelled"] %}
                 <option value="{{ option }}" {% if filters.payment_status == option %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
             </select>
@@ -132,7 +127,22 @@
                 {% endfor %}
             </select>
             <button class="btn btn-light" type="submit">Apply Filters</button>
+            <a class="btn btn-light" href="/payments">Clear</a>
         </form>
+    </div>
+    <div class="card-header">
+        <p>
+            Showing {{ pagination.page_start }}-{{ pagination.page_end }} of {{ pagination.total_items }} records.
+            Page {{ pagination.page }} of {{ pagination.total_pages }}.
+        </p>
+        <div class="header-actions">
+            {% if pagination.has_previous %}
+            <a class="btn btn-light" href="/payments?{{ pagination.previous_query }}">Previous</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="btn btn-light" href="/payments?{{ pagination.next_query }}">Next</a>
+            {% endif %}
+        </div>
     </div>
     <div class="table-wrap">
         <table>
@@ -154,23 +164,34 @@
                     <td>
                         {{ payment.service_type.title() }}
                         {% if payment_service_names.get(payment.id) %}
-                            <br><small class="text-muted">
-                            {{ payment_service_names.get(payment.id) }}
-                            </small>
+                        <br><small class="text-muted">{{ payment_service_names.get(payment.id) }}</small>
                         {% endif %}
                     </td>
-                    <td><a href="/students?view={{ payment.student.id }}">{{ payment.student.student_code }} - {{ payment.student.full_name }}</a></td>
+                    <td>
+                        {% if payment.student %}
+                        <a href="/students?view={{ payment.student.id }}">{{ payment.student.student_code }} - {{ payment.student.full_name }}</a>
+                        {% else %}
+                        {{ payment.student_code or "Archived" }} - {{ payment.student_name or "Deleted student" }}
+                        {% endif %}
+                    </td>
                     <td>{{ payment.amount|money }}</td>
                     <td>{{ payment.payment_date|datefmt }}</td>
                     <td>{{ payment.method }}</td>
-                    <td><span class="badge{% if payment.status == 'Paid' %} badge-success{% else %} badge-warning{% endif %}">{{ payment.status }}</span></td>
+                    <td><span class="badge{% if payment.status == 'Paid' %} badge-success{% elif payment.status == 'Cancelled' %} badge-danger{% else %} badge-warning{% endif %}">{{ payment.status }}</span></td>
                     <td>{{ payment.reference or "-" }}</td>
                     <td class="actions">
+                        <a class="btn btn-small btn-light" href="/payments/{{ payment.id }}/bill" target="_blank">Receipt</a>
+                        {% if payment.service_type != "admission" %}
                         <a class="btn btn-small btn-light" href="/payments?edit={{ payment.id }}">Edit</a>
-                        <form method="post" action="/payments/{{ payment.id }}/delete" onsubmit="return confirm('Delete this payment?');">
+                        {% endif %}
+                        {% if payment.status != "Cancelled" %}
+                        <form method="post" action="/payments/{{ payment.id }}/cancel" onsubmit="return confirm('Cancel this payment?');">
                             {% include "partials/csrf_input.html" %}
-                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                            <button class="btn btn-small btn-danger" type="submit">Cancel</button>
                         </form>
+                        {% else %}
+                        <span class="text-muted">Cancelled</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}
@@ -183,112 +204,191 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // Dynamic service selection for payments
+    const studentSelect = document.getElementById("student_id");
+    const studentLookupInput = document.getElementById("student_lookup");
+    const studentLookupOptions = document.getElementById("payment-student-lookup-options");
     const serviceTypeSelect = document.getElementById("service_type");
     const serviceIdSelect = document.getElementById("service_id");
     const amountInput = document.querySelector('input[name="amount"]');
 
-    if (serviceTypeSelect && serviceIdSelect) {
-        const services = {
-            course: [
-                {% for course in lookups.courses %}
-                {
-                    id: {{ course.id }},
-                    name: "{{ course.name | escapejs }}",
-                    fees: {{ course.fees or 0 }},
+    if (!studentSelect || !studentLookupInput || !studentLookupOptions || !serviceTypeSelect || !serviceIdSelect) {
+        return;
+    }
 
-                },
-                {% endfor %}
-            ],
-            hostel: [
-                {% for hostel in lookups.hostels %}
-                {
-                    id: {{ hostel.id }},
-                    name: "{{ hostel.name | escapejs }}",
-                    fee_amount: {{ hostel.fee_amount or 0 }},
+    const students = {
+        {% for student in form_students %}
+        "{{ student.id }}": {
+            id: {{ student.id }},
+            label: "{{ student.student_code | escapejs }} - {{ student.full_name | escapejs }}",
+            course_id: {{ student.course_id if student.course_id else 'null' }},
+            hostel_id: {{ student.hostel_id if student.hostel_id else 'null' }},
+            transport_id: {{ student.transport_id if student.transport_id else 'null' }},
+        },
+        {% endfor %}
+    };
 
-                },
-                {% endfor %}
-            ],
-            transport: [
-                {% for route in lookups.transport_routes %}
-                {
-                    id: {{ route.id }},
-                    route_name: "{{ route.route_name | escapejs }}",
-                    fee_amount: {{ route.fee_amount or 0 }},
+    const fees = [
+        {% for fee in lookups.fees %}
+        {
+            id: {{ fee.id }},
+            name: "{{ fee.name | escapejs }}",
+            category: "{{ fee.category.lower() }}",
+            amount: {{ fee.amount or 0 }},
+            monthly_amount: {{ fee.amount|monthly_equivalent(fee.frequency) }},
+            frequency: "{{ fee.frequency | escapejs }}",
+            target_type: "{{ fee.target_type.lower() }}",
+            target_id: {{ fee.target_id if fee.target_id is not none else 'null' }},
+        },
+        {% endfor %}
+    ];
 
-                },
-                {% endfor %}
-            ],
+    const selectedServiceId = "{{ form_service_id if form_service_id else '' }}";
+    let lookupResults = [];
+    let lookupTimeout = null;
+
+    function ensureStudentOption(student) {
+        if (!student) {
+            return;
+        }
+        students[String(student.id)] = {
+            id: student.id,
+            label: student.label,
+            course_id: student.course_id,
+            hostel_id: student.hostel_id,
+            transport_id: student.transport_id,
         };
 
-        let preservedServiceId = serviceIdSelect.value;
-
-        function updateAmount() {
-            if (!amountInput) {
-                return;
-            }
-            const selectedType = serviceTypeSelect.value;
-            const selectedId = serviceIdSelect.value;
-            if (!selectedId) {
-                return;
-            }
-            const service = services[selectedType]?.find(s => String(s.id) === String(selectedId));
-            if (!service) {
-                return;
-            }
-            const feeValue = selectedType === "course" ? service.fees : service.fee_amount;
-            if (feeValue != null && feeValue !== "" && (!amountInput.value || Number(amountInput.value) === 0)) {
-                amountInput.value = feeValue;
-            }
+        let option = Array.from(studentSelect.options).find((item) => String(item.value) === String(student.id));
+        if (!option) {
+            option = document.createElement("option");
+            option.value = student.id;
+            option.textContent = student.label;
+            studentSelect.appendChild(option);
+        } else {
+            option.textContent = student.label;
         }
-
-        function updateServiceOptions(resetSelection = false) {
-            const selectedType = serviceTypeSelect.value;
-            const placeholderText = selectedType === "course"
-                ? "Select a course..."
-                : selectedType === "hostel"
-                    ? "Select a hostel..."
-                    : "Select a transport route...";
-            serviceIdSelect.innerHTML = `<option value="">${placeholderText}</option>`;
-            const selectedId = resetSelection ? "" : preservedServiceId;
-
-            const serviceList = services[selectedType] || [];
-            serviceList.forEach(service => {
-                const option = document.createElement("option");
-                option.value = service.id;
-                if (selectedType === "course") {
-                    option.textContent = `${service.name} (Rs ${service.fees ? service.fees.toLocaleString() : '0'})`;
-                } else if (selectedType === "hostel") {
-                    option.textContent = `${service.name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
-                } else if (selectedType === "transport") {
-                    option.textContent = `${service.route_name} (Rs ${service.fee_amount ? service.fee_amount.toLocaleString() : '0'})`;
-                }
-                if (selectedId && String(service.id) === String(selectedId)) {
-                    option.selected = true;
-                }
-                serviceIdSelect.appendChild(option);
-            });
-
-            if (resetSelection) {
-                preservedServiceId = "";
-                serviceIdSelect.value = "";
-                if (amountInput) {
-                    amountInput.value = "";
-                }
-            }
-
-            updateAmount();
-        }
-
-        serviceTypeSelect.addEventListener("change", () => updateServiceOptions(true));
-        serviceIdSelect.addEventListener("change", () => {
-            preservedServiceId = serviceIdSelect.value;
-            updateAmount();
-        });
-
-        updateServiceOptions();
     }
+
+    function renderLookupOptions(results) {
+        studentLookupOptions.innerHTML = "";
+        results.forEach((student) => {
+            const option = document.createElement("option");
+            option.value = student.label;
+            option.dataset.studentId = student.id;
+            studentLookupOptions.appendChild(option);
+        });
+    }
+
+    async function searchStudents(query) {
+        const trimmed = query.trim();
+        if (!trimmed) {
+            lookupResults = [];
+            renderLookupOptions([]);
+            return;
+        }
+        const response = await fetch(`/payments/student-search?q=${encodeURIComponent(trimmed)}`, {
+            headers: { "X-Requested-With": "fetch" },
+        });
+        if (!response.ok) {
+            return;
+        }
+        const payload = await response.json();
+        lookupResults = payload.results || [];
+        renderLookupOptions(lookupResults);
+    }
+
+    function syncSelectedStudentFromLookup() {
+        const selectedLabel = studentLookupInput.value.trim();
+        if (!selectedLabel) {
+            return;
+        }
+        const student = lookupResults.find((item) => item.label === selectedLabel);
+        if (!student) {
+            return;
+        }
+        ensureStudentOption(student);
+        studentSelect.value = String(student.id);
+        serviceIdSelect.dataset.initialized = "";
+        updateFeeOptions();
+    }
+
+    function applicableFees() {
+        const student = students[studentSelect.value];
+        const paymentType = serviceTypeSelect.value;
+        if (!student) {
+            return [];
+        }
+        return fees.filter((fee) => {
+            if (fee.category !== paymentType) {
+                return false;
+            }
+            if (fee.target_type === "general") {
+                return true;
+            }
+            if (fee.target_type === "course") {
+                return Number(student.course_id) === Number(fee.target_id);
+            }
+            if (fee.target_type === "hostel") {
+                return Number(student.hostel_id) === Number(fee.target_id);
+            }
+            if (fee.target_type === "transport") {
+                return Number(student.transport_id) === Number(fee.target_id);
+            }
+            return false;
+        });
+    }
+
+    function updateAmount() {
+        const fee = applicableFees().find((item) => String(item.id) === String(serviceIdSelect.value));
+        if (!fee || !amountInput) {
+            return;
+        }
+        if (!amountInput.value || Number(amountInput.value) === 0) {
+            amountInput.value = fee.monthly_amount;
+        }
+    }
+
+    function updateFeeOptions() {
+        const available = applicableFees();
+        serviceIdSelect.innerHTML = '<option value="">Select a fee item...</option>';
+        available.forEach((fee) => {
+            const option = document.createElement("option");
+            option.value = fee.id;
+            const billingText = fee.frequency === "Monthly"
+                ? `Rs ${fee.monthly_amount.toLocaleString()} / month`
+                : `Rs ${fee.monthly_amount.toLocaleString()} / month from Rs ${fee.amount.toLocaleString()} ${fee.frequency.toLowerCase()} fee`;
+            option.textContent = `${fee.name} (${billingText})`;
+            if (selectedServiceId && String(fee.id) === String(selectedServiceId) && !serviceIdSelect.dataset.initialized) {
+                option.selected = true;
+            }
+            serviceIdSelect.appendChild(option);
+        });
+        serviceIdSelect.dataset.initialized = "true";
+        updateAmount();
+    }
+
+    studentLookupInput.addEventListener("input", () => {
+        window.clearTimeout(lookupTimeout);
+        lookupTimeout = window.setTimeout(() => {
+            searchStudents(studentLookupInput.value);
+        }, 200);
+    });
+    studentLookupInput.addEventListener("change", syncSelectedStudentFromLookup);
+    studentSelect.addEventListener("change", updateFeeOptions);
+    serviceTypeSelect.addEventListener("change", () => {
+        serviceIdSelect.dataset.initialized = "";
+        serviceIdSelect.value = "";
+        updateFeeOptions();
+    });
+    serviceIdSelect.addEventListener("change", updateAmount);
+
+    if (studentSelect.value) {
+        const selectedStudent = students[studentSelect.value];
+        if (selectedStudent) {
+            studentLookupInput.value = selectedStudent.label;
+        }
+    }
+    updateFeeOptions();
 });
 </script>
 {% endblock %}

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Fees{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Fees Management</h2>
+        <p>Maintain admission, course, hostel, transport, and custom fees in one shared register.</p>
+    </div>
+    {% if current_user.role == "Admin" %}
+    <div class="header-actions">
+        <a class="btn btn-primary" href="/fees?create=1">Add Fee</a>
+    </div>
+    {% endif %}
+</section>
+
+{% if error_message %}
+<div class="alert-error">{{ error_message }}</div>
+{% endif %}
+
+{% if view_fee %}
+<section class="card detail-card">
+    <div class="card-header">
+        <h3>{{ view_fee.name }}</h3>
+        <a class="btn btn-light" href="/fees">Close</a>
+    </div>
+    <div class="detail-grid">
+        <div><span>Category</span><strong>{{ view_fee.category }}</strong></div>
+        <div><span>Amount</span><strong>{{ view_fee.amount|money }}</strong></div>
+        <div><span>Frequency</span><strong>{{ view_fee.frequency }}</strong></div>
+        <div><span>Target Group</span><strong>{{ view_fee.target_type }}</strong></div>
+        <div><span>Linked To</span><strong>{{ view_fee_target }}</strong></div>
+        <div><span>Status</span><strong class="badge">{{ view_fee.status }}</strong></div>
+        <div class="wide"><span>Description</span><strong>{{ view_fee.description or "N/A" }}</strong></div>
+    </div>
+</section>
+{% endif %}
+
+{% if form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if form_mode == "create" %}Add Fee{% else %}Edit Fee{% endif %}</h3>
+            <p>Create fee definitions once and reuse them for billing, collections, and reminders.</p>
+        </div>
+        <a class="btn btn-light" href="/fees">Cancel</a>
+    </div>
+    <form method="post" action="{% if form_mode == 'create' %}/fees/create{% else %}/fees/{{ form_fee.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
+        <label><span>Fee Name</span><input name="name" value="{{ form_fee.name if form_fee else '' }}" required></label>
+        <label>
+            <span>Category</span>
+            <select name="category" id="fee_category">
+                {% for option in fee_categories %}
+                <option value="{{ option }}" {% if form_fee and form_fee.category == option %}selected{% elif not form_fee and option == "Admission" %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label><span>Amount</span><input type="number" step="0.01" name="amount" value="{{ form_fee.amount if form_fee else '' }}" required></label>
+        <label>
+            <span>Frequency</span>
+            <select name="frequency" id="fee_frequency">
+                {% for option in fee_frequencies %}
+                <option value="{{ option }}" {% if form_fee and form_fee.frequency == option %}selected{% elif not form_fee and option == "One Time" %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span id="target_id_label">Sub Category</span>
+            <select name="target_id" id="target_id">
+                <option value="">All Students</option>
+            </select>
+        </label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_fee and form_fee.status == option %}selected{% elif not form_fee and option == "Active" %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide"><span>Description</span><textarea name="description" rows="3">{{ form_fee.description if form_fee else '' }}</textarea></label>
+        <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Fee{% else %}Update Fee{% endif %}</button></div>
+    </form>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Fee Register</h3>
+            <p>Search by fee name, category, or target group.</p>
+        </div>
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search fee records">
+            <button class="btn btn-light" type="submit">Search</button>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fee Name</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Frequency</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fee in fees %}
+                <tr>
+                    <td>{{ fee.name }}</td>
+                    <td>{{ fee.category }}</td>
+                    <td>{{ fee.amount|money }}</td>
+                    <td>{{ fee.frequency }}</td>
+                    <td>{{ fee.target_type }}{% if fee.target_type != "General" %}<br><small class="text-muted">{{ fee_targets.get(fee.id) }}</small>{% endif %}</td>
+                    <td><span class="badge">{{ fee.status }}</span></td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/fees?view={{ fee.id }}">View</a>
+                        {% if current_user.role == "Admin" %}
+                        <a class="btn btn-small btn-light" href="/fees?edit={{ fee.id }}">Edit</a>
+                        <form method="post" action="/fees/{{ fee.id }}/delete" onsubmit="return confirm('Delete this fee item?');">
+                            {% include "partials/csrf_input.html" %}
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state">No fees found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const feeCategorySelect = document.getElementById("fee_category");
+    const frequencySelect = document.getElementById("fee_frequency");
+    const targetIdSelect = document.getElementById("target_id");
+    const targetIdLabel = document.getElementById("target_id_label");
+    if (!feeCategorySelect || !frequencySelect || !targetIdSelect || !targetIdLabel) {
+        return;
+    }
+
+    const selectedTargetId = "{{ form_fee.target_id if form_fee and form_fee.target_id is not none else '' }}";
+    const targetOptions = {
+        Course: {
+            label: "Course",
+            empty: "Select course",
+            options: [
+            {% for course in lookups.courses %}
+            { id: {{ course.id }}, name: "{{ course.name | escapejs }}" },
+            {% endfor %}
+            ],
+        },
+        Hostel: {
+            label: "Hostel",
+            empty: "Select hostel",
+            options: [
+            {% for hostel in lookups.hostels %}
+            { id: {{ hostel.id }}, name: "{{ hostel.name | escapejs }}" },
+            {% endfor %}
+            ],
+        },
+        Transport: {
+            label: "Transport Route",
+            empty: "Select transport route",
+            options: [
+            {% for route in lookups.transport_routes %}
+            { id: {{ route.id }}, name: "{{ route.route_name | escapejs }}" },
+            {% endfor %}
+            ],
+        },
+    };
+
+    function updateTargetOptions() {
+        const category = feeCategorySelect.value;
+        const config = targetOptions[category];
+        if (!config) {
+            targetIdLabel.textContent = "Sub Category";
+            targetIdSelect.innerHTML = '<option value="">All Students</option>';
+            targetIdSelect.value = "";
+            targetIdSelect.setAttribute("disabled", "disabled");
+            return;
+        }
+
+        targetIdLabel.textContent = config.label;
+        targetIdSelect.removeAttribute("disabled");
+        targetIdSelect.innerHTML = `<option value="">${config.empty}</option>`;
+        config.options.forEach((optionData) => {
+            const option = document.createElement("option");
+            option.value = optionData.id;
+            option.textContent = optionData.name;
+            if (String(optionData.id) === String(selectedTargetId)) {
+                option.selected = true;
+            }
+            targetIdSelect.appendChild(option);
+        });
+    }
+
+    function enforceAdmissionRules() {
+        if (feeCategorySelect.value === "Admission") {
+            frequencySelect.value = "One Time";
+            frequencySelect.setAttribute("disabled", "disabled");
+        } else {
+            frequencySelect.removeAttribute("disabled");
+        }
+    }
+
+    feeCategorySelect.addEventListener("change", () => {
+        enforceAdmissionRules();
+        updateTargetOptions();
+    });
+    enforceAdmissionRules();
+    updateTargetOptions();
+});
+</script>
+{% endblock %}

@@ -4,7 +4,7 @@
 <section class="page-header">
     <div>
         <h2>User Management</h2>
-        <p>Create staff accounts, assign roles, and control access to admin features.</p>
+        <p>Create clerk staff accounts and maintain login access for the existing administrator.</p>
     </div>
     <div class="header-actions">
         <a class="btn btn-primary" href="/users?create=1">Add User</a>
@@ -16,7 +16,7 @@
     <div class="card-header">
         <div>
             <h3>{% if form_mode == "create" %}Add User{% else %}Edit User{% endif %}</h3>
-            <p>Set access level, login username, contact email, and account status.</p>
+            <p>Create clerk logins for staff and update account details, credentials, and status.</p>
         </div>
         <a class="btn btn-light" href="/users">Cancel</a>
     </div>
@@ -36,11 +36,7 @@
         </label>
         <label>
             <span>Role</span>
-            <select name="role">
-                {% for option in ["Admin", "Clerk"] %}
-                <option value="{{ option }}" {% if form_user and form_user.role == option %}selected{% endif %}>{{ option }}</option>
-                {% endfor %}
-            </select>
+            <input value="{% if form_user and form_user.role == 'Admin' %}Admin{% else %}Clerk{% endif %}" disabled>
         </label>
         <label>
             <span>Status</span>

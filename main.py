@@ -16,27 +16,45 @@ from school_admin.routes.auth import router as auth_router
 from school_admin.routes.catalog import router as catalog_router
 from school_admin.routes.core import router as core_router
 from school_admin.routes.payments import router as payments_router
+from school_admin.routes.recovery import router as recovery_router
 from school_admin.routes.students import router as students_router
-from school_admin.utils import calculate_student_fees_and_payments, is_setup_complete, lifespan
+from school_admin.utils import (
+    SESSION_IDLE_TIMEOUT_SECONDS,
+    calculate_student_fees_and_payments,
+    is_setup_complete,
+    lifespan,
+)
 
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
 
 
-app = FastAPI(title="School Management System", lifespan=lifespan)
+app = FastAPI(title="Pinaki", lifespan=lifespan)
 app.add_middleware(
     SessionMiddleware,
     secret_key=get_session_secret(),
     session_cookie="schoolflow_session",
     same_site="lax",
-    max_age=60 * 60 * 12,
+    max_age=SESSION_IDLE_TIMEOUT_SECONDS,
 )
+
+
+@app.middleware("http")
+async def disable_response_caching(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
 
 app.include_router(core_router)
 app.include_router(auth_router)
+app.include_router(recovery_router)
 app.include_router(students_router)
 app.include_router(catalog_router)
 app.include_router(payments_router)

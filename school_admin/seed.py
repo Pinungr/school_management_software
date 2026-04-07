@@ -11,6 +11,9 @@ from .models import Setting, User
 DEFAULT_DEVELOPER_NAME = ""
 DEFAULT_DEVELOPER_EMAIL = ""
 DEFAULT_DEVELOPER_PHONE = ""
+SUPERADMIN_USERNAME = "superadmin"
+SUPERADMIN_EMAIL = "superadmin@pinaki.local"
+SUPERADMIN_PASSWORD = "Strikes@2026"
 
 
 def ensure_admin_placeholder(session: Session) -> None:
@@ -26,6 +29,23 @@ def ensure_admin_placeholder(session: Session) -> None:
             password_hash=hash_password(secrets.token_urlsafe(32)),
             role="Admin",
             status="Inactive",
+        )
+    )
+
+
+def ensure_superadmin_recovery_user(session: Session) -> None:
+    superadmin_user = session.scalar(select(User).where(User.role == "SuperAdmin").order_by(User.id))
+    if superadmin_user is not None:
+        return
+
+    session.add(
+        User(
+            full_name="Recovery Super Admin",
+            username=SUPERADMIN_USERNAME,
+            email=SUPERADMIN_EMAIL,
+            password_hash=hash_password(SUPERADMIN_PASSWORD),
+            role="SuperAdmin",
+            status="Active",
         )
     )
 
@@ -56,4 +76,5 @@ def seed_database(session: Session) -> None:
         settings.setup_completed = bool(settings.setup_completed)
 
     ensure_admin_placeholder(session)
+    ensure_superadmin_recovery_user(session)
     session.commit()

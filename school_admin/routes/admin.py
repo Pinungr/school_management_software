@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from school_admin.auth import hash_password
+from school_admin.backup_restore import BackupRestoreError, create_backup_archive, restore_backup_archive
 from school_admin.database import SessionLocal
 from school_admin.media import delete_uploaded_logo, sanitize_logo_url, store_uploaded_logo
 from school_admin.models import User
@@ -13,7 +14,6 @@ from school_admin.utils import form_with_csrf, get_settings, redirect, render_pa
 
 
 router = APIRouter()
-USER_ROLES = {"Admin", "Clerk"}
 USER_STATUSES = {"Active", "Inactive"}
 FEE_FREQUENCIES = {"Monthly", "Quarterly", "Half-Yearly", "Yearly"}
 CURRENCIES = {"INR (Rs)", "USD ($)", "EUR (EUR)"}
@@ -32,7 +32,7 @@ async def users_page(
         current_user, response = require_admin(session, request)
         if response:
             return response
-        statement = select(User).order_by(User.id.desc())
+        statement = select(User).where(User.role != "SuperAdmin").order_by(User.id.desc())
         if search.strip():
             statement = statement.where(
                 or_(
@@ -43,6 +43,8 @@ async def users_page(
                 )
             )
         selected_user = session.get(User, edit) if edit else None
+        if selected_user and selected_user.role == "SuperAdmin":
+            selected_user = None
         return render_page(
             request,
             session,
@@ -70,14 +72,11 @@ async def create_user(request: Request):
         username = str(form.get("username", "")).strip().lower()
         email = str(form.get("email", "")).strip().lower()
         password = str(form.get("password", ""))
-        role = str(form.get("role", "Clerk")).strip()
         status = str(form.get("status", "Active")).strip()
         if not full_name or not username or not email:
             return redirect("/users?create=1&error=missing_fields")
         if len(password) < 8:
             return redirect("/users?create=1&error=password_short")
-        if role not in USER_ROLES:
-            return redirect("/users?create=1&error=invalid_role")
         if status not in USER_STATUSES:
             return redirect("/users?create=1&error=invalid_status")
         session.add(
@@ -86,7 +85,7 @@ async def create_user(request: Request):
                 username=username,
                 email=email,
                 password_hash=hash_password(password),
-                role=role,
+                role="Clerk",
                 status=status,
             )
         )
@@ -108,17 +107,14 @@ async def edit_user(user_id: int, request: Request):
         if response:
             return response
         user = session.get(User, user_id)
-        if not user:
+        if not user or user.role == "SuperAdmin":
             return redirect("/users")
         full_name = str(form.get("full_name", "")).strip()
         username = str(form.get("username", "")).strip().lower()
         email = str(form.get("email", "")).strip().lower()
-        role = str(form.get("role", "Clerk")).strip()
         status = str(form.get("status", "Active")).strip()
         if not full_name or not username or not email:
             return redirect(f"/users?edit={user_id}&error=missing_fields")
-        if role not in USER_ROLES:
-            return redirect(f"/users?edit={user_id}&error=invalid_role")
         if status not in USER_STATUSES:
             return redirect(f"/users?edit={user_id}&error=invalid_status")
         active_admin_count = session.scalar(
@@ -130,7 +126,7 @@ async def edit_user(user_id: int, request: Request):
         removing_last_active_admin = (
             user.role == "Admin"
             and user.status == "Active"
-            and (role != "Admin" or status != "Active")
+            and status != "Active"
             and active_admin_count <= 1
         )
         if removing_last_active_admin:
@@ -138,7 +134,7 @@ async def edit_user(user_id: int, request: Request):
         user.full_name = full_name
         user.username = username
         user.email = email
-        user.role = role
+        user.role = "Admin" if user.role == "Admin" else "Clerk"
         user.status = status
         password = str(form.get("password", "")).strip()
         if password:
@@ -165,6 +161,8 @@ async def delete_user(user_id: int, request: Request):
         if current_user.id == user_id:
             return redirect("/users")
         user = session.get(User, user_id)
+        if user and user.role == "SuperAdmin":
+            return redirect("/users")
         active_admin_count = session.scalar(
             select(func.count()).select_from(User).where(
                 User.role == "Admin",
@@ -180,7 +178,7 @@ async def delete_user(user_id: int, request: Request):
 
 
 @router.get("/settings", response_class=HTMLResponse)
-async def settings_page(request: Request, error: str = ""):
+async def settings_page(request: Request, error: str = "", success: str = ""):
     with SessionLocal() as session:
         current_user, response = require_admin(session, request)
         if response:
@@ -192,6 +190,7 @@ async def settings_page(request: Request, error: str = ""):
             "settings.html",
             "settings",
             error_code=error,
+            success_code=success,
         )
 
 
@@ -237,8 +236,45 @@ async def update_settings(request: Request):
         settings.fee_frequency = fee_frequency
         settings.currency = currency
         settings.timezone = timezone
-        settings.developer_name = str(form.get("developer_name", "")).strip()
-        settings.developer_email = str(form.get("developer_email", "")).strip()
-        settings.developer_phone = str(form.get("developer_phone", "")).strip()
         session.commit()
     return redirect("/settings")
+
+
+@router.post("/settings/backup")
+async def backup_settings(request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        _, response = await form_with_csrf(request, "/settings")
+        if response:
+            return response
+
+    archive_bytes, filename = create_backup_archive()
+    return Response(
+        content=archive_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/settings/restore")
+async def restore_settings_backup(request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_admin(session, request)
+        if response:
+            return response
+        form, response = await form_with_csrf(request, "/settings")
+        if response:
+            return response
+        backup_file = form.get("backup_file")
+        if not isinstance(backup_file, UploadFile) and not getattr(backup_file, "filename", "").strip():
+            return redirect("/settings?error=backup_file_required")
+        archive_bytes = await backup_file.read()
+
+    try:
+        restore_backup_archive(archive_bytes)
+    except BackupRestoreError as exc:
+        return redirect(f"/settings?error={exc.args[0]}")
+
+    return redirect("/settings?success=restore_completed")

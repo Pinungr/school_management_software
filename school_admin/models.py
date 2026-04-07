@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -53,6 +53,23 @@ class Course(Base):
     description: Mapped[str] = mapped_column(Text, default="")
 
     students: Mapped[list["Student"]] = relationship(back_populates="course")
+    sections: Mapped[list["Section"]] = relationship(back_populates="course")
+
+
+class Section(Base):
+    __tablename__ = "sections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    name: Mapped[str] = mapped_column(String(120))
+    code: Mapped[str] = mapped_column(String(30), default="")
+    class_teacher: Mapped[str] = mapped_column(String(120), default="")
+    room_name: Mapped[str] = mapped_column(String(60), default="")
+    status: Mapped[str] = mapped_column(String(20), default="Active")
+    description: Mapped[str] = mapped_column(Text, default="")
+
+    course: Mapped[Course] = relationship(back_populates="sections")
+    students: Mapped[list["Student"]] = relationship(back_populates="section")
 
 
 class Hostel(Base):
@@ -75,6 +92,9 @@ class TransportRoute(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     route_name: Mapped[str] = mapped_column(String(120))
     pickup_points: Mapped[str] = mapped_column(Text, default="")
+    vehicle_no: Mapped[str] = mapped_column(String(40), default="")
+    driver_name: Mapped[str] = mapped_column(String(120), default="")
+    driver_phone: Mapped[str] = mapped_column(String(30), default="")
     fee_amount: Mapped[float] = mapped_column(Float, default=0)
     frequency: Mapped[str] = mapped_column(String(30), default="Monthly")
     status: Mapped[str] = mapped_column(String(20), default="Active")
@@ -82,8 +102,26 @@ class TransportRoute(Base):
     students: Mapped[list["Student"]] = relationship(back_populates="transport_route")
 
 
+class Fee(Base):
+    __tablename__ = "fees"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str] = mapped_column(String(30), default="Other")
+    amount: Mapped[float] = mapped_column(Float, default=0)
+    frequency: Mapped[str] = mapped_column(String(30), default="One Time")
+    status: Mapped[str] = mapped_column(String(20), default="Active")
+    target_type: Mapped[str] = mapped_column(String(30), default="General")
+    target_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+
+
 class Student(Base):
     __tablename__ = "students"
+    __table_args__ = (
+        Index("ix_students_status_id", "status", "id"),
+        Index("ix_students_status_full_name", "status", "full_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     student_code: Mapped[str] = mapped_column(String(30), unique=True)
@@ -95,24 +133,37 @@ class Student(Base):
     address: Mapped[str] = mapped_column(Text, default="")
     joined_on: Mapped[date] = mapped_column(Date, default=date.today)
     course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
+    section_id: Mapped[int | None] = mapped_column(ForeignKey("sections.id"), nullable=True)
     hostel_id: Mapped[int | None] = mapped_column(ForeignKey("hostels.id"), nullable=True)
     transport_id: Mapped[int | None] = mapped_column(
         ForeignKey("transport_routes.id"), nullable=True
     )
 
     course: Mapped[Course | None] = relationship(back_populates="students")
+    section: Mapped[Section | None] = relationship(back_populates="students")
     hostel: Mapped[Hostel | None] = relationship(back_populates="students")
     transport_route: Mapped[TransportRoute | None] = relationship(back_populates="students")
-    payments: Mapped[list["Payment"]] = relationship(
-        back_populates="student", cascade="all, delete-orphan"
-    )
+    payments: Mapped[list["Payment"]] = relationship(back_populates="student")
 
 
 class Payment(Base):
     __tablename__ = "payments"
+    __table_args__ = (
+        Index("ix_payments_status_payment_date", "status", "payment_date", "id"),
+        Index("ix_payments_student_payment_date", "student_id", "payment_date", "id"),
+        Index("ix_payments_service_type_payment_date", "service_type", "payment_date", "id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
+    student_id: Mapped[int | None] = mapped_column(ForeignKey("students.id"), nullable=True)
+    student_code: Mapped[str] = mapped_column(String(30), default="")
+    student_name: Mapped[str] = mapped_column(String(120), default="")
+    parent_name: Mapped[str] = mapped_column(String(120), default="")
+    snapshot_total_fees: Mapped[float] = mapped_column(Float, default=0)
+    snapshot_paid_amount: Mapped[float] = mapped_column(Float, default=0)
+    snapshot_current_cycle_amount: Mapped[float] = mapped_column(Float, default=0)
+    snapshot_previous_pending_amount: Mapped[float] = mapped_column(Float, default=0)
+    snapshot_remaining_balance: Mapped[float] = mapped_column(Float, default=0)
     service_type: Mapped[str] = mapped_column(String(30), default="course")
     service_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # ID of the specific service
     service_name: Mapped[str] = mapped_column(String(120), default="")
@@ -123,4 +174,4 @@ class Payment(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="Paid")
 
-    student: Mapped[Student] = relationship(back_populates="payments")
+    student: Mapped[Student | None] = relationship(back_populates="payments")

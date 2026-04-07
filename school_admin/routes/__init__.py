@@ -1,1 +1,1 @@
-"""Route modules for the SchoolFlow application."""
+"""Route modules for the Pinaki application."""

@@ -4,11 +4,13 @@
 <section class="page-header">
     <div>
         <h2>Hostels Management</h2>
-        <p>Create and manage hostel facilities.</p>
+        <p>Create and manage hostel facilities. Fee amounts now live in the separate Fees tab.</p>
     </div>
+    {% if current_user.role == "Admin" %}
     <div class="header-actions">
         <a class="btn btn-primary" href="/hostels?create=1">Add Hostel</a>
     </div>
+    {% endif %}
 </section>
 
 {% if error_message %}
@@ -24,7 +26,6 @@
     <div class="detail-grid">
         <div><span>Type</span><strong>{{ view_hostel.hostel_type }}</strong></div>
         <div><span>Rooms</span><strong>{{ view_hostel.rooms }}</strong></div>
-        <div><span>Fee</span><strong>{{ view_hostel.fee_amount|money }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_hostel.status }}</strong></div>
         <div class="wide"><span>Description</span><strong>{{ view_hostel.description or "N/A" }}</strong></div>
     </div>
@@ -36,7 +37,7 @@
     <div class="card-header">
         <div>
             <h3>{% if form_mode == "create" %}Add Hostel{% else %}Edit Hostel{% endif %}</h3>
-            <p>Track hostel capacity, type, and fees.</p>
+            <p>Track hostel capacity and type here. Add or update the hostel fee from the Fees tab.</p>
         </div>
         <a class="btn btn-light" href="/hostels">Cancel</a>
     </div>
@@ -52,7 +53,6 @@
             </select>
         </label>
         <label><span>Rooms</span><input type="number" name="rooms" value="{{ form_hostel.rooms if form_hostel else 0 }}" required></label>
-        <label><span>Fee Amount</span><input type="number" step="0.01" name="fee_amount" value="{{ form_hostel.fee_amount if form_hostel else '' }}" required></label>
         <label>
             <span>Status</span>
             <select name="status">
@@ -85,7 +85,6 @@
                     <th>Hostel Name</th>
                     <th>Type</th>
                     <th>Rooms</th>
-                    <th>Fee Amount</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -96,19 +95,20 @@
                     <td>{{ hostel.name }}</td>
                     <td>{{ hostel.hostel_type }}</td>
                     <td>{{ hostel.rooms }}</td>
-                    <td>{{ hostel.fee_amount|money }}</td>
                     <td><span class="badge">{{ hostel.status }}</span></td>
                     <td class="actions">
                         <a class="btn btn-small btn-light" href="/hostels?view={{ hostel.id }}">View</a>
+                        {% if current_user.role == "Admin" %}
                         <a class="btn btn-small btn-light" href="/hostels?edit={{ hostel.id }}">Edit</a>
                         <form method="post" action="/hostels/{{ hostel.id }}/delete" onsubmit="return confirm('Delete this hostel?');">
                             {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="6" class="empty-state">No hostels found.</td></tr>
+                <tr><td colspan="5" class="empty-state">No hostels found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

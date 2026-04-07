@@ -4,11 +4,13 @@
 <section class="page-header">
     <div>
         <h2>Courses Management</h2>
-        <p>Create and manage courses and fee structures.</p>
+        <p>Create and manage courses. Fee amounts now live in the separate Fees tab.</p>
     </div>
+    {% if current_user.role == "Admin" %}
     <div class="header-actions">
         <a class="btn btn-primary" href="/courses?create=1">Add Course</a>
     </div>
+    {% endif %}
 </section>
 
 {% if error_message %}
@@ -23,10 +25,25 @@
     </div>
     <div class="detail-grid">
         <div><span>Code</span><strong>{{ view_course.code }}</strong></div>
-        <div><span>Fees</span><strong>{{ view_course.fees|money }}</strong></div>
-        <div><span>Frequency</span><strong>{{ view_course.frequency }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_course.status }}</strong></div>
         <div class="wide"><span>Description</span><strong>{{ view_course.description or "N/A" }}</strong></div>
+    </div>
+</section>
+{% endif %}
+
+{% if view_section %}
+<section class="card detail-card">
+    <div class="card-header">
+        <h3>{{ view_section.name }}</h3>
+        <a class="btn btn-light" href="/courses">Close</a>
+    </div>
+    <div class="detail-grid">
+        <div><span>Course</span><strong>{{ view_section.course.name if view_section.course else "N/A" }}</strong></div>
+        <div><span>Section Code</span><strong>{{ view_section.code or "N/A" }}</strong></div>
+        <div><span>Class Teacher</span><strong>{{ view_section.class_teacher or "N/A" }}</strong></div>
+        <div><span>Room</span><strong>{{ view_section.room_name or "N/A" }}</strong></div>
+        <div><span>Status</span><strong class="badge">{{ view_section.status }}</strong></div>
+        <div class="wide"><span>Description</span><strong>{{ view_section.description or "N/A" }}</strong></div>
     </div>
 </section>
 {% endif %}
@@ -36,7 +53,7 @@
     <div class="card-header">
         <div>
             <h3>{% if form_mode == "create" %}Add Course{% else %}Edit Course{% endif %}</h3>
-            <p>Configure course fees, frequency, and status.</p>
+            <p>Configure course details here. Add or update the related course fee from the Fees tab.</p>
         </div>
         <a class="btn btn-light" href="/courses">Cancel</a>
     </div>
@@ -44,15 +61,6 @@
         {% include "partials/csrf_input.html" %}
         <label><span>Course Name</span><input name="name" value="{{ form_course.name if form_course else '' }}" required></label>
         <label><span>Course Code</span><input name="code" value="{{ form_course.code if form_course else '' }}" required></label>
-        <label><span>Fees</span><input type="number" step="0.01" name="fees" value="{{ form_course.fees if form_course else '' }}" required></label>
-        <label>
-            <span>Frequency</span>
-            <select name="frequency">
-                {% for option in ["Monthly", "Quarterly", "Half-Yearly", "Yearly"] %}
-                <option value="{{ option }}" {% if form_course and form_course.frequency == option %}selected{% endif %}>{{ option }}</option>
-                {% endfor %}
-            </select>
-        </label>
         <label>
             <span>Status</span>
             <select name="status">
@@ -63,6 +71,44 @@
         </label>
         <label class="wide"><span>Description</span><textarea name="description" rows="3">{{ form_course.description if form_course else '' }}</textarea></label>
         <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Course{% else %}Update Course{% endif %}</button></div>
+    </form>
+</section>
+{% endif %}
+
+{% if section_form_mode %}
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>{% if section_form_mode == "create" %}Add Section{% else %}Edit Section{% endif %}</h3>
+            <p>Sections belong to courses and help group students without changing fee structures.</p>
+        </div>
+        <a class="btn btn-light" href="/courses">Cancel</a>
+    </div>
+    <form method="post" action="{% if section_form_mode == 'create' %}/sections/create{% else %}/sections/{{ form_section.id }}/edit{% endif %}" class="form-grid">
+        {% include "partials/csrf_input.html" %}
+        <label>
+            <span>Course</span>
+            <select name="course_id" required>
+                <option value="">Select course</option>
+                {% for course in section_courses %}
+                <option value="{{ course.id }}" {% if form_section and form_section.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label><span>Section Name</span><input name="name" value="{{ form_section.name if form_section else '' }}" required></label>
+        <label><span>Section Code</span><input name="code" value="{{ form_section.code if form_section else '' }}"></label>
+        <label><span>Class Teacher</span><input name="class_teacher" value="{{ form_section.class_teacher if form_section else '' }}"></label>
+        <label><span>Room</span><input name="room_name" value="{{ form_section.room_name if form_section else '' }}"></label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ["Active", "Inactive"] %}
+                <option value="{{ option }}" {% if form_section and form_section.status == option %}selected{% elif not form_section and option == "Active" %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide"><span>Description</span><textarea name="description" rows="3">{{ form_section.description if form_section else '' }}</textarea></label>
+        <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if section_form_mode == "create" %}Save Section{% else %}Update Section{% endif %}</button></div>
     </form>
 </section>
 {% endif %}
@@ -84,8 +130,6 @@
                 <tr>
                     <th>Course Name</th>
                     <th>Code</th>
-                    <th>Fee Amount</th>
-                    <th>Frequency</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -95,20 +139,77 @@
                 <tr>
                     <td>{{ course.name }}</td>
                     <td>{{ course.code }}</td>
-                    <td>{{ course.fees|money }}</td>
-                    <td>{{ course.frequency }}</td>
                     <td><span class="badge">{{ course.status }}</span></td>
                     <td class="actions">
                         <a class="btn btn-small btn-light" href="/courses?view={{ course.id }}">View</a>
+                        {% if current_user.role == "Admin" %}
                         <a class="btn btn-small btn-light" href="/courses?edit={{ course.id }}">Edit</a>
                         <form method="post" action="/courses/{{ course.id }}/delete" onsubmit="return confirm('Delete this course?');">
                             {% include "partials/csrf_input.html" %}
                             <button class="btn btn-small btn-danger" type="submit">Delete</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="6" class="empty-state">No courses found.</td></tr>
+                <tr><td colspan="4" class="empty-state">No courses found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <div>
+            <h3>Section List</h3>
+            <p>Manage course sections, class teacher details, and room information here.</p>
+        </div>
+        <div class="header-actions">
+            <form method="get" class="search-form">
+                <input type="text" name="section_search" value="{{ section_search }}" placeholder="Search sections by name, code, teacher, or room">
+                <button class="btn btn-light" type="submit">Search</button>
+            </form>
+            {% if current_user.role == "Admin" %}
+            <a class="btn btn-primary" href="/courses?section_create=1">Add Section</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Section</th>
+                    <th>Code</th>
+                    <th>Teacher</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td>{{ section.course.name if section.course else "N/A" }}</td>
+                    <td>{{ section.name }}</td>
+                    <td>{{ section.code or "-" }}</td>
+                    <td>{{ section.class_teacher or "-" }}</td>
+                    <td>{{ section.room_name or "-" }}</td>
+                    <td><span class="badge">{{ section.status }}</span></td>
+                    <td class="actions">
+                        <a class="btn btn-small btn-light" href="/courses?section_view={{ section.id }}">View</a>
+                        {% if current_user.role == "Admin" %}
+                        <a class="btn btn-small btn-light" href="/courses?section_edit={{ section.id }}">Edit</a>
+                        <form method="post" action="/sections/{{ section.id }}/delete" onsubmit="return confirm('Delete this section?');">
+                            {% include "partials/csrf_input.html" %}
+                            <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state">No sections found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

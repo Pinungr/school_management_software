@@ -1,9 +1,9 @@
-#define MyAppName "SchoolFlow"
+#define MyAppName "Pinaki"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Pinaki"
 #define MyAppURL "http://127.0.0.1"
-#define MyAppExeName "SchoolFlow.exe"
-#define MyAppIconPath "static\logo.ico"
+#define MyAppExeName "Pinaki.exe"
+#define MyAppIconPath "static\app_icon.ico"
 
 [Setup]
 AppId={{B4EC8D4D-6C2F-49C4-AC11-2B0120C74B90}
@@ -15,7 +15,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=installer_output
-OutputBaseFilename=SchoolFlow-Setup
+OutputBaseFilename=Pinaki-Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -33,7 +33,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Files]
-Source: "dist\SchoolFlow\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Pinaki\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

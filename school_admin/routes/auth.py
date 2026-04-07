@@ -20,10 +20,12 @@ from school_admin.utils import (
     form_with_csrf,
     get_current_user,
     get_settings,
+    home_path_for_user,
     is_setup_complete,
     redirect,
     render_public,
     safe_next_path,
+    start_authenticated_session,
     setup_redirect,
 )
 
@@ -44,7 +46,7 @@ async def login_page(
             return setup_redirect()
         current_user = get_current_user(session, request)
         if current_user:
-            return redirect("/dashboard")
+            return redirect(home_path_for_user(current_user))
         return render_public(
             request,
             "login.html",
@@ -77,9 +79,8 @@ async def login_submit(request: Request):
         )
         if not user or user.status != "Active" or not verify_password(password, user.password_hash):
             return redirect(f"/login?error=1&next={quote(next_path)}")
-        request.session.clear()
-        request.session["user_id"] = user.id
-    return redirect(next_path)
+        start_authenticated_session(request, user.id)
+    return redirect(home_path_for_user(user) if user.role == "SuperAdmin" else next_path)
 
 
 @router.get("/setup", response_class=HTMLResponse)
@@ -87,7 +88,7 @@ async def setup_page(request: Request, error: str = ""):
     with SessionLocal() as session:
         if is_setup_complete(session):
             current_user = get_current_user(session, request)
-            return redirect("/dashboard" if current_user else "/login")
+            return redirect(home_path_for_user(current_user) if current_user else "/login")
         settings = get_settings(session)
         admin_user = session.scalar(select(User).where(User.role == "Admin").order_by(User.id))
         return render_public(
@@ -109,7 +110,7 @@ async def setup_submit(request: Request):
     with SessionLocal() as session:
         if is_setup_complete(session):
             current_user = get_current_user(session, request)
-            return redirect("/dashboard" if current_user else "/login")
+            return redirect(home_path_for_user(current_user) if current_user else "/login")
 
         settings = get_settings(session)
         school_name = str(form.get("school_name", "")).strip()

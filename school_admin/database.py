@@ -8,7 +8,8 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
-APP_NAME = "SchoolFlow"
+APP_NAME = "Pinaki"
+LEGACY_APP_DATA_DIR_NAMES = ("SchoolFlow",)
 
 
 if getattr(sys, "frozen", False):
@@ -20,17 +21,31 @@ BASE_DIR = RESOURCE_DIR
 TEMPLATES_DIR = RESOURCE_DIR / "templates"
 STATIC_DIR = RESOURCE_DIR / "static"
 
-if getattr(sys, "frozen", False):
+def resolve_app_data_dir() -> Path:
+    if not getattr(sys, "frozen", False):
+        return BASE_DIR
+
     local_app_data = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    APP_DATA_DIR = local_app_data / APP_NAME
-else:
-    APP_DATA_DIR = BASE_DIR
+    preferred_dir = local_app_data / APP_NAME
+    if preferred_dir.exists():
+        return preferred_dir
+
+    for legacy_name in LEGACY_APP_DATA_DIR_NAMES:
+        legacy_dir = local_app_data / legacy_name
+        if legacy_dir.exists():
+            return legacy_dir
+
+    return preferred_dir
+
+
+APP_DATA_DIR = resolve_app_data_dir()
 
 DATA_DIR = APP_DATA_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 UPLOADS_DIR = APP_DATA_DIR / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-DATABASE_URL = f"sqlite:///{(DATA_DIR / 'school.db').as_posix()}"
+DATABASE_PATH = DATA_DIR / "school.db"
+DATABASE_URL = f"sqlite:///{DATABASE_PATH.as_posix()}"
 
 
 class Base(DeclarativeBase):

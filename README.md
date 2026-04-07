@@ -1,6 +1,6 @@
-# SchoolFlow
+# Pinaki
 
-A simple school management system built with FastAPI, SQLAlchemy, and Jinja2.
+A desktop school management system built with FastAPI, SQLAlchemy, and a Windows app-style launcher.
 
 ## Features
 
@@ -9,6 +9,7 @@ A simple school management system built with FastAPI, SQLAlchemy, and Jinja2.
 - Guardian notification generation for outstanding fees
 - Role-based access: admin and clerk views
 - Printable payment reminder letter generation
+- Native desktop application interface
 
 ## Setup
 
@@ -23,13 +24,15 @@ A simple school management system built with FastAPI, SQLAlchemy, and Jinja2.
    pip install -r requirements.txt
    ```
 
-3. Run the app:
+3. Run the desktop app:
    ```bash
-   python main.py
+   python launcher.py
    ```
 
-4. The browser opens automatically to the first-run setup screen.
+4. The application opens in its own app window to the first-run setup screen.
 5. Create the administrator account and school profile in the one-time setup flow.
+
+For an installable Windows desktop build, package `launcher.py` with PyInstaller and the included Inno Setup script as described in [PACKAGING.md](PACKAGING.md).
 
 ## Testing
 

@@ -19,6 +19,13 @@
     <div class="alert-error">Choose a valid currency.</div>
     {% elif error_code == "invalid_timezone" %}
     <div class="alert-error">Choose a valid timezone.</div>
+    {% elif error_code == "backup_file_required" %}
+    <div class="alert-error">Choose a backup file before starting restore.</div>
+    {% elif error_code == "invalid_backup_file" %}
+    <div class="alert-error">Choose a valid Pinaki backup file to restore.</div>
+    {% endif %}
+    {% if success_code == "restore_completed" %}
+    <div class="alert-success">Backup restored successfully.</div>
     {% endif %}
     <form method="post" action="/settings" class="settings-grid" enctype="multipart/form-data">
         {% include "partials/csrf_input.html" %}
@@ -70,15 +77,44 @@
             </label>
         </div>
         <div class="settings-section">
-            <h3>Developer Footer</h3>
-            <label><span>Developer Name</span><input name="developer_name" value="{{ settings.developer_name or '' }}"></label>
-            <label><span>Developer Email</span><input type="email" name="developer_email" value="{{ settings.developer_email or '' }}"></label>
-            <label><span>Developer Phone</span><input name="developer_phone" value="{{ settings.developer_phone or '' }}"></label>
+            <h3>Application Branding</h3>
+            <p>Developer contact details are part of the Pinaki brand and are not editable from system settings.</p>
+        </div>
+        <div class="settings-section">
+            <h3>Reminder Integrations</h3>
+            <p>WhatsApp reminders use the guardian phone field, Gmail reminders use the guardian email field, and the configured School Email is included in the reminder content.</p>
         </div>
         <div class="wide form-actions">
             <button class="btn btn-primary" type="submit">Save Settings</button>
         </div>
     </form>
+</section>
+
+<section class="card">
+    <div class="settings-grid">
+        <div class="settings-section">
+            <h3>Backup Data</h3>
+            <p>Download a full backup of the database and uploaded files before major changes or app updates.</p>
+            <form method="post" action="/settings/backup">
+                {% include "partials/csrf_input.html" %}
+                <button class="btn btn-light" type="submit">Download Backup</button>
+            </form>
+        </div>
+        <div class="settings-section">
+            <h3>Restore Data</h3>
+            <p>Restoring replaces the current database and uploaded files with the selected backup.</p>
+            <form method="post" action="/settings/restore" enctype="multipart/form-data">
+                {% include "partials/csrf_input.html" %}
+                <label>
+                    <span>Backup File</span>
+                    <input type="file" name="backup_file" accept=".pinaki-backup,.zip,application/zip">
+                </label>
+                <div class="form-actions">
+                    <button class="btn btn-danger" type="submit" onclick="return confirm('Restore this backup? This will replace the current application data.');">Restore Backup</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </section>
 <script>
 document.addEventListener("DOMContentLoaded", () => {

@@ -34,7 +34,7 @@ Write-Host "Installing dependencies..."
 Invoke-Expression "$pythonCommand -m pip install --upgrade pip"
 Invoke-Expression "$pythonCommand -m pip install -r requirements.txt pyinstaller"
 
-if (-not (Test-Path "static\logo.ico")) {
+if (-not (Test-Path "static\app_icon.ico")) {
     Write-Host "Custom icon not found. The installer will use the default icon."
 }
 
@@ -44,7 +44,7 @@ if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
 if (Test-Path "installer_output") { Remove-Item -Recurse -Force "installer_output" }
 
 Write-Host "Building executable with PyInstaller..."
-Invoke-Expression "$pythonCommand -m PyInstaller --clean --noconfirm SchoolFlow.spec"
+Invoke-Expression "$pythonCommand -m PyInstaller --clean --noconfirm Pinaki.spec"
 
 $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $iscc)) {

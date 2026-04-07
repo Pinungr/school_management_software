@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | SchoolFlow</title>
+    <title>Login | Pinaki</title>
+    <link rel="icon" href="/static/app_icon.png" type="image/png">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="auth-body">
@@ -11,7 +12,7 @@
     <div class="chrome-bg chrome-bg-b"></div>
     <main class="auth-shell">
         <section class="auth-hero">
-            <h1>Welcome to SchoolFlow</h1>
+            <h1>Welcome to Pinaki</h1>
             <p>
                 Sign in to access your offline school management workspace. Roles keep sensitive areas like settings and
                 user accounts limited to administrators.
@@ -22,10 +23,10 @@
                 {% if settings and settings.logo_url %}
                 <img class="brand-logo" src="{{ settings.logo_url }}" alt="{{ settings.school_name }} logo">
                 {% else %}
-                <div class="brand-mark">S</div>
+                <div class="brand-mark">P</div>
                 {% endif %}
                 <div>
-                    <h1>SchoolFlow</h1>
+                    <h1>Pinaki</h1>
                     <p>{{ settings.school_name }}</p>
                 </div>
             </div>

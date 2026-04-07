@@ -17,6 +17,10 @@
 
 <section class="mini-grid">
     <article class="mini-card">
+        <span>Pending Admission Fees</span>
+        <strong>{{ metrics.pending_admission|money }}</strong>
+    </article>
+    <article class="mini-card">
         <span>Pending Course Fees</span>
         <strong>{{ metrics.pending_course|money }}</strong>
     </article>
@@ -28,6 +32,10 @@
         <span>Pending Transport Fees</span>
         <strong>{{ metrics.pending_transport|money }}</strong>
     </article>
+    <article class="mini-card">
+        <span>Pending Other Fees</span>
+        <strong>{{ metrics.pending_other|money }}</strong>
+    </article>
 </section>
 
 <section class="card">
@@ -38,13 +46,17 @@
         </div>
     </div>
     <div class="quick-grid">
+        <a class="quick-card" href="/admissions">
+            <h4>Admissions</h4>
+            <p>Create admissions that flow directly into the student register.</p>
+        </a>
         <a class="quick-card" href="/students">
             <h4>Manage Students</h4>
             <p>Add, review, and update student records.</p>
         </a>
-        <a class="quick-card" href="/courses">
-            <h4>Manage Courses</h4>
-            <p>Create courses and maintain the fee structure.</p>
+        <a class="quick-card" href="/fees">
+            <h4>Manage Fees</h4>
+            <p>Maintain admission, course, hostel, transport, and custom fee items in one place.</p>
         </a>
         <a class="quick-card" href="/payments">
             <h4>View Payments</h4>
