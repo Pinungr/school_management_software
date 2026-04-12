@@ -196,6 +196,10 @@
             <span>Admission Notes</span>
             <textarea name="admission_notes" rows="3" placeholder="Optional note for the admission receipt"></textarea>
         </label>
+        {% elif form_mode == "edit" %}
+        <div class="wide auth-copy">
+            Changing this student's course will automatically record a fresh admission fee and open the receipt. Other profile edits will not create a new admission fee.
+        </div>
         {% endif %}
         <div class="wide form-actions">
             <button class="btn btn-primary" type="submit">

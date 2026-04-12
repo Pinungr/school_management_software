@@ -164,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const targetOptions = {
         Admission: {
             label: "Course",
-            empty: "Select course",
+            empty: "All Students",
             options: [
             {% for course in lookups.courses %}
             { id: {{ course.id }}, name: "{{ course.name | escapejs }}" },

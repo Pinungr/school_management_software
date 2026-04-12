@@ -1,0 +1,46 @@
+{
+  "backup_path": "C:\\Users\\pinun\\OneDrive\\Documents\\GitHub\\school_management_software\\live_restore_backups\\pinaki-live-before-clean-20260412-111632.pinaki-backup",
+  "generated_filename": "pinaki-backup-20260412-054632.pinaki-backup",
+  "baseline": {
+    "counts": {
+      "students": 2,
+      "payments": 1,
+      "fees": 2,
+      "courses": 3,
+      "users": 3,
+      "settings": 1,
+      "school_name": "Secure School",
+      "schema_migrations": 19
+    },
+    "uploads": {
+      "logo-330f9be26b844cd89780b0bc0895df6e.png": "b0423673071359e7ff62ec7f2766b1bfe8682ee426b8d6672f8aab0619ba7648",
+      "logo-be40d7f01b504c3fbf45a4e9459aa89d.jpeg": "cd4afe76c9ca7d18e4a6da659dc205d272a0029454e4ff9f8a1fa056728c92dd",
+      "logo-e5c36b73298f41d49df1f9e2af13ace8.png": "b0423673071359e7ff62ec7f2766b1bfe8682ee426b8d6672f8aab0619ba7648"
+    },
+    "db_hash": "f1c7920aa34282d37e672315160e3eb67bfc2ff8e658115af6654ae8ee8e0884"
+  },
+  "clean_state": {
+    "database_exists_after_clean": false,
+    "uploads_after_clean": {}
+  },
+  "restored": {
+    "counts": {
+      "students": 2,
+      "payments": 1,
+      "fees": 2,
+      "courses": 3,
+      "users": 3,
+      "settings": 1,
+      "school_name": "Secure School",
+      "schema_migrations": 19
+    },
+    "uploads": {
+      "logo-330f9be26b844cd89780b0bc0895df6e.png": "b0423673071359e7ff62ec7f2766b1bfe8682ee426b8d6672f8aab0619ba7648",
+      "logo-be40d7f01b504c3fbf45a4e9459aa89d.jpeg": "cd4afe76c9ca7d18e4a6da659dc205d272a0029454e4ff9f8a1fa056728c92dd",
+      "logo-e5c36b73298f41d49df1f9e2af13ace8.png": "b0423673071359e7ff62ec7f2766b1bfe8682ee426b8d6672f8aab0619ba7648"
+    },
+    "db_hash": "1019242daeb0e1cb2d652b4b7c39454a853adc192b3a01751475018a3be05f73"
+  },
+  "counts_match": true,
+  "uploads_match": true
+}

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from contextlib import closing
+from contextlib import closing, suppress
 import io
 import json
 import shutil
 import sqlite3
-import tempfile
 import uuid
 import zipfile
 from datetime import datetime, timezone
@@ -104,9 +103,10 @@ def restore_backup_archive(archive_bytes: bytes) -> None:
 
 def _restore_sqlite_database(database_bytes: bytes, destination_path: Path) -> None:
     destination_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=destination_path.parent) as temp_dir_name:
-        temp_dir = Path(temp_dir_name)
-        temporary_database_path = temp_dir / destination_path.name
+    temporary_database_path = destination_path.with_name(
+        f".{destination_path.stem}-restore-{uuid.uuid4().hex}{destination_path.suffix}"
+    )
+    try:
         with closing(sqlite3.connect(":memory:")) as source_connection:
             source_connection.deserialize(database_bytes)
             with closing(sqlite3.connect(str(temporary_database_path))) as destination_connection:
@@ -114,10 +114,13 @@ def _restore_sqlite_database(database_bytes: bytes, destination_path: Path) -> N
                 destination_connection.execute("PRAGMA wal_checkpoint(FULL)")
                 destination_connection.execute("PRAGMA journal_mode=DELETE")
                 destination_connection.commit()
-
         _remove_sqlite_sidecar_files(destination_path)
         temporary_database_path.replace(destination_path)
         _remove_sqlite_sidecar_files(destination_path)
+    finally:
+        with suppress(OSError):
+            temporary_database_path.unlink(missing_ok=True)
+        _remove_sqlite_sidecar_files(temporary_database_path)
 
 
 def _validate_pinaki_database(database_bytes: bytes) -> None:

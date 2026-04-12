@@ -40,7 +40,7 @@ CATALOG_ERROR_MESSAGES = {
 }
 
 CATEGORY_TARGET_TYPE_MAP = {
-    "Admission": "Course",
+    "Admission": "General",
     "Course": "Course",
     "Hostel": "Hostel",
     "Transport": "Transport",
@@ -75,8 +75,13 @@ def resolve_fee_target(
     category: str,
     raw_target_id: str,
 ) -> tuple[str, int | None, bool]:
-    normalized_target_type = target_type_for_fee_category(category)
     target_id = optional_int(raw_target_id)
+    if str(category or "").strip().title() == "Admission":
+        if target_id is None:
+            return "General", None, True
+        return "Course", target_id, session.get(Course, target_id) is not None
+
+    normalized_target_type = target_type_for_fee_category(category)
     if normalized_target_type == "General":
         return normalized_target_type, None, True
     if target_id is None:

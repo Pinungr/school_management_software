@@ -4,7 +4,7 @@ from datetime import date
 import io
 from pathlib import Path
 import shutil
-import tempfile
+import uuid
 import zipfile
 
 from sqlalchemy import create_engine, select
@@ -18,9 +18,9 @@ from school_admin.seed import seed_database
 
 
 def test_backup_export_creates_single_importable_file(monkeypatch):
-    temp_root = Path(
-        tempfile.mkdtemp(prefix="backup-restore-test-", dir=str(Path("build").resolve()))
-    )
+    temp_root = Path("build").resolve() / f"backup-restore-test-{uuid.uuid4().hex}"
+    temp_root.mkdir(parents=True, exist_ok=False)
+    test_engine = None
     try:
         app_data_dir = temp_root / "appdata"
         data_dir = app_data_dir / "data"
@@ -117,4 +117,73 @@ def test_backup_export_creates_single_importable_file(monkeypatch):
         assert original_upload.read_text(encoding="utf-8") == "original upload"
         assert not (uploads_dir / "extra.txt").exists()
     finally:
+        if test_engine is not None:
+            test_engine.dispose()
+        shutil.rmtree(temp_root, ignore_errors=True)
+
+
+def test_restore_valid_pinaki_backup_without_temp_directory(monkeypatch):
+    temp_root = Path("data").resolve() / f"backup-direct-restore-test-{uuid.uuid4().hex}"
+    temp_root.mkdir(parents=True, exist_ok=False)
+    test_engine = None
+    try:
+        app_data_dir = temp_root / "appdata"
+        data_dir = app_data_dir / "data"
+        uploads_dir = app_data_dir / "uploads"
+        database_path = data_dir / "school.db"
+
+        data_dir.mkdir(parents=True, exist_ok=True)
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+
+        test_engine = create_engine(
+            f"sqlite:///{database_path.as_posix()}",
+            connect_args={"check_same_thread": False},
+        )
+        TestSessionLocal = sessionmaker(bind=test_engine, autoflush=False, autocommit=False)
+
+        Base.metadata.create_all(bind=test_engine)
+        with TestSessionLocal() as session:
+            run_migrations(session)
+            seed_database(session)
+            settings = session.get(Setting, 1)
+            assert settings is not None
+            settings.school_name = "Restore Source School"
+            student = Student(
+                student_code="RESTORE-DIRECT-001",
+                full_name="Restore Direct Student",
+                email="restore.direct@example.com",
+                phone="9999990000",
+            )
+            session.add(student)
+            session.commit()
+
+        monkeypatch.setattr(backup_restore, "APP_DATA_DIR", app_data_dir)
+        monkeypatch.setattr(backup_restore, "UPLOADS_DIR", uploads_dir)
+        monkeypatch.setattr(backup_restore, "DATABASE_PATH", database_path)
+        monkeypatch.setattr(backup_restore, "engine", test_engine)
+        monkeypatch.setattr(backup_restore, "SessionLocal", TestSessionLocal)
+
+        backup_bytes, _ = backup_restore.create_backup_archive()
+
+        with TestSessionLocal() as session:
+            settings = session.get(Setting, 1)
+            assert settings is not None
+            settings.school_name = "Changed Before Restore"
+            student = session.scalar(select(Student).where(Student.student_code == "RESTORE-DIRECT-001"))
+            assert student is not None
+            student.full_name = "Changed Before Restore"
+            session.commit()
+
+        backup_restore.restore_backup_archive(backup_bytes)
+
+        with TestSessionLocal() as session:
+            settings = session.get(Setting, 1)
+            assert settings is not None
+            assert settings.school_name == "Restore Source School"
+            student = session.scalar(select(Student).where(Student.student_code == "RESTORE-DIRECT-001"))
+            assert student is not None
+            assert student.full_name == "Restore Direct Student"
+    finally:
+        if test_engine is not None:
+            test_engine.dispose()
         shutil.rmtree(temp_root, ignore_errors=True)

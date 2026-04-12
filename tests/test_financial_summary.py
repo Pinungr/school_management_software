@@ -86,7 +86,17 @@ def ensure_operational_test_data(session) -> None:
         session.delete(student)
 
     stale_fees = session.scalars(
-        select(Fee).where(Fee.name.in_(["Admission Auto Fee", "Admission Cancel Fee"]))
+        select(Fee).where(
+            Fee.name.in_(
+                [
+                    "Admission Auto Fee",
+                    "Admission Cancel Fee",
+                    "Admission Fee Rule Test",
+                    "Admission Subcategory Test",
+                    "Debug Admission Fee",
+                ]
+            )
+        )
     ).all()
     for fee in stale_fees:
         session.delete(fee)
@@ -675,6 +685,73 @@ def test_students_search_falls_back_to_substring_matches(seeded_session, client)
     assert "Test Student One" not in response.text
 
 
+def test_students_search_includes_substring_matches_when_prefix_matches_exist(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+    course = seeded_session.scalar(select(Course).where(Course.code == "TEST-COURSE"))
+    assert course is not None
+
+    stale_students = seeded_session.scalars(
+        select(Student).where(Student.student_code.in_(["SEARCH-ANN-001", "SEARCH-ANN-002"]))
+    ).all()
+    for student in stale_students:
+        seeded_session.delete(student)
+    if stale_students:
+        seeded_session.commit()
+
+    prefix_student = Student(
+        student_code="SEARCH-ANN-001",
+        full_name="QAAnn Prefix Student",
+        email="qaann.prefix@example.com",
+        phone="9999990071",
+        parent_name="Search Parent One",
+        status="Active",
+        address="Search Address One",
+        joined_on=date(2026, 4, 1),
+        course_id=course.id,
+    )
+    substring_student = Student(
+        student_code="SEARCH-ANN-002",
+        full_name="Late QAAnn Student",
+        email="qaann.substring@example.com",
+        phone="9999990072",
+        parent_name="Search Parent Two",
+        status="Active",
+        address="Search Address Two",
+        joined_on=date(2026, 4, 1),
+        course_id=course.id,
+    )
+    seeded_session.add_all([prefix_student, substring_student])
+    seeded_session.commit()
+
+    try:
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        response = client.get("/students?search=QAAnn")
+        assert response.status_code == 200
+        assert "QAAnn Prefix Student" in response.text
+        assert "Late QAAnn Student" in response.text
+    finally:
+        cleanup_students = seeded_session.scalars(
+            select(Student).where(Student.student_code.in_(["SEARCH-ANN-001", "SEARCH-ANN-002"]))
+        ).all()
+        for student in cleanup_students:
+            seeded_session.delete(student)
+        seeded_session.commit()
+
+
 def test_students_page_is_read_only_and_points_to_admissions(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
     ensure_operational_test_data(seeded_session)
@@ -1020,6 +1097,282 @@ def test_student_promotion_reuses_admission_flow_and_updates_same_student(seeded
     if created_admission_fee is not None:
         seeded_session.delete(created_admission_fee)
     seeded_session.commit()
+
+
+def test_student_course_change_creates_fresh_admission_receipt(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+
+    stale_payments = seeded_session.scalars(
+        select(Payment).where(Payment.reference.startswith("ADM-COURSE-COURSE-CHG-STU-001-"))
+    ).all()
+    for payment in stale_payments:
+        seeded_session.delete(payment)
+
+    stale_student = seeded_session.scalar(select(Student).where(Student.student_code == "COURSE-CHG-STU-001"))
+    if stale_student is not None:
+        seeded_session.delete(stale_student)
+
+    stale_fees = seeded_session.scalars(
+        select(Fee).where(
+            Fee.name.in_(
+                [
+                    "Course Change Admission Fee",
+                    "Course Change General Admission Fee",
+                ]
+            )
+        )
+    ).all()
+    for fee in stale_fees:
+        seeded_session.delete(fee)
+
+    stale_courses = seeded_session.scalars(
+        select(Course).where(Course.code.in_(["COURSE-CHG-1", "COURSE-CHG-2"]))
+    ).all()
+    for course in stale_courses:
+        seeded_session.delete(course)
+
+    if stale_payments or stale_student is not None or stale_fees or stale_courses:
+        seeded_session.commit()
+
+    source_course = Course(
+        name="Change Class 1",
+        code="COURSE-CHG-1",
+        fees=1000,
+        frequency="Monthly",
+        status="Active",
+        description="Source course for admission-on-course-change coverage.",
+    )
+    target_course = Course(
+        name="Change Class 2",
+        code="COURSE-CHG-2",
+        fees=1200,
+        frequency="Monthly",
+        status="Active",
+        description="Target course for admission-on-course-change coverage.",
+    )
+    seeded_session.add_all([source_course, target_course])
+    seeded_session.flush()
+
+    general_admission_fee = Fee(
+        name="Course Change General Admission Fee",
+        category="Admission",
+        amount=999,
+        frequency="One Time",
+        status="Active",
+        target_type="General",
+        target_id=None,
+        description="General admission fee that should lose to the course-specific fee.",
+    )
+    course_admission_fee = Fee(
+        name="Course Change Admission Fee",
+        category="Admission",
+        amount=3300,
+        frequency="One Time",
+        status="Active",
+        target_type="Course",
+        target_id=target_course.id,
+        description="Course-specific admission fee for course changes.",
+    )
+    student = Student(
+        student_code="COURSE-CHG-STU-001",
+        full_name="Course Change Student",
+        email="course.change@example.com",
+        phone="9999990061",
+        parent_name="Course Change Parent",
+        status="Active",
+        address="Course Change Address",
+        joined_on=date(2026, 4, 1),
+        course_id=source_course.id,
+    )
+    seeded_session.add_all([general_admission_fee, course_admission_fee, student])
+    seeded_session.commit()
+
+    try:
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        edit_page = client.get(f"/students?edit={student.id}")
+        assert edit_page.status_code == 200
+        edit_csrf_token = extract_csrf_token(edit_page.text)
+
+        response = client.post(
+            f"/students/{student.id}/edit",
+            data={
+                "csrf_token": edit_csrf_token,
+                "return_path": "/students",
+                "student_code": "COURSE-CHG-STU-001",
+                "full_name": "Course Change Student",
+                "email": "course.change@example.com",
+                "phone": "9999990061",
+                "parent_name": "Course Change Parent",
+                "status": "Active",
+                "joined_on": "2026-04-08",
+                "course_id": str(target_course.id),
+                "section_id": "",
+                "hostel_id": "",
+                "transport_id": "",
+                "address": "Course Change Address Updated",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"].startswith("/payments/")
+        assert response.headers["location"].endswith("/bill")
+
+        seeded_session.expire_all()
+        updated_student = seeded_session.get(Student, student.id)
+        assert updated_student is not None
+        assert updated_student.course_id == target_course.id
+        assert updated_student.joined_on == date(2026, 4, 8)
+
+        payment = seeded_session.scalar(
+            select(Payment).where(Payment.reference.startswith("ADM-COURSE-COURSE-CHG-STU-001-"))
+        )
+        assert payment is not None
+        assert payment.student_id == student.id
+        assert payment.status == "Paid"
+        assert payment.method == "Cash"
+        assert payment.service_type == "admission"
+        assert payment.service_id == course_admission_fee.id
+        assert payment.service_name == course_admission_fee.name
+        assert payment.amount == 3300.0
+        assert "from Change Class 1 to Change Class 2" in payment.notes
+    finally:
+        cleanup_payments = seeded_session.scalars(
+            select(Payment).where(Payment.reference.startswith("ADM-COURSE-COURSE-CHG-STU-001-"))
+        ).all()
+        for payment in cleanup_payments:
+            seeded_session.delete(payment)
+        cleanup_student = seeded_session.scalar(select(Student).where(Student.student_code == "COURSE-CHG-STU-001"))
+        if cleanup_student is not None:
+            seeded_session.delete(cleanup_student)
+        for fee_name in ("Course Change Admission Fee", "Course Change General Admission Fee"):
+            fee = seeded_session.scalar(select(Fee).where(Fee.name == fee_name))
+            if fee is not None:
+                seeded_session.delete(fee)
+        for course_code in ("COURSE-CHG-1", "COURSE-CHG-2"):
+            course = seeded_session.scalar(select(Course).where(Course.code == course_code))
+            if course is not None:
+                seeded_session.delete(course)
+        seeded_session.commit()
+
+
+def test_student_edit_without_course_change_does_not_create_admission_receipt(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+
+    stale_payment = seeded_session.scalar(select(Payment).where(Payment.reference == "NO-COURSE-CHANGE-PAYMENT"))
+    if stale_payment is not None:
+        seeded_session.delete(stale_payment)
+
+    stale_student = seeded_session.scalar(select(Student).where(Student.student_code == "NO-COURSE-CHANGE-STU"))
+    if stale_student is not None:
+        seeded_session.delete(stale_student)
+
+    stale_course = seeded_session.scalar(select(Course).where(Course.code == "NO-COURSE-CHANGE"))
+    if stale_course is not None:
+        seeded_session.delete(stale_course)
+
+    if stale_payment is not None or stale_student is not None or stale_course is not None:
+        seeded_session.commit()
+
+    course = Course(
+        name="No Course Change",
+        code="NO-COURSE-CHANGE",
+        fees=1000,
+        frequency="Monthly",
+        status="Active",
+        description="Course for edit-without-course-change coverage.",
+    )
+    student = Student(
+        student_code="NO-COURSE-CHANGE-STU",
+        full_name="No Course Change Student",
+        email="no.course.change@example.com",
+        phone="9999990062",
+        parent_name="No Course Change Parent",
+        status="Active",
+        address="No Course Change Address",
+        joined_on=date(2026, 4, 1),
+        course=course,
+    )
+    seeded_session.add_all([course, student])
+    seeded_session.commit()
+
+    try:
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        edit_page = client.get(f"/students?edit={student.id}")
+        assert edit_page.status_code == 200
+        edit_csrf_token = extract_csrf_token(edit_page.text)
+
+        response = client.post(
+            f"/students/{student.id}/edit",
+            data={
+                "csrf_token": edit_csrf_token,
+                "return_path": "/students",
+                "student_code": "NO-COURSE-CHANGE-STU",
+                "full_name": "No Course Change Student Updated",
+                "email": "no.course.change@example.com",
+                "phone": "9999990062",
+                "parent_name": "No Course Change Parent",
+                "status": "Active",
+                "joined_on": "2026-04-01",
+                "course_id": str(course.id),
+                "section_id": "",
+                "hostel_id": "",
+                "transport_id": "",
+                "address": "No Course Change Address Updated",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/students"
+
+        seeded_session.expire_all()
+        updated_student = seeded_session.get(Student, student.id)
+        assert updated_student is not None
+        assert updated_student.full_name == "No Course Change Student Updated"
+        unexpected_payment = seeded_session.scalar(
+            select(Payment).where(Payment.reference.startswith("ADM-COURSE-NO-COURSE-CHANGE-STU-"))
+        )
+        assert unexpected_payment is None
+    finally:
+        cleanup_payments = seeded_session.scalars(
+            select(Payment).where(Payment.reference.startswith("ADM-COURSE-NO-COURSE-CHANGE-STU-"))
+        ).all()
+        for payment in cleanup_payments:
+            seeded_session.delete(payment)
+        cleanup_student = seeded_session.scalar(select(Student).where(Student.student_code == "NO-COURSE-CHANGE-STU"))
+        if cleanup_student is not None:
+            seeded_session.delete(cleanup_student)
+        cleanup_course = seeded_session.scalar(select(Course).where(Course.code == "NO-COURSE-CHANGE"))
+        if cleanup_course is not None:
+            seeded_session.delete(cleanup_course)
+        seeded_session.commit()
 
 
 def test_payment_bill_page_renders_for_recorded_payment(seeded_session, client):
@@ -2476,6 +2829,7 @@ def test_admission_fee_uses_course_table_as_subcategory(seeded_session, client):
     assert response.status_code == 303
     assert response.headers["location"] == "/fees"
 
+    seeded_session.expire_all()
     fee = seeded_session.scalar(select(Fee).where(Fee.name == "Admission Subcategory Test"))
     assert fee is not None
     assert fee.frequency == "One Time"
@@ -2677,6 +3031,7 @@ def test_launcher_browser_fallback_keeps_running_instead_of_shutting_down(monkey
 
 def test_admission_fees_are_saved_as_one_time_even_if_monthly_is_submitted(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
 
     login_page = client.get("/login")
     csrf_token = extract_csrf_token(login_page.text)
@@ -2711,6 +3066,7 @@ def test_admission_fees_are_saved_as_one_time_even_if_monthly_is_submitted(seede
     assert response.status_code == 303
     assert response.headers["location"] == "/fees"
 
+    seeded_session.expire_all()
     fee = seeded_session.scalar(select(Fee).where(Fee.name == "Admission Fee Rule Test"))
     assert fee is not None
     assert fee.frequency == "One Time"

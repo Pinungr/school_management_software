@@ -44,7 +44,7 @@ STUDENT_ERROR_MESSAGES = {
     "duplicate": "That student code is already in use.",
     "invalid_method": "Choose a valid admission payment method.",
     "students_read_only": "Create student records from Admissions. The student list is filled automatically after admission.",
-    "missing_admission_fee": "Set up at least one active admission fee in Fees before creating a new admission.",
+    "missing_admission_fee": "Set up at least one active admission fee in Fees before creating a new admission or changing a student's course.",
     "missing_guardian_phone": "Add the guardian phone number before opening WhatsApp.",
     "missing_guardian_email": "Add the guardian email address before opening Gmail.",
     "promotion_student_missing": "The selected student record for promotion could not be found.",
@@ -228,7 +228,44 @@ def open_external_target(url: str) -> None:
 
 def first_applicable_admission_fee(session, student: Student) -> Fee | None:
     admission_fees = applicable_fees_for_student(session, student, category="Admission")
+    admission_fees.sort(
+        key=lambda fee: (
+            0 if str(fee.target_type or "").strip() == "Course" and fee.target_id is not None else 1,
+            fee.name,
+            fee.id,
+        )
+    )
     return admission_fees[0] if admission_fees else None
+
+
+def create_admission_payment(
+    session,
+    student: Student,
+    admission_fee: Fee,
+    *,
+    payment_date: date,
+    method: str,
+    reference: str,
+    notes: str = "",
+) -> Payment:
+    payment = Payment(
+        student_id=student.id,
+        student_code=student.student_code,
+        student_name=student.full_name,
+        parent_name=student.parent_name or "",
+        service_type="admission",
+        service_id=admission_fee.id,
+        service_name=admission_fee.name,
+        amount=float(admission_fee.amount or 0),
+        payment_date=payment_date,
+        method=method,
+        reference=reference,
+        notes=notes,
+        status="Paid",
+    )
+    apply_receipt_snapshot(session, payment, student)
+    session.add(payment)
+    return payment
 
 
 def apply_student_search(statement, search: str, *, broad: bool = False):
@@ -295,7 +332,7 @@ def render_student_workspace(
             total_students = session.scalar(
                 select(func.count()).select_from(fast_statement.order_by(None).subquery())
             ) or 0
-            if total_students:
+            if total_students >= LIST_PAGE_SIZE:
                 statement = fast_statement
             else:
                 statement = apply_student_search(statement, search_query, broad=True)
@@ -581,15 +618,10 @@ async def create_student(request: Request):
                 )
             )
 
-        payment = Payment(
-            student_id=student.id,
-            student_code=student.student_code,
-            student_name=student.full_name,
-            parent_name=student.parent_name or "",
-            service_type="admission",
-            service_id=admission_fee.id,
-            service_name=admission_fee.name,
-            amount=float(admission_fee.amount or 0),
+        payment = create_admission_payment(
+            session,
+            student,
+            admission_fee,
             payment_date=joined_on,
             method=method,
             reference=str(form.get("admission_reference", "")).strip()
@@ -599,10 +631,7 @@ async def create_student(request: Request):
                 else f"ADM-{student.student_code}"
             ),
             notes=str(form.get("admission_notes", "")).strip(),
-            status="Paid",
         )
-        apply_receipt_snapshot(session, payment, student)
-        session.add(payment)
         session.flush()
         payment_id = payment.id
         session.commit()
@@ -622,6 +651,7 @@ async def edit_student(student_id: int, request: Request):
         student = session.get(Student, student_id)
         if not student:
             return redirect(return_path)
+        previous_course_id = student.course_id
         student_code = str(form.get("student_code", "")).strip()
         full_name = str(form.get("full_name", "")).strip()
         email = str(form.get("email", "")).strip()
@@ -641,14 +671,16 @@ async def edit_student(student_id: int, request: Request):
         transport_id = optional_int(str(form.get("transport_id", "")))
         if course_id is None:
             return redirect(f"{return_path}?edit={student_id}&error=missing_fields")
+        course = session.get(Course, course_id) if course_id is not None else None
         section = session.get(Section, section_id) if section_id is not None else None
         if (
-            (course_id is not None and session.get(Course, course_id) is None)
+            (course_id is not None and course is None)
             or (section_id is not None and (section is None or section.course_id != course_id))
             or (hostel_id is not None and session.get(Hostel, hostel_id) is None)
             or (transport_id is not None and session.get(TransportRoute, transport_id) is None)
         ):
             return redirect(f"{return_path}?edit={student_id}&error=invalid_lookup")
+        previous_course = session.get(Course, previous_course_id) if previous_course_id is not None else None
         student.student_code = student_code
         student.full_name = full_name
         student.email = email
@@ -662,10 +694,35 @@ async def edit_student(student_id: int, request: Request):
         student.hostel_id = hostel_id
         student.transport_id = transport_id
         try:
-            session.commit()
+            session.flush()
         except IntegrityError:
             session.rollback()
             return redirect(f"{return_path}?edit={student_id}&error=duplicate")
+        course_changed = previous_course_id != course_id
+        payment_id = None
+        if course_changed:
+            admission_fee = first_applicable_admission_fee(session, student)
+            if admission_fee is None:
+                session.rollback()
+                return redirect(f"{return_path}?edit={student_id}&error=missing_admission_fee")
+            payment = create_admission_payment(
+                session,
+                student,
+                admission_fee,
+                payment_date=joined_on,
+                method="Cash",
+                reference=f"ADM-COURSE-{student.student_code}-{date.today().strftime('%Y%m%d')}",
+                notes=(
+                    "Admission fee applied after course change"
+                    f" from {previous_course.name if previous_course else 'unassigned'}"
+                    f" to {course.name if course else 'unassigned'}."
+                ),
+            )
+            session.flush()
+            payment_id = payment.id
+        session.commit()
+        if payment_id is not None:
+            return redirect(f"/payments/{payment_id}/bill")
     return redirect(return_path)
 
 
