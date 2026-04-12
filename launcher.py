@@ -12,6 +12,42 @@ import subprocess
 import webbrowser
 from pathlib import Path
 
+def load_env_file() -> None:
+    """
+    Very simple .env file parser to load environment variables.
+    Checks:
+    1. Current directory (relative to script/exe)
+    2. _MEIPASS directory (for bundled PyInstaller files)
+    """
+    candidates = []
+    
+    # Current script directory
+    script_dir = Path(sys.argv[0]).parent
+    candidates.append(script_dir / ".env")
+    
+    # PyInstaller bundle directory
+    if hasattr(sys, "_MEIPASS"):
+        candidates.append(Path(getattr(sys, "_MEIPASS")) / ".env")
+        
+    # Working directory
+    candidates.append(Path(".env"))
+
+    for env_path in candidates:
+        if env_path.exists():
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            key, val = line.split("=", 1)
+                            os.environ.setdefault(key.strip(), val.strip())
+                # Stop at the first found .env file
+                return
+            except Exception:
+                pass
+
 try:
     import tkinter as tk
     from tkinter import messagebox
@@ -234,7 +270,7 @@ def check_license() -> bool:
         
         if not key:
             # User cancelled
-            print("✗ Activation cancelled. Cannot start Pinaki without a valid license.")
+            print("[X] Activation cancelled. Cannot start Pinaki without a valid license.")
             show_license_error_dialog(
                 "Activation Required\n\n"
                 "Pinaki requires an activation key to run.\n"
@@ -490,6 +526,9 @@ class DesktopLauncher:
 
 
 def main() -> int:
+    # Load environment variables from .env if present
+    load_env_file()
+    
     # Check license before starting
     if not check_license():
         return 1

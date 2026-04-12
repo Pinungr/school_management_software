@@ -72,3 +72,26 @@ async def reset_user_password(user_id: int, request: Request):
         user.password_hash = hash_password(new_password)
         session.commit()
     return redirect("/recovery/users?success=1")
+
+
+@router.post("/recovery/users/{user_id}/toggle-status")
+async def toggle_user_status(user_id: int, request: Request):
+    with SessionLocal() as session:
+        current_user, response = require_superadmin(session, request)
+        if response:
+            return response
+        form, response = await form_with_csrf(request, "/recovery/users")
+        if response:
+            return response
+        user = session.get(User, user_id)
+        if not user or user.role == "SuperAdmin":
+            return redirect("/recovery/users?error=invalid_user")
+
+        # Toggle status
+        if user.status == "Active":
+            user.status = "Inactive"
+        else:
+            user.status = "Active"
+
+        session.commit()
+    return redirect("/recovery/users?success=1")

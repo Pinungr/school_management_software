@@ -39,12 +39,27 @@ if (-not (Test-Path "static\app_icon.ico")) {
 }
 
 Write-Host "Cleaning previous build output..."
-if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
-if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
-if (Test-Path "installer_output") { Remove-Item -Recurse -Force "installer_output" }
+if (Test-Path "build") { Remove-Item -Recurse -Force "build" -ErrorAction SilentlyContinue }
+if (Test-Path "build_pkg") { Remove-Item -Recurse -Force "build_pkg" -ErrorAction SilentlyContinue }
+if (Test-Path "dist_pkg") { Remove-Item -Recurse -Force "dist_pkg" -ErrorAction SilentlyContinue }
+if (Test-Path "installer_output") { Remove-Item -Recurse -Force "installer_output" -ErrorAction SilentlyContinue }
+if (Test-Path ".env") { Remove-Item -Force ".env" -ErrorAction SilentlyContinue }
+
+# Define licensing credentials
+$licenseRepo = "Pinungr/school_management_software" # Update this if needed
+$licenseToken = "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"
+
+Write-Host "Generating .env file for licensing..."
+"GITHUB_LICENSE_REPO=$licenseRepo" | Out-File -FilePath ".env" -Encoding utf8
+"GITHUB_LICENSE_TOKEN=$licenseToken" | Out-File -FilePath ".env" -Append -Encoding utf8
 
 Write-Host "Building executable with PyInstaller..."
-Invoke-Expression "$pythonCommand -m PyInstaller --clean --noconfirm Pinaki.spec"
+Invoke-Expression "$pythonCommand -m PyInstaller --clean --noconfirm --workpath build_pkg --distpath dist_pkg Pinaki.spec"
+
+# Ensure .env is in the dist folder for the installer to pick it up
+if (Test-Path ".env") {
+    Copy-Item ".env" "dist_pkg\Pinaki\.env" -Force
+}
 
 $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $iscc)) {

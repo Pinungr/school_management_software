@@ -25,7 +25,8 @@ def load_keys_from_github(
     try:
         headers = {'Accept': 'application/vnd.github.v3.raw'}
         if github_token:
-            headers['Authorization'] = f'token {github_token}'
+            prefix = "Bearer" if github_token.startswith("github_pat_") else "token"
+            headers['Authorization'] = f'{prefix} {github_token}'
         
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=5) as response:

@@ -133,7 +133,10 @@ class LicenseManager:
                 'Accept': 'application/vnd.github.v3.raw',
             }
             if self.github_token:
-                headers['Authorization'] = f'token {self.github_token}'
+                # Use Bearer for Fine-Grained PATs (github_pat_ prefix)
+                # Use 'token' for classic PATs
+                prefix = "Bearer" if self.github_token.startswith("github_pat_") else "token"
+                headers['Authorization'] = f'{prefix} {self.github_token}'
             
             req = urllib.request.Request(self.github_keys_url, headers=headers)
             with urllib.request.urlopen(req, timeout=5) as response:

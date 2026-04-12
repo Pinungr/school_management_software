@@ -47,8 +47,8 @@ def show_license_dialog(
 def show_license_success_dialog(username: str, expiry_date: str) -> None:
     """Show success message after activation"""
     if not tk:
-        print(f"✓ License activated for {username}")
-        print(f"✓ Expires: {expiry_date}")
+        print(f"[OK] License activated for {username}")
+        print(f"[OK] Expires: {expiry_date}")
         return
     
     root = tk.Tk()
@@ -65,7 +65,7 @@ def show_license_success_dialog(username: str, expiry_date: str) -> None:
 def show_license_error_dialog(error_message: str) -> None:
     """Show error message"""
     if not tk:
-        print(f"✗ License Error: {error_message}")
+        print(f"[X] License Error: {error_message}")
         return
     
     root = tk.Tk()
@@ -77,7 +77,7 @@ def show_license_error_dialog(error_message: str) -> None:
 def show_license_expired_dialog() -> None:
     """Show license expired message"""
     if not tk:
-        print("✗ Your license has expired. Please renew your license key.")
+        print("[X] Your license has expired. Please renew your license key.")
         return
     
     root = tk.Tk()
@@ -107,7 +107,7 @@ def show_license_info_dialog(
     expiry_obj = datetime.fromisoformat(expiry_date)
     warning = ""
     if days_remaining <= 30:
-        warning = f"\n⚠ Your license expires in {days_remaining} days!"
+        warning = f"\n[!] Your license expires in {days_remaining} days!"
     
     root = tk.Tk()
     root.withdraw()
