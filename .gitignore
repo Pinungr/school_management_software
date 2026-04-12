@@ -64,3 +64,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# License keys and verification files
+keys_*.json
+*_VERIFICATION.txt
+process_keys.py

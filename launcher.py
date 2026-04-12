@@ -23,6 +23,20 @@ import uvicorn
 
 from main import app, startup_target_path
 from school_admin.database import APP_DATA_DIR
+from school_admin.licensing import (
+    LicenseManager,
+    LicenseInvalidError,
+    LicenseExpiredError,
+    LicenseMachineError,
+    LicenseNetworkError,
+)
+from school_admin.licensing.dialogs import (
+    show_license_dialog,
+    show_license_success_dialog,
+    show_license_error_dialog,
+    show_license_expired_dialog,
+    show_license_info_dialog,
+)
 
 WINDOWS_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
@@ -168,6 +182,115 @@ def create_runtime_browser_profile() -> Path:
             return candidate.resolve()
         except FileExistsError:
             continue
+
+
+def check_license() -> bool:
+    """
+    Check if Pinaki is licensed. Prompts user to activate if not licensed.
+    
+    Returns:
+        True if licensed and valid, False if activation failed or cancelled
+    """
+    # Skip license check in smoke test or CI environments
+    if is_smoke_test() or os.environ.get("CI") == "true":
+        return True
+    
+    license_manager = LicenseManager(
+        app_data_dir=APP_DATA_DIR,
+        github_repo=os.environ.get("GITHUB_LICENSE_REPO", "pinaki-school/licenses"),
+    )
+    
+    # Check if already licensed
+    if license_manager.is_licensed():
+        license_info = license_manager.get_license_status()
+        days_remaining = license_manager.get_days_remaining()
+        
+        # Show warning if expiring soon
+        if days_remaining and days_remaining <= 30 and license_info:
+            show_license_info_dialog(
+                username=license_info.get('username', 'Unknown'),
+                expiry_date=license_info.get('expiry_date', 'Unknown'),
+                days_remaining=days_remaining,
+                key=license_info.get('key', '')
+            )
+        
+        return True
+    
+    # Not licensed - prompt for activation
+    print("\n" + "="*50)
+    print("Pinaki License Required")
+    print("="*50)
+    print("This copy of Pinaki requires an activation key.")
+    print("Please enter your activation key to continue.\n")
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        remaining = max_retries - attempt
+        key = show_license_dialog(
+            title="Pinaki License Activation",
+            message=f"Enter your activation key (Attempt {attempt + 1}/{max_retries})\n\n"
+                   f"Format: PINAKI-XXXX-XXXX-XXXX-XXXX"
+        )
+        
+        if not key:
+            # User cancelled
+            print("✗ Activation cancelled. Cannot start Pinaki without a valid license.")
+            show_license_error_dialog(
+                "Activation Required\n\n"
+                "Pinaki requires an activation key to run.\n"
+                "Please contact your administrator for an activation key."
+            )
+            return False
+        
+        try:
+            # Try to validate
+            print(f"Validating activation key...")
+            license_info = license_manager.validate_key(key, username="Local User")
+            
+            # Success!
+            show_license_success_dialog(
+                username=license_info.get('username', 'User'),
+                expiry_date=license_info.get('expiry_date', 'Unknown')
+            )
+            print(f"✓ License activated successfully!")
+            print(f"  User: {license_info.get('username')}")
+            print(f"  Expires: {license_info.get('expiry_date')}")
+            return True
+            
+        except LicenseExpiredError as e:
+            show_license_error_dialog(str(e))
+            print(f"✗ License expired: {e}")
+            if remaining > 1:
+                show_license_error_dialog(f"Please try again. ({remaining - 1} attempts remaining)")
+            
+        except LicenseInvalidError as e:
+            show_license_error_dialog(str(e))
+            print(f"✗ Invalid license: {e}")
+            if remaining > 1:
+                show_license_error_dialog(f"Please try again. ({remaining - 1} attempts remaining)")
+            
+        except LicenseMachineError as e:
+            show_license_error_dialog(str(e))
+            print(f"✗ Machine mismatch: {e}")
+            return False
+            
+        except LicenseNetworkError as e:
+            show_license_error_dialog(
+                f"Could not verify license with GitHub:\n\n{e}\n\n"
+                "Make sure you have internet connection and try again."
+            )
+            print(f"✗ Network error: {e}")
+            if remaining > 1:
+                show_license_error_dialog(f"Please try again. ({remaining - 1} attempts remaining)")
+    
+    # All retries failed
+    print("✗ Maximum activation attempts exceeded. Cannot start Pinaki.")
+    show_license_error_dialog(
+        "Activation Failed\n\n"
+        "Could not activate Pinaki after 3 attempts.\n"
+        "Please contact your administrator."
+    )
+    return False
 
 
 def count_browser_app_processes(browser_executable: str, target_url: str) -> int:
@@ -367,6 +490,10 @@ class DesktopLauncher:
 
 
 def main() -> int:
+    # Check license before starting
+    if not check_license():
+        return 1
+    
     return DesktopLauncher().start()
 
 

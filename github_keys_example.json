@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-04-12T10:00:00Z",
+  "description": "Pinaki activation keys database - Store in GitHub private repository",
+  "keys": {
+    "PINAKI-DEMO-1234-5678-ABCD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": "2027-12-31",
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DEMO-1234-5678-EFGH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": "2027-12-31",
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SCHOOL1-ACME-2026": {
+      "username": "acme_school",
+      "activation_date": "2026-04-12",
+      "expiry_date": "2027-04-12",
+      "machine_id": "a1b2c3d4e5f6g7h8",
+      "status": "active"
+    },
+    "PINAKI-SCHOOL2-XYZ-2026": {
+      "username": "xyz_academy",
+      "activation_date": "2026-03-01",
+      "expiry_date": "2027-03-01",
+      "machine_id": "z9y8x7w6v5u4t3s2",
+      "status": "active"
+    },
+    "PINAKI-REVOKED-OLD-KEY": {
+      "username": "old_user",
+      "activation_date": "2025-06-15",
+      "expiry_date": "2026-06-15",
+      "machine_id": "revoked_machine_id",
+      "status": "revoked"
+    }
+  }
+}

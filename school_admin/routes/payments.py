@@ -553,24 +553,22 @@ async def payment_bill(payment_id: int, request: Request):
             return response
         payment = session.scalar(
             select(Payment)
-            .options(joinedload(Payment.student))
             .where(Payment.id == payment_id)
         )
         if payment is None:
             return redirect("/payments")
 
         settings = session.get(Setting, 1) or Setting()
-        student = payment.student
-        if student is not None:
-            fees_data = calculate_student_fees_and_payments(session, student)
-        else:
-            fees_data = {
-                "total_fees": float(payment.snapshot_total_fees or 0),
-                "paid_amount": float(payment.snapshot_paid_amount or 0),
-                "current_cycle_amount": float(payment.snapshot_current_cycle_amount or 0),
-                "previous_pending_amount": float(payment.snapshot_previous_pending_amount or 0),
-                "remaining_balance": float(payment.snapshot_remaining_balance or 0),
-            }
+        
+        # ALWAYS use snapshot data stored in the payment record to ensure historical correctness
+        fees_data = {
+            "total_fees": float(payment.snapshot_total_fees or 0),
+            "paid_amount": float(payment.snapshot_paid_amount or 0),
+            "current_cycle_amount": float(payment.snapshot_current_cycle_amount or 0),
+            "previous_pending_amount": float(payment.snapshot_previous_pending_amount or 0),
+            "remaining_balance": float(payment.snapshot_remaining_balance or 0),
+        }
+
         payment_label = payment.service_name or payment.service_type.title()
         if payment.status == "Paid":
             bill_title = "Payment Receipt"
@@ -639,9 +637,9 @@ async def payment_bill(payment_id: int, request: Request):
 
             <div class="student">
                 <h3>Student Details</h3>
-                <p><strong>Student:</strong> {escape_text((student.full_name if student else payment.student_name) or "Deleted student")}</p>
-                <p><strong>Student ID:</strong> {escape_text((student.student_code if student else payment.student_code) or "Archived record")}</p>
-                <p><strong>Guardian:</strong> {escape_text((student.parent_name if student else payment.parent_name) or "N/A")}</p>
+                <p><strong>Student:</strong> {escape_text(payment.student_name or "Deleted student")}</p>
+                <p><strong>Student ID:</strong> {escape_text(payment.student_code or "Archived record")}</p>
+                <p><strong>Guardian:</strong> {escape_text(payment.parent_name or "N/A")}</p>
             </div>
 
             <div class="summary">
@@ -700,6 +698,7 @@ async def payment_bill(payment_id: int, request: Request):
         </html>
         """
         return HTMLResponse(content=bill_html, status_code=200)
+
 
 
 @router.get("/payments/export")
