@@ -20,6 +20,10 @@ powershell -NoProfile -Command "$scriptDir=[System.IO.Path]::GetFullPath('%SCRIP
 if not exist "%DEV_DATA_DIR%" mkdir "%DEV_DATA_DIR%" >nul 2>&1
 
 echo.
+echo [Pinaki Reset] Resetting setup flag...
+python -c "from school_admin.database import SessionLocal, get_settings; session = SessionLocal(); settings = get_settings(session); settings and setattr(settings, 'setup_completed', False) if settings else None; session.commit(); session.close(); print('[OK] Setup flag reset - setup screen will show on next run')" 2>nul || echo [Warning] Could not reset setup flag, but database was cleared.
+
+echo.
 echo [Pinaki Reset] Reset complete.
 echo Run Pinaki again and it should return to the one-time setup screen.
 pause
