@@ -43,15 +43,31 @@ if (Test-Path "build") { Remove-Item -Recurse -Force "build" -ErrorAction Silent
 if (Test-Path "build_pkg") { Remove-Item -Recurse -Force "build_pkg" -ErrorAction SilentlyContinue }
 if (Test-Path "dist_pkg") { Remove-Item -Recurse -Force "dist_pkg" -ErrorAction SilentlyContinue }
 if (Test-Path "installer_output") { Remove-Item -Recurse -Force "installer_output" -ErrorAction SilentlyContinue }
-if (Test-Path ".env") { Remove-Item -Force ".env" -ErrorAction SilentlyContinue }
 
-# Define licensing credentials
-$licenseRepo = "Pinungr/school_management_software" # Update this if needed
-$licenseToken = "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"
+if (-not (Test-Path ".env")) {
+    throw "Missing .env. Create .env with GITHUB_LICENSE_REPO and GITHUB_LICENSE_TOKEN before building."
+}
 
-Write-Host "Generating .env file for licensing..."
-"GITHUB_LICENSE_REPO=$licenseRepo" | Out-File -FilePath ".env" -Encoding utf8
-"GITHUB_LICENSE_TOKEN=$licenseToken" | Out-File -FilePath ".env" -Append -Encoding utf8
+$envValues = @{}
+Get-Content ".env" | ForEach-Object {
+    $line = $_.Trim()
+    if (-not $line -or $line.StartsWith("#") -or -not $line.Contains("=")) {
+        return
+    }
+    $parts = $line.Split("=", 2)
+    $key = $parts[0].Trim([char]0xFEFF).Trim()
+    $value = $parts[1].Trim()
+    $envValues[$key] = $value
+}
+
+if (-not $envValues.ContainsKey("GITHUB_LICENSE_REPO") -or -not $envValues["GITHUB_LICENSE_REPO"]) {
+    throw ".env is missing GITHUB_LICENSE_REPO."
+}
+if (-not $envValues.ContainsKey("GITHUB_LICENSE_TOKEN") -or -not $envValues["GITHUB_LICENSE_TOKEN"]) {
+    throw ".env is missing GITHUB_LICENSE_TOKEN."
+}
+
+Write-Host "Using licensing config from .env for installer build..."
 
 Write-Host "Building executable with PyInstaller..."
 Invoke-Expression "$pythonCommand -m PyInstaller --clean --noconfirm --workpath build_pkg --distpath dist_pkg Pinaki.spec"
