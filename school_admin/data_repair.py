@@ -29,7 +29,7 @@ from school_admin.utils import (
 
 
 DATA_REPAIR_TABLE_ORDER = ("students", "payments", "fees", "users", "courses", "sections")
-TABLE_PAGE_SIZE = 25
+TABLE_PAGE_SIZE = 10
 USER_VISIBLE_ROLES = ("Admin", "Clerk")
 STUDENT_STATUSES = ("Active", "Inactive")
 PAYMENT_SERVICE_TYPES = ("admission", "course", "hostel", "transport", "other")

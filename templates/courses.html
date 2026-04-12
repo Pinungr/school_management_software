@@ -138,6 +138,20 @@
             <button class="btn btn-light" type="submit">Search</button>
         </form>
     </div>
+    <div class="card-header">
+        <p>
+            Showing {{ pagination.page_start }}-{{ pagination.page_end }} of {{ pagination.total_items }} records.
+            Page {{ pagination.page }} of {{ pagination.total_pages }}.
+        </p>
+        <div class="header-actions">
+            {% if pagination.has_previous %}
+            <a class="btn btn-light" href="/courses?{{ pagination.previous_query }}">Previous</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="btn btn-light" href="/courses?{{ pagination.next_query }}">Next</a>
+            {% endif %}
+        </div>
+    </div>
     <div class="table-wrap">
         <table>
             <thead>
@@ -186,6 +200,20 @@
             </form>
             {% if current_user.role == "Admin" %}
             <a class="btn btn-primary" href="/courses?section_create=1">Add Section</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-header">
+        <p>
+            Showing {{ section_pagination.page_start }}-{{ section_pagination.page_end }} of {{ section_pagination.total_items }} records.
+            Page {{ section_pagination.page }} of {{ section_pagination.total_pages }}.
+        </p>
+        <div class="header-actions">
+            {% if section_pagination.has_previous %}
+            <a class="btn btn-light" href="/courses?{{ section_pagination.previous_query }}">Previous</a>
+            {% endif %}
+            {% if section_pagination.has_next %}
+            <a class="btn btn-light" href="/courses?{{ section_pagination.next_query }}">Next</a>
             {% endif %}
         </div>
     </div>

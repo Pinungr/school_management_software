@@ -77,6 +77,19 @@
             <input type="text" name="search" value="{{ search }}" placeholder="Search hostels">
             <button class="btn btn-light" type="submit">Search</button>
         </form>
+    <div class="card-header">
+        <p>
+            Showing {{ pagination.page_start }}-{{ pagination.page_end }} of {{ pagination.total_items }} records.
+            Page {{ pagination.page }} of {{ pagination.total_pages }}.
+        </p>
+        <div class="header-actions">
+            {% if pagination.has_previous %}
+            <a class="btn btn-light" href="/hostels?{{ pagination.previous_query }}">Previous</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="btn btn-light" href="/hostels?{{ pagination.next_query }}">Next</a>
+            {% endif %}
+        </div>
     </div>
     <div class="table-wrap">
         <table>

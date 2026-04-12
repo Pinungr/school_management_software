@@ -33,7 +33,7 @@ from school_admin.routes.payments import apply_receipt_snapshot
 
 
 router = APIRouter()
-LIST_PAGE_SIZE = 50
+LIST_PAGE_SIZE = 10
 STUDENT_STATUSES = {"Active", "Inactive"}
 ADMISSION_PAYMENT_METHODS = {"Cash", "UPI", "Card", "Bank Transfer"}
 STUDENT_ERROR_MESSAGES = {

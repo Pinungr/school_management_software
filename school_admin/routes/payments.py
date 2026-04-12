@@ -33,7 +33,7 @@ from school_admin.utils import (
 
 
 router = APIRouter()
-LIST_PAGE_SIZE = 50
+LIST_PAGE_SIZE = 10
 EXPORT_BATCH_SIZE = 250
 MANUAL_PAYMENT_TYPES = ("course", "hostel", "transport", "other")
 PAYMENT_TYPES = set(MANUAL_PAYMENT_TYPES)

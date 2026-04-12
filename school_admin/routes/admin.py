@@ -23,6 +23,7 @@ from school_admin.utils import form_with_csrf, get_settings, redirect, render_pa
 
 
 router = APIRouter()
+LIST_PAGE_SIZE = 10
 USER_STATUSES = {"Active", "Inactive"}
 FEE_FREQUENCIES = {"Monthly", "Quarterly", "Half-Yearly", "Yearly"}
 CURRENCIES = {"INR (Rs)", "USD ($)", "EUR (EUR)"}
@@ -68,6 +69,7 @@ def data_repair_redirect(table: str, *, search: str = "", edit: int | None = Non
 async def users_page(
     request: Request,
     search: str = "",
+    page: int = 1,
     create: int | None = None,
     edit: int | None = None,
     error: str = "",
@@ -86,20 +88,49 @@ async def users_page(
                     User.role.contains(search.strip()),
                 )
             )
+        
+        page = max(page, 1)
+        total_items = session.scalar(
+            select(func.count()).select_from(statement.order_by(None).subquery())
+        ) or 0
+        total_pages = max((total_items + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        page = min(page, total_pages)
+        
+        users = session.scalars(
+            statement.limit(LIST_PAGE_SIZE).offset((page - 1) * LIST_PAGE_SIZE)
+        ).all()
+        
         selected_user = session.get(User, edit) if edit else None
         if selected_user and selected_user.role == "SuperAdmin":
             selected_user = None
+            
+        pagination_params = {"page": page}
+        if search.strip():
+            pagination_params["search"] = search.strip()
+
         return render_page(
             request,
             session,
             current_user,
             "users.html",
             "users",
-            users=session.scalars(statement).all(),
+            users=users,
             form_mode="create" if create else ("edit" if edit else None),
             form_user=selected_user,
             search=search,
             error_code=error,
+            pagination={
+                "page": page,
+                "page_size": LIST_PAGE_SIZE,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "previous_query": urlencode({**pagination_params, "page": page - 1}) if page > 1 else "",
+                "next_query": urlencode({**pagination_params, "page": page + 1}) if page < total_pages else "",
+                "page_start": ((page - 1) * LIST_PAGE_SIZE) + 1 if total_items else 0,
+                "page_end": min(page * LIST_PAGE_SIZE, total_items),
+            },
         )
 
 

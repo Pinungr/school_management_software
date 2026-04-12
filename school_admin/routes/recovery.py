@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from urllib.parse import urlencode
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from school_admin.auth import hash_password
 from school_admin.database import SessionLocal
@@ -11,6 +12,7 @@ from school_admin.utils import form_with_csrf, redirect, render_page, require_su
 
 
 router = APIRouter()
+LIST_PAGE_SIZE = 10
 RECOVERY_ERROR_MESSAGES = {
     "missing_password": "Enter a new password before saving.",
     "password_short": "Use a password with at least 8 characters.",
@@ -19,7 +21,13 @@ RECOVERY_ERROR_MESSAGES = {
 
 
 @router.get("/recovery/users", response_class=HTMLResponse)
-async def recovery_users_page(request: Request, search: str = "", error: str = "", success: int | None = None):
+async def recovery_users_page(
+    request: Request,
+    search: str = "",
+    page: int = 1,
+    error: str = "",
+    success: int | None = None,
+):
     with SessionLocal() as session:
         current_user, response = require_superadmin(session, request)
         if response:
@@ -39,16 +47,46 @@ async def recovery_users_page(request: Request, search: str = "", error: str = "
                     User.role.contains(query),
                 )
             )
+
+        page = max(page, 1)
+        total_items = session.scalar(
+            select(func.count()).select_from(statement.order_by(None).subquery())
+        ) or 0
+        total_pages = max((total_items + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        page = min(page, total_pages)
+
+        users = session.scalars(
+            statement.limit(LIST_PAGE_SIZE).offset((page - 1) * LIST_PAGE_SIZE)
+        ).all()
+
+        pagination_params = {"page": page}
+        if search.strip():
+            pagination_params["search"] = search.strip()
+        if success:
+            pagination_params["success"] = success
+
         return render_page(
             request,
             session,
             current_user,
             "recovery_users.html",
             "recovery",
-            users=session.scalars(statement).all(),
+            users=users,
             search=search,
             error_message=RECOVERY_ERROR_MESSAGES.get(error, ""),
             success=bool(success),
+            pagination={
+                "page": page,
+                "page_size": LIST_PAGE_SIZE,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "previous_query": urlencode({**pagination_params, "page": page - 1}) if page > 1 else "",
+                "next_query": urlencode({**pagination_params, "page": page + 1}) if page < total_pages else "",
+                "page_start": ((page - 1) * LIST_PAGE_SIZE) + 1 if total_items else 0,
+                "page_end": min(page * LIST_PAGE_SIZE, total_items),
+            },
         )
 
 

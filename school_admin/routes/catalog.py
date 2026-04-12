@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from urllib.parse import urlencode
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
@@ -25,6 +26,7 @@ from school_admin.utils import (
 
 
 router = APIRouter()
+LIST_PAGE_SIZE = 10
 CATALOG_STATUSES = {"Active", "Inactive"}
 CATALOG_ERROR_MESSAGES = {
     "missing_name": "Enter a name before saving this record.",
@@ -105,6 +107,7 @@ def normalized_fee_frequency(category: str, frequency: str) -> str:
 async def fees_page(
     request: Request,
     search: str = "",
+    page: int = 1,
     create: int | None = None,
     edit: int | None = None,
     view: int | None = None,
@@ -125,13 +128,30 @@ async def fees_page(
                     Fee.target_type.contains(query),
                 )
             )
+        
+        page = max(page, 1)
+        total_items = session.scalar(
+            select(func.count()).select_from(statement.order_by(None).subquery())
+        ) or 0
+        total_pages = max((total_items + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        page = min(page, total_pages)
+        
+        fees = session.scalars(
+            statement.limit(LIST_PAGE_SIZE).offset((page - 1) * LIST_PAGE_SIZE)
+        ).all()
+        
         selected_fee = None
         if view:
             selected_fee = session.get(Fee, view)
         elif can_manage_catalog and edit:
             selected_fee = session.get(Fee, edit)
-        fees = session.scalars(statement).all()
+        
         fee_targets = {fee.id: fee_target_display_name(session, fee) for fee in fees}
+        
+        pagination_params = {"page": page}
+        if search.strip():
+            pagination_params["search"] = search.strip()
+
         return render_page(
             request,
             session,
@@ -150,6 +170,18 @@ async def fees_page(
             fee_target_types=FEE_TARGET_TYPES,
             lookups=active_lookups(session),
             view_fee_target=fee_target_display_name(session, selected_fee) if selected_fee else "",
+            pagination={
+                "page": page,
+                "page_size": LIST_PAGE_SIZE,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "previous_query": urlencode({**pagination_params, "page": page - 1}) if page > 1 else "",
+                "next_query": urlencode({**pagination_params, "page": page + 1}) if page < total_pages else "",
+                "page_start": ((page - 1) * LIST_PAGE_SIZE) + 1 if total_items else 0,
+                "page_end": min(page * LIST_PAGE_SIZE, total_items),
+            },
         )
 
 
@@ -272,6 +304,7 @@ async def delete_fee(fee_id: int, request: Request):
 async def courses_page(
     request: Request,
     search: str = "",
+    page: int = 1,
     create: int | None = None,
     edit: int | None = None,
     view: int | None = None,
@@ -279,6 +312,7 @@ async def courses_page(
     section_edit: int | None = None,
     section_view: int | None = None,
     section_search: str = "",
+    section_page: int = 1,
     error: str = "",
 ):
     with SessionLocal() as session:
@@ -287,16 +321,31 @@ async def courses_page(
             return response
         can_manage_catalog = current_user.role == "Admin"
         section_courses = session.scalars(select(Course).order_by(Course.name)).all()
-        statement = select(Course).order_by(Course.id.desc())
+        
+        # Course Pagination
+        course_statement = select(Course).order_by(Course.id.desc())
         if search.strip():
-            statement = statement.where(
+            course_statement = course_statement.where(
                 or_(Course.name.contains(search.strip()), Course.code.contains(search.strip()))
             )
+        
+        page = max(page, 1)
+        total_courses = session.scalar(
+            select(func.count()).select_from(course_statement.order_by(None).subquery())
+        ) or 0
+        total_course_pages = max((total_courses + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        page = min(page, total_course_pages)
+        courses = session.scalars(
+            course_statement.limit(LIST_PAGE_SIZE).offset((page - 1) * LIST_PAGE_SIZE)
+        ).all()
+
         selected_course = None
         if view:
             selected_course = session.get(Course, view)
         elif can_manage_catalog and edit:
             selected_course = session.get(Course, edit)
+        
+        # Section Pagination
         section_statement = select(Section).options(joinedload(Section.course)).order_by(Section.id.desc())
         if section_search.strip():
             section_statement = section_statement.where(
@@ -307,29 +356,69 @@ async def courses_page(
                     Section.room_name.contains(section_search.strip()),
                 )
             )
+            
+        section_page = max(section_page, 1)
+        total_sections = session.scalar(
+            select(func.count()).select_from(section_statement.order_by(None).subquery())
+        ) or 0
+        total_section_pages = max((total_sections + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        section_page = min(section_page, total_section_pages)
+        sections = session.scalars(
+            section_statement.limit(LIST_PAGE_SIZE).offset((section_page - 1) * LIST_PAGE_SIZE)
+        ).all()
+
         selected_section = None
         if section_view:
             selected_section = session.get(Section, section_view)
         elif can_manage_catalog and section_edit:
             selected_section = session.get(Section, section_edit)
+            
+        course_pagination_params = {"page": page, "section_page": section_page}
+        if search.strip():
+            course_pagination_params["search"] = search.strip()
+        if section_search.strip():
+            course_pagination_params["section_search"] = section_search.strip()
+            
         return render_page(
             request,
             session,
             current_user,
             "courses.html",
             "courses",
-            courses=session.scalars(statement).all(),
+            courses=courses,
             section_courses=section_courses,
             form_mode="create" if can_manage_catalog and create else ("edit" if can_manage_catalog and edit else None),
             form_course=selected_course if can_manage_catalog and edit else None,
             view_course=selected_course if view else None,
-            sections=session.scalars(section_statement).all(),
+            sections=sections,
             section_form_mode="create" if can_manage_catalog and section_create else ("edit" if can_manage_catalog and section_edit else None),
             form_section=selected_section if can_manage_catalog and section_edit else None,
             view_section=selected_section if section_view else None,
             search=search,
             section_search=section_search,
             error_message=CATALOG_ERROR_MESSAGES.get(error, ""),
+            pagination={
+                "page": page,
+                "total_items": total_courses,
+                "total_pages": total_course_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_course_pages,
+                "previous_query": urlencode({**course_pagination_params, "page": page - 1}) if page > 1 else "",
+                "next_query": urlencode({**course_pagination_params, "page": page + 1}) if page < total_course_pages else "",
+                "page_start": ((page - 1) * LIST_PAGE_SIZE) + 1 if total_courses else 0,
+                "page_end": min(page * LIST_PAGE_SIZE, total_courses),
+            },
+            section_pagination={
+                "page": section_page,
+                "total_items": total_sections,
+                "total_pages": total_section_pages,
+                "has_previous": section_page > 1,
+                "has_next": section_page < total_section_pages,
+                "previous_query": urlencode({**course_pagination_params, "section_page": section_page - 1}) if section_page > 1 else "",
+                "next_query": urlencode({**course_pagination_params, "section_page": section_page + 1}) if section_page < total_section_pages else "",
+                "page_start": ((section_page - 1) * LIST_PAGE_SIZE) + 1 if total_sections else 0,
+                "page_end": min(section_page * LIST_PAGE_SIZE, total_sections),
+            },
         )
 
 
@@ -517,6 +606,7 @@ async def delete_section(section_id: int, request: Request):
 async def hostels_page(
     request: Request,
     search: str = "",
+    page: int = 1,
     create: int | None = None,
     edit: int | None = None,
     view: int | None = None,
@@ -532,23 +622,52 @@ async def hostels_page(
             statement = statement.where(
                 or_(Hostel.name.contains(search.strip()), Hostel.hostel_type.contains(search.strip()))
             )
+            
+        page = max(page, 1)
+        total_items = session.scalar(
+            select(func.count()).select_from(statement.order_by(None).subquery())
+        ) or 0
+        total_pages = max((total_items + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        page = min(page, total_pages)
+        
+        hostels = session.scalars(
+            statement.limit(LIST_PAGE_SIZE).offset((page - 1) * LIST_PAGE_SIZE)
+        ).all()
+
         selected_hostel = None
         if view:
             selected_hostel = session.get(Hostel, view)
         elif can_manage_catalog and edit:
             selected_hostel = session.get(Hostel, edit)
+            
+        pagination_params = {"page": page}
+        if search.strip():
+            pagination_params["search"] = search.strip()
+            
         return render_page(
             request,
             session,
             current_user,
             "hostels.html",
             "hostels",
-            hostels=session.scalars(statement).all(),
+            hostels=hostels,
             form_mode="create" if can_manage_catalog and create else ("edit" if can_manage_catalog and edit else None),
             form_hostel=selected_hostel if can_manage_catalog and edit else None,
             view_hostel=selected_hostel if view else None,
             search=search,
             error_message=CATALOG_ERROR_MESSAGES.get(error, ""),
+            pagination={
+                "page": page,
+                "page_size": LIST_PAGE_SIZE,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "previous_query": urlencode({**pagination_params, "page": page - 1}) if page > 1 else "",
+                "next_query": urlencode({**pagination_params, "page": page + 1}) if page < total_pages else "",
+                "page_start": ((page - 1) * LIST_PAGE_SIZE) + 1 if total_items else 0,
+                "page_end": min(page * LIST_PAGE_SIZE, total_items),
+            },
         )
 
 
@@ -640,6 +759,7 @@ async def delete_hostel(hostel_id: int, request: Request):
 async def transport_page(
     request: Request,
     search: str = "",
+    page: int = 1,
     create: int | None = None,
     edit: int | None = None,
     view: int | None = None,
@@ -658,23 +778,52 @@ async def transport_page(
                     TransportRoute.pickup_points.contains(search.strip()),
                 )
             )
+            
+        page = max(page, 1)
+        total_items = session.scalar(
+            select(func.count()).select_from(statement.order_by(None).subquery())
+        ) or 0
+        total_pages = max((total_items + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE, 1)
+        page = min(page, total_pages)
+        
+        routes = session.scalars(
+            statement.limit(LIST_PAGE_SIZE).offset((page - 1) * LIST_PAGE_SIZE)
+        ).all()
+
         selected_route = None
         if view:
             selected_route = session.get(TransportRoute, view)
         elif can_manage_catalog and edit:
             selected_route = session.get(TransportRoute, edit)
+            
+        pagination_params = {"page": page}
+        if search.strip():
+            pagination_params["search"] = search.strip()
+            
         return render_page(
             request,
             session,
             current_user,
             "transport.html",
             "transport",
-            routes=session.scalars(statement).all(),
+            routes=routes,
             form_mode="create" if can_manage_catalog and create else ("edit" if can_manage_catalog and edit else None),
             form_route=selected_route if can_manage_catalog and edit else None,
             view_route=selected_route if view else None,
             search=search,
             error_message=CATALOG_ERROR_MESSAGES.get(error, ""),
+            pagination={
+                "page": page,
+                "page_size": LIST_PAGE_SIZE,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_previous": page > 1,
+                "has_next": page < total_pages,
+                "previous_query": urlencode({**pagination_params, "page": page - 1}) if page > 1 else "",
+                "next_query": urlencode({**pagination_params, "page": page + 1}) if page < total_pages else "",
+                "page_start": ((page - 1) * LIST_PAGE_SIZE) + 1 if total_items else 0,
+                "page_end": min(page * LIST_PAGE_SIZE, total_items),
+            },
         )
 
 
