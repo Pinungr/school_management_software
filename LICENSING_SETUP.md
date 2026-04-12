@@ -13,16 +13,28 @@ Create a new **PRIVATE** repository:
 - **Owner**: Your GitHub account or organization
 - **Privacy**: **PRIVATE** (must be private to protect license keys)
 
-### 2. Create GitHub PAT Token
+### 2. Create GitHub Fine-Grained Token (Recommended)
 
+**Better Security Approach:** Use GitHub Fine-Grained Personal Access Tokens (recommended over classic tokens)
+
+1. Go to GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
+2. Click "Generate new token"
+3. Configure:
+   - **Token Name**: `pinaki-license-reader`
+   - **Expiration**: Set desired expiration (e.g., 90 days)
+   - **Repository access**: Select "Only select repositories" → Choose your license repository
+   - **Permissions**: Set `Contents` to `Read-only`
+4. Copy the token and save it securely
+5. Set as environment variable:
+   ```powershell
+   $env:GITHUB_LICENSE_TOKEN = "github_pat_xxxxxxxxxxxxxxxxxxxx"
+   ```
+
+**Or use Classic Token (Less Secure):**
 1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
 2. Click "Generate new token (classic)"
 3. Set permissions: `repo` (full control of private repositories)
-4. Copy the token and save it securely
-5. Set as environment variable:
-   ```bash
-   $env:GITHUB_LICENSE_TOKEN = "ghp_xxxxxxxxxxxx..."
-   ```
+4. Copy the token and set environment variable as above
 
 ### 3. Initialize the Repository
 
