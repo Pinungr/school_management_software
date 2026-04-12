@@ -1,12 +1,12 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-12T16:12:44.958530",
+  "updated_at": "2026-04-12T22:42:03.470330",
   "keys": {
     "PINAKI-6753-64QM-T3U3-OS62": {
-      "username": null,
-      "activation_date": null,
-      "expiry_date": null,
-      "machine_id": null,
+      "username": "pinun",
+      "activation_date": "2026-04-12T22:42:03.470330",
+      "expiry_date": "2027-04-12",
+      "machine_id": "e24f1930219ac495",
       "status": "active"
     },
     "PINAKI-7PQ4-XPKS-NYFF-S24D": {
