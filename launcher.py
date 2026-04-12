@@ -281,7 +281,13 @@ def check_license() -> bool:
         try:
             # Try to validate
             print(f"Validating activation key...")
-            license_info = license_manager.validate_key(key, username="Local User")
+            activation_username = (
+                os.environ.get("PINAKI_LICENSE_USERNAME")
+                or os.environ.get("USERNAME")
+                or os.environ.get("USER")
+                or "Local User"
+            )
+            license_info = license_manager.validate_key(key, username=activation_username)
             
             # Success!
             show_license_success_dialog(
