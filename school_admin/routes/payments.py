@@ -3,10 +3,10 @@ from __future__ import annotations
 import csv
 import io
 import tempfile
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import joinedload
@@ -745,3 +745,59 @@ def escape_text(value: str) -> str:
 def format_amount(value: float, currency: str | None) -> str:
     prefix = (currency or "Rs").strip()
     return f"{prefix} {float(value or 0):,.2f}"
+
+
+@router.post("/api/v1/payments")
+async def api_record_ledger_payment(request: Request, data: dict = Body(...)):
+    with SessionLocal() as session:
+        current_user, response = require_permission(session, request, "payment.manage")
+        if response:
+            return response
+        
+        from school_admin.services import PaymentService
+        
+        student_id = data.get("student_id")
+        fee_id = data.get("fee_id")
+        amount = data.get("amount")
+        mode = data.get("mode", "CASH")
+        reference = data.get("reference")
+        
+        if not student_id or not fee_id or amount is None:
+            return JSONResponse({"error": "Missing student_id, fee_id, or amount"}, status_code=400)
+            
+        try:
+            PaymentService.record_payment(
+                session, int(student_id), int(fee_id), float(amount), str(mode), reference, current_user.id
+            )
+            session.commit()
+            return JSONResponse({"success": True})
+        except ValueError as e:
+            return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@router.get("/api/v1/fees/{fee_id}/balance")
+async def api_get_fee_balance(fee_id: int, student_id: int, request: Request):
+    with SessionLocal() as session:
+        _, response = require_user(session, request)
+        if response:
+            return response
+            
+        from school_admin.services import PaymentService
+        balance = PaymentService.get_fee_balance(session, student_id, fee_id)
+        return JSONResponse(balance)
+
+
+@router.get("/api/v1/students/{student_id}/ledger")
+async def api_get_student_ledger(student_id: int, request: Request):
+    with SessionLocal() as session:
+        _, response = require_user(session, request)
+        if response:
+            return response
+            
+        from school_admin.services import PaymentService
+        ledger = PaymentService.get_student_ledger(session, student_id)
+        # Serialize datetimes
+        for t in ledger:
+            if isinstance(t["date"], datetime):
+                t["date"] = t["date"].isoformat()
+        return JSONResponse(ledger)

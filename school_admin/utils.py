@@ -31,6 +31,17 @@ from .models import (
     User,
     normalize_fee_type,
 )
+from .finance_utils import (
+    frequency_months,
+    monthly_equivalent_amount,
+    month_difference,
+    fee_cycle_count,
+    current_month_amount,
+    is_one_time_fee,
+    is_due_this_cycle,
+    cycle_index_for_frequency,
+    fee_applies_to_student,
+)
 from .permissions import has_permission
 from .seed import seed_database
 
@@ -107,23 +118,6 @@ def escapejs(value: object | None) -> str:
     escaped = escaped.replace("</", "<\\/")
     return escaped
 
-
-def frequency_months(frequency: str | None) -> int:
-    normalized_frequency = str(frequency or "One Time").strip()
-    return {
-        "Monthly": 1,
-        "Quarterly": 3,
-        "Half-Yearly": 6,
-        "Yearly": 12,
-    }.get(normalized_frequency, 0)
-
-
-def monthly_equivalent_amount(amount: float | int | None, frequency: str | None) -> float:
-    amount_value = float(amount or 0)
-    months = frequency_months(frequency)
-    if months <= 1:
-        return amount_value
-    return amount_value / months
 
 templates.env.filters["money"] = format_money
 templates.env.filters["datefmt"] = format_date
@@ -364,47 +358,6 @@ def get_settings(session: Session) -> Setting:
     return session.get(Setting, 1)
 
 
-def month_difference(start_date: date, end_date: date) -> int:
-    if end_date < start_date:
-        return 0
-    return (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
-
-
-def fee_cycle_count(start_date: date, frequency: str, as_of: date | None = None) -> int:
-    as_of = as_of or date.today()
-    if as_of < start_date:
-        return 0
-    normalized_frequency = str(frequency or "One Time").strip()
-    if normalized_frequency == "One Time":
-        return 1
-    return month_difference(start_date, as_of) + 1
-
-
-def current_month_amount(
-    amount: float | int | None,
-    frequency: str | None,
-    start_date: date,
-    as_of: date | None = None,
-) -> float:
-    as_of = as_of or date.today()
-    if as_of < start_date:
-        return 0.0
-    normalized_frequency = str(frequency or "One Time").strip()
-    if normalized_frequency == "One Time":
-        return float(amount or 0) if month_difference(start_date, as_of) == 0 else 0.0
-    return monthly_equivalent_amount(amount, frequency)
-
-
-def is_one_time_fee(fee: Fee) -> bool:
-    if bool(fee.is_one_time):
-        return True
-    if normalize_fee_type(fee.type, category=fee.category) == FeeType.ADMISSION:
-        return True
-    if str(fee.frequency or "").strip() == "One Time":
-        return True
-    return False
-
-
 def payment_type_for_fee(fee: Fee) -> str:
     fee_type = normalize_fee_type(fee.type, category=fee.category)
     if fee_type == FeeType.ADMISSION:
@@ -412,41 +365,6 @@ def payment_type_for_fee(fee: Fee) -> str:
     if fee_type == FeeType.TRANSPORT:
         return "transport"
     return normalize_payment_type(fee.category)
-
-
-def is_due_this_cycle(start_date: date, frequency: str, as_of: date | None = None) -> bool:
-    as_of = as_of or date.today()
-    if as_of < start_date:
-        return False
-    interval_months = frequency_months(frequency)
-    if interval_months <= 0:
-        return month_difference(start_date, as_of) == 0
-    elapsed_months = month_difference(start_date, as_of)
-    return elapsed_months % interval_months == 0
-
-
-def cycle_index_for_frequency(start_date: date, frequency: str, as_of: date | None = None) -> int:
-    as_of = as_of or date.today()
-    if as_of < start_date:
-        return 0
-    interval_months = frequency_months(frequency)
-    elapsed_months = month_difference(start_date, as_of)
-    if interval_months <= 0:
-        return 1
-    return (elapsed_months // interval_months) + 1
-
-
-def fee_applies_to_student(fee: Fee, student: Student) -> bool:
-    target_type = str(fee.target_type or "General").strip()
-    if target_type == "General":
-        return True
-    if target_type == "Course":
-        return student.course_id == fee.target_id
-    if target_type == "Hostel":
-        return student.hostel_id == fee.target_id
-    if target_type == "Transport":
-        return student.transport_id == fee.target_id
-    return False
 
 
 def legacy_fee_items_for_student(student: Student, fees: list[Fee]) -> list[dict[str, float | int | str]]:
@@ -667,23 +585,29 @@ def calculate_student_due_breakdown(
     student: Student,
     as_of: date | None = None,
 ) -> dict[str, float | list[dict[str, object]]]:
+    from .services import PaymentService
     as_of = as_of or date.today()
     fees = applicable_fees_for_student(session, student)
-    paid_by_fee = paid_payment_totals_by_fee(session, student.id)
 
     # Aggregate amounts by normalized upper-case type
     breakdown_map: dict[str, float] = {}
 
     for fee in fees:
         normalized_category = normalize_fee_category(fee.category).upper()
-        fee_payment_type = payment_type_for_fee(fee)
-        paid_for_fee = float(paid_by_fee.get((fee.id, fee_payment_type), 0.0))
+        
+        # Use the new PaymentService to get the accurate due balance
+        balance = PaymentService.get_fee_balance(session, student.id, fee.id)
+        due_amount_total = balance["due"]
+        
+        if due_amount_total <= 0:
+            continue
+
         is_one_time = is_one_time_fee(fee)
         due_amount = 0.0
 
         if is_one_time:
             # For one-time fees (like Admission), include once until paid
-            due_amount = max(float(fee.amount or 0.0) - paid_for_fee, 0.0)
+            due_amount = due_amount_total
         else:
             # For recurring fees, only include if due this month/cycle
             if not is_due_this_cycle(student.joined_on, fee.frequency, as_of):
@@ -692,12 +616,8 @@ def calculate_student_due_breakdown(
             # Use monthly portion for reminders even for Yearly/Quarterly to avoid inflation
             monthly_portion = monthly_equivalent_amount(fee.amount, fee.frequency)
             
-            cycle_number = cycle_index_for_frequency(student.joined_on, fee.frequency, as_of)
-            expected_total_by_cycle = cycle_number * float(fee.amount or 0.0)
-            cycle_backlog = max(expected_total_by_cycle - paid_for_fee, 0.0)
-            
             # Include only the unpaid portion for this cycle, capped at monthly equivalent
-            due_amount = min(cycle_backlog, monthly_portion)
+            due_amount = min(due_amount_total, monthly_portion)
 
         if due_amount > 0:
             breakdown_map[normalized_category] = breakdown_map.get(normalized_category, 0.0) + due_amount

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, Index, Integer, String, Text, event
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -227,6 +227,7 @@ class Student(Base):
     hostel: Mapped[Hostel | None] = relationship(back_populates="students")
     transport_route: Mapped[TransportRoute | None] = relationship(back_populates="students")
     payments: Mapped[list["Payment"]] = relationship(back_populates="student")
+    payment_transactions: Mapped[list["PaymentTransaction"]] = relationship(back_populates="student")
 
 
 class Payment(Base):
@@ -258,3 +259,27 @@ class Payment(Base):
     status: Mapped[str] = mapped_column(String(20), default="Paid")
 
     student: Mapped[Student | None] = relationship(back_populates="payments")
+
+
+class PaymentTransaction(Base):
+    __tablename__ = "payment_transactions"
+    __table_args__ = (
+        Index("ix_payment_transactions_student_id", "student_id"),
+        Index("ix_payment_transactions_fee_id", "fee_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
+    fee_id: Mapped[int] = mapped_column(ForeignKey("fees.id"))
+
+    amount_paid: Mapped[float] = mapped_column(Float)
+    payment_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    payment_mode: Mapped[str] = mapped_column(String(20))  # CASH, UPI, BANK, CARD
+    reference_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    student: Mapped[Student] = relationship(back_populates="payment_transactions")
+    fee: Mapped[Fee] = relationship()
