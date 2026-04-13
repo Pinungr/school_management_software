@@ -1,0 +1,112 @@
+{% set fees_data = view_student_fees %}
+{% set total_fees = fees_data.total_fees if fees_data else 0 %}
+{% set paid_amount = fees_data.paid_amount if fees_data else 0 %}
+{% set remaining_balance = fees_data.remaining_balance if fees_data else 0 %}
+{% set balance_ratio = (remaining_balance / total_fees) if total_fees > 0 else 0 %}
+{% set balance_tone = "text-success" %}
+{% if remaining_balance > 0 and balance_ratio >= 0.5 %}
+{% set balance_tone = "text-danger" %}
+{% elif remaining_balance > 0 and balance_ratio > 0.15 %}
+{% set balance_tone = "text-warning" %}
+{% endif %}
+
+<a class="student-detail-backdrop" href="{{ base_path }}?{{ list_query }}" aria-label="Close student details"></a>
+<aside class="student-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="student-detail-title">
+    <div class="student-detail-header">
+        <div>
+            <span class="student-detail-kicker">Student Details</span>
+            <h3 id="student-detail-title">{{ view_student.full_name }}</h3>
+            <p class="student-detail-subtitle">{{ view_student.student_code }}</p>
+        </div>
+        <a class="btn btn-light btn-small" href="{{ base_path }}?{{ list_query }}">Close</a>
+    </div>
+    <div class="student-detail-body">
+        <section class="student-detail-section">
+            <h4>Student Info</h4>
+            <div class="student-detail-grid">
+                <div><span>Name</span><strong>{{ view_student.full_name }}</strong></div>
+                <div><span>ID</span><strong>{{ view_student.student_code }}</strong></div>
+                <div>
+                    <span>Class / Section</span>
+                    <strong>
+                        {{ view_student.course.name if view_student.course else "Not assigned" }}
+                        <small class="text-muted">{{ view_student.section.name if view_student.section else "No section" }}</small>
+                    </strong>
+                </div>
+                <div><span>Status</span><strong>{{ view_student.status }}</strong></div>
+                <div><span>Email</span><strong>{{ view_student.email or "N/A" }}</strong></div>
+                <div><span>Phone</span><strong>{{ view_student.phone or "N/A" }}</strong></div>
+            </div>
+        </section>
+
+        <section class="student-detail-section">
+            <h4>Services &amp; Fees</h4>
+            {% if fees_data and fees_data.fee_items %}
+            <div class="service-fee-list">
+                {% for item in fees_data.fee_items %}
+                <div class="service-fee-item">
+                    <div>
+                        <strong>{{ item.name }}</strong>
+                        <p>
+                            {{ item.frequency }}
+                            {% if item.target_name %}• {{ item.target_name }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="service-fee-amounts">
+                        {% if item.current_month_amount > 0 %}
+                        <strong>{{ item.current_month_amount|money }} / month</strong>
+                        {% else %}
+                        <strong>Pending from earlier cycles</strong>
+                        {% endif %}
+                        <small>Due {{ item.due_amount|money }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">No services assigned.</p>
+            {% endif %}
+        </section>
+
+        <section class="student-detail-section">
+            <h4>Payment Summary</h4>
+            <div class="student-payment-summary-grid">
+                <div>
+                    <span>Total Fees</span>
+                    <strong>{{ total_fees|money }}</strong>
+                </div>
+                <div>
+                    <span>Paid Amount</span>
+                    <strong class="text-success">{{ paid_amount|money }}</strong>
+                </div>
+                <div>
+                    <span>Balance</span>
+                    <strong class="{{ balance_tone }}">{{ remaining_balance|money }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="student-detail-section">
+            <h4>Actions</h4>
+            <div class="student-detail-actions">
+                <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ view_student.id }}">Payment</a>
+                <a class="btn btn-small btn-light" href="{{ base_path }}?edit={{ view_student.id }}">Edit</a>
+                {% if view_student_next_course %}
+                <a class="btn btn-small btn-light" href="/admissions?promote={{ view_student.id }}">Promote</a>
+                {% else %}
+                <span class="btn btn-small btn-light is-disabled" aria-disabled="true">Promote</span>
+                {% endif %}
+                <a class="btn btn-small btn-warning" href="/students/{{ view_student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
+                <a class="btn btn-small btn-light" href="/students/{{ view_student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
+                <form method="post" action="/students/{{ view_student.id }}/delete" onsubmit="return confirm('Delete this student?');">
+                    {% include "partials/csrf_input.html" %}
+                    <input type="hidden" name="return_path" value="{{ return_path }}">
+                    <button class="btn btn-small btn-danger" type="submit">Delete</button>
+                </form>
+            </div>
+            {% if not view_student_next_course %}
+            <p class="auth-copy">Promotion is available once the next active class is configured.</p>
+            {% endif %}
+        </section>
+    </div>
+</aside>

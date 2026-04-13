@@ -25,6 +25,8 @@ class Setting(Base):
     developer_name: Mapped[str] = mapped_column(String(120), default="")
     developer_email: Mapped[str] = mapped_column(String(120), default="")
     developer_phone: Mapped[str] = mapped_column(String(40), default="")
+    terms_accepted: Mapped[bool] = mapped_column(Boolean, default=False)
+    terms_accepted_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     setup_completed: Mapped[bool] = mapped_column(Boolean, default=False)
 
 

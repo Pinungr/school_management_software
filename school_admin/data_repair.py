@@ -5,6 +5,7 @@ import io
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
+from urllib.parse import urlencode
 
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
@@ -237,6 +238,9 @@ def build_data_repair_page(
     rows = session.scalars(statement.limit(TABLE_PAGE_SIZE).offset((page - 1) * TABLE_PAGE_SIZE)).all()
     options = options_for_field(session)
     edit_row = _get_edit_row(session, spec, edit_id)
+    pagination_params: dict[str, Any] = {"table": spec.key}
+    if search.strip():
+        pagination_params["search"] = search.strip()
     return {
         "table_spec": spec,
         "table_specs": available_table_specs(),
@@ -250,6 +254,8 @@ def build_data_repair_page(
             "total_pages": total_pages,
             "has_previous": page > 1,
             "has_next": page < total_pages,
+            "previous_query": urlencode({**pagination_params, "page": page - 1}) if page > 1 else "",
+            "next_query": urlencode({**pagination_params, "page": page + 1}) if page < total_pages else "",
             "page_start": ((page - 1) * TABLE_PAGE_SIZE) + 1 if total_items else 0,
             "page_end": min(page * TABLE_PAGE_SIZE, total_items),
         },

@@ -29,7 +29,7 @@ def logout_and_redirect(request: Request) -> RedirectResponse:
 async def home(request: Request) -> RedirectResponse:
     with SessionLocal() as session:
         if not is_setup_complete(session):
-            return setup_redirect()
+            return setup_redirect(session)
         current_user = get_current_user(session, request)
         return redirect(home_path_for_user(current_user) if current_user else "/login")
 

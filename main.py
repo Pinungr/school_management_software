@@ -21,6 +21,7 @@ from school_admin.routes.students import router as students_router
 from school_admin.utils import (
     SESSION_IDLE_TIMEOUT_SECONDS,
     is_setup_complete,
+    is_terms_accepted,
     lifespan,
 )
 
@@ -62,7 +63,9 @@ app.include_router(admin_router)
 
 def startup_target_path() -> str:
     with SessionLocal() as session:
-        return "/setup" if not is_setup_complete(session) else "/login"
+        if not is_setup_complete(session):
+            return "/setup/terms" if not is_terms_accepted(session) else "/setup"
+        return "/login"
 
 
 def wait_for_server(host: str, port: int, timeout: float = 15.0) -> bool:

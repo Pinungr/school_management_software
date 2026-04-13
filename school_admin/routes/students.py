@@ -372,6 +372,10 @@ def render_student_workspace(
         if selected_student:
             selected_student_fees = calculate_student_fees_and_payments(session, selected_student)
 
+        list_query_params: dict[str, str | int] = {"page": page}
+        if search_query:
+            list_query_params["search"] = search_query
+
         students = session.scalars(page_students_statement).all()
         fee_snapshots = calculate_fee_snapshots_for_students(session, students)
         students_data = []
@@ -381,11 +385,10 @@ def render_student_workspace(
                     "student": student,
                     "fees_payments": fee_snapshots.get(student.id, {}),
                     "promotion_next_course": promotion_next_courses.get(student.course_id),
+                    "view_query": urlencode({**list_query_params, "view": student.id}),
                 }
             )
-        pagination_params = {"page": page}
-        if search.strip():
-            pagination_params["search"] = search.strip()
+        pagination_params = dict(list_query_params)
         page_start = ((page - 1) * LIST_PAGE_SIZE) + 1 if total_students else 0
         page_end = min(page * LIST_PAGE_SIZE, total_students)
 
@@ -415,6 +418,7 @@ def render_student_workspace(
             labels=labels,
             allow_manual_create=allow_manual_create,
             admission_payment_methods=sorted(ADMISSION_PAYMENT_METHODS),
+            list_query=urlencode(list_query_params),
             promotion_context={
                 "source_student": promote_student,
                 "next_course": promote_next_course,

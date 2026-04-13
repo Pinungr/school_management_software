@@ -89,10 +89,10 @@
             <button class="btn btn-light" type="submit">Import {{ table_spec.label }} CSV</button>
         </form>
         {% if pagination.has_previous %}
-        <a class="btn btn-light" href="/settings/data-repair?table={{ table_spec.key }}&search={{ search }}&page={{ pagination.page - 1 }}">Previous</a>
+        <a class="btn btn-light" href="/settings/data-repair?{{ pagination.previous_query }}">Previous</a>
         {% endif %}
         {% if pagination.has_next %}
-        <a class="btn btn-light" href="/settings/data-repair?table={{ table_spec.key }}&search={{ search }}&page={{ pagination.page + 1 }}">Next</a>
+        <a class="btn btn-light" href="/settings/data-repair?{{ pagination.next_query }}">Next</a>
         {% endif %}
     </div>
     <div class="table-wrap">

@@ -14,60 +14,7 @@
 </section>
 
 {% if view_student %}
-<section class="card detail-card">
-    <div class="card-header">
-        <h3>{{ view_student.full_name }}</h3>
-        <a class="btn btn-light" href="{{ base_path }}">Close</a>
-    </div>
-    <div class="detail-grid">
-        <div><span>Student ID</span><strong>{{ view_student.student_code }}</strong></div>
-        <div><span>Guardian Email</span><strong>{{ view_student.email }}</strong></div>
-        <div><span>Guardian Phone</span><strong>{{ view_student.phone }}</strong></div>
-        <div><span>Status</span><strong class="badge">{{ view_student.status }}</strong></div>
-        <div><span>Parent</span><strong>{{ view_student.parent_name or "N/A" }}</strong></div>
-        <div><span>Joined On</span><strong>{{ view_student.joined_on|datefmt }}</strong></div>
-        <div><span>Course</span><strong>{{ view_student.course.name if view_student.course else "Not assigned" }}</strong></div>
-        <div><span>Section</span><strong>{{ view_student.section.name if view_student.section else "Not assigned" }}</strong></div>
-        <div><span>Hostel</span><strong>{{ view_student.hostel.name if view_student.hostel else "Not assigned" }}</strong></div>
-        <div><span>Transport</span><strong>{{ view_student.transport_route.route_name if view_student.transport_route else "Not assigned" }}</strong></div>
-        <div class="wide"><span>Address</span><strong>{{ view_student.address or "N/A" }}</strong></div>
-    </div>
-    {% if view_student_payments %}
-    <div class="payment-summary">
-        <h4>Payment Summary</h4>
-        <div class="detail-grid compact">
-            {% if view_student_payments.total > 0 %}
-            <div><span>Payments Recorded</span><strong>{{ view_student_payments.total|money }}</strong></div>
-            <div><span>Paid</span><strong class="text-success">{{ view_student_payments.paid|money }}</strong></div>
-            {% endif %}
-            {% set fees_data = view_student_fees %}
-            <div><span>Total Fees</span><strong>{{ fees_data.total_fees|money }}</strong></div>
-            <div><span>Outstanding Balance</span><strong class="{% if fees_data.remaining_balance > 0 %}text-danger{% else %}text-success{% endif %}">{{ fees_data.remaining_balance|money }}</strong></div>
-        </div>
-        <p class="auth-copy">WhatsApp uses the guardian phone field, and Gmail uses the guardian email field from the student record.</p>
-        <div class="student-action-cluster">
-            <div class="student-action-row">
-                <a class="btn btn-small btn-light" href="/payments?student_query={{ view_student.student_code }}">View Payments</a>
-                <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ view_student.id }}">Record Payment</a>
-                {% if view_student_next_course %}
-                <a class="btn btn-small btn-light" href="/admissions?promote={{ view_student.id }}">Promote</a>
-                {% endif %}
-            </div>
-            {% if fees_data.remaining_balance > 0 %}
-            <div class="student-action-row student-action-row-secondary">
-                <a class="btn btn-small btn-warning" href="/students/{{ view_student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
-                <a class="btn btn-small btn-light" href="/students/{{ view_student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
-                <form method="post" action="/students/{{ view_student.id }}/notify">
-                    {% include "partials/csrf_input.html" %}
-                    <input type="hidden" name="return_path" value="{{ return_path }}">
-                    <button class="btn btn-small btn-light" type="submit">Preview</button>
-                </form>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-</section>
+{% include "partials/student_detail_drawer.html" %}
 {% endif %}
 
 {% if error_message %}
@@ -242,83 +189,65 @@
         </div>
     </div>
     <div class="table-wrap">
-        <table>
+        <table class="students-summary-table">
             <thead>
                 <tr>
                     <th>Student ID</th>
                     <th>Full Name</th>
                     <th>Course / Section</th>
-                    <th>Guardian Email</th>
-                    <th>Guardian Phone</th>
-                    <th>Services & Fees</th>
+                    <th>Guardian Contact</th>
                     <th>Total Fees</th>
                     <th>Paid</th>
                     <th>Balance</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for student_data in students_data %}
                 {% set student = student_data.student %}
                 {% set fees = student_data.fees_payments %}
+                {% set balance = fees.remaining_balance %}
+                {% set total_fees = fees.total_fees %}
+                {% set balance_tone = "text-success" %}
+                {% if balance > 0 and total_fees > 0 and (balance / total_fees) >= 0.5 %}
+                {% set balance_tone = "text-danger" %}
+                {% elif balance > 0 and total_fees > 0 and (balance / total_fees) > 0.15 %}
+                {% set balance_tone = "text-warning" %}
+                {% endif %}
                 <tr>
                     <td>{{ student.student_code }}</td>
                     <td>{{ student.full_name }}</td>
                     <td>
-                        {{ student.course.name if student.course else "Not assigned" }}
-                        <br><small class="text-muted">{{ student.section.name if student.section else "No section" }}</small>
+                        <div class="student-course-cell">
+                            <strong>{{ student.course.name if student.course else "Not assigned" }}</strong>
+                            <small class="text-muted">{{ student.section.name if student.section else "No section" }}</small>
+                        </div>
                     </td>
-                    <td>{{ student.email }}</td>
-                    <td>{{ student.phone }}</td>
                     <td>
-                        {% for item in fees.fee_items %}
-                        {% if item.current_month_amount > 0 %}
-                        <div><small>{{ item.name }} - {{ item.current_month_amount|money }} / month{% if item.frequency != "Monthly" and item.frequency != "One Time" %} from {{ item.unit_amount|money }} {{ item.frequency|lower }} fee{% endif %}</small></div>
-                        {% else %}
-                        <div><small>{{ item.name }} - pending from earlier balance</small></div>
-                        {% endif %}
-                        {% endfor %}
-                        {% if not fees.fee_items %}
-                        <small class="text-muted">No services</small>
-                        {% endif %}
+                        <div class="student-contact-cell">
+                            <span>{{ student.email or "N/A" }}</span>
+                            <small>{{ student.phone or "N/A" }}</small>
+                        </div>
                     </td>
                     <td><strong>{{ fees.total_fees|money }}</strong></td>
                     <td><span class="text-success">{{ fees.paid_amount|money }}</span></td>
                     <td>
                         {% if fees.remaining_balance > 0 %}
-                        <span class="text-warning"><strong>{{ fees.remaining_balance|money }}</strong></span>
+                        <span class="{{ balance_tone }}"><strong>{{ fees.remaining_balance|money }}</strong></span>
                         {% else %}
                         <span class="text-success"><strong>Paid</strong></span>
                         {% endif %}
                     </td>
-                    <td><span class="badge">{{ student.status }}</span></td>
-                    <td class="actions">
-                        <div class="student-action-cluster">
-                            <div class="student-action-row">
-                                <a class="btn btn-small btn-light" href="{{ base_path }}?view={{ student.id }}">View</a>
-                                <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ student.id }}">Payment</a>
-                            </div>
-                            <div class="student-action-row student-action-row-secondary">
-                                <a class="btn btn-small btn-light" href="{{ base_path }}?edit={{ student.id }}">Edit</a>
-                                {% if student_data.promotion_next_course %}
-                                <a class="btn btn-small btn-light" href="/admissions?promote={{ student.id }}">Promote</a>
-                                {% endif %}
-                                {% if fees.remaining_balance > 0 %}
-                                <a class="btn btn-small btn-warning" href="/students/{{ student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
-                                <a class="btn btn-small btn-light" href="/students/{{ student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
-                                {% endif %}
-                                <form method="post" action="/students/{{ student.id }}/delete" onsubmit="return confirm('Delete this student?');">
-                                    {% include "partials/csrf_input.html" %}
-                                    <input type="hidden" name="return_path" value="{{ return_path }}">
-                                    <button class="btn btn-small btn-danger" type="submit">Delete</button>
-                                </form>
-                            </div>
-                        </div>
+                    <td>
+                        <span class="badge {% if student.status == 'Active' %}badge-success{% else %}badge-warning{% endif %}">{{ student.status }}</span>
+                    </td>
+                    <td class="students-action-cell">
+                        <a class="btn btn-small btn-primary" href="{{ base_path }}?{{ student_data.view_query }}">View</a>
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="11" class="empty-state">No students found.</td></tr>
+                <tr><td colspan="9" class="empty-state">No students found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

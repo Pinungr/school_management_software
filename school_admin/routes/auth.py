@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 import secrets
 from urllib.parse import quote
 
@@ -27,6 +28,7 @@ from school_admin.utils import (
     safe_next_path,
     start_authenticated_session,
     setup_redirect,
+    is_terms_accepted,
 )
 
 
@@ -43,7 +45,7 @@ async def login_page(
 ):
     with SessionLocal() as session:
         if not is_setup_complete(session):
-            return setup_redirect()
+            return setup_redirect(session)
         current_user = get_current_user(session, request)
         if current_user:
             return redirect(home_path_for_user(current_user))
@@ -83,9 +85,34 @@ async def login_submit(request: Request):
     return redirect(home_path_for_user(user) if user.role == "SuperAdmin" else next_path)
 
 
+@router.get("/setup/terms", response_class=HTMLResponse)
+async def setup_terms_page(request: Request, error: str = ""):
+    with SessionLocal() as session:
+        if is_terms_accepted(session):
+            return setup_redirect(session)
+        return render_public(request, "setup_terms.html", error_code=error)
+
+
+@router.post("/setup/terms")
+async def setup_terms_submit(request: Request):
+    form, response = await form_with_csrf(request, "/setup/terms")
+    if response:
+        return response
+    if not form.get("accept_terms"):
+        return redirect("/setup/terms?error=accept_required")
+    with SessionLocal() as session:
+        settings = get_settings(session)
+        settings.terms_accepted = True
+        settings.terms_accepted_at = date.today()
+        session.commit()
+    return redirect("/setup")
+
+
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request, error: str = ""):
     with SessionLocal() as session:
+        if not is_terms_accepted(session):
+            return setup_redirect(session)
         if is_setup_complete(session):
             current_user = get_current_user(session, request)
             return redirect(home_path_for_user(current_user) if current_user else "/login")
@@ -108,6 +135,8 @@ async def setup_submit(request: Request):
     if response:
         return response
     with SessionLocal() as session:
+        if not is_terms_accepted(session):
+            return setup_redirect(session)
         if is_setup_complete(session):
             current_user = get_current_user(session, request)
             return redirect(home_path_for_user(current_user) if current_user else "/login")

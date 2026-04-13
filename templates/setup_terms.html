@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms & Conditions | Pinaki</title>
+    <link rel="icon" href="/static/app_icon.png" type="image/png">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .terms-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            margin: 24px 0;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+
+        .terms-container h3 {
+            margin-top: 24px;
+            font-size: 1.1rem;
+        }
+
+        .terms-container h3:first-child {
+            margin-top: 0;
+        }
+    </style>
+</head>
+
+<body class="auth-body">
+    <div class="chrome-bg chrome-bg-a"></div>
+    <div class="chrome-bg chrome-bg-b"></div>
+    <main class="auth-shell">
+        <section class="auth-hero">
+            <span class="meta-pill success">Step 1 of 2</span>
+            <h1>Review our Terms and Conditions</h1>
+            <p>
+                Before you begin using Pinaki School Management, please review and accept our standard software
+                license agreement and privacy policy. This ensures a transparent relationship between you and the
+                platform.
+            </p>
+            <div class="auth-feature-list">
+                <div class="auth-feature-item">
+                    <strong>Data Privacy</strong>
+                    <span>Your data stays on your local machine or your private server. We do not upload your sensitive
+                        student records to central servers.</span>
+                </div>
+                <div class="auth-feature-item">
+                    <strong>Compliance</strong>
+                    <span>By using this software, you agree to comply with local education board regulations regarding
+                        digital record keeping.</span>
+                </div>
+            </div>
+            <div class="auth-demo">
+                <strong>Why this is important</strong>
+                <div>Ensures legal safety for the institution</div>
+                <div>Clarifies data ownership and storage</div>
+                <div>Sets expectations for software updates and support</div>
+            </div>
+        </section>
+        <section class="auth-card">
+            <div class="brand brand-card auth-brand">
+                <div class="brand-mark">P</div>
+                <div>
+                    <h1>Pinaki</h1>
+                    <p>School Management</p>
+                </div>
+            </div>
+            <h2>Terms of Service</h2>
+            <p class="auth-copy">Please scroll through and read the agreement below to continue setup.</p>
+            {% if error_code == "accept_required" %}
+            <div class="alert-error">Please accept the terms and conditions to continue.</div>
+            {% endif %}
+
+            <div class="terms-container">
+                <h3>1. Acceptance of Terms</h3>
+                <p>Welcome to Pinaki. By accessing and using this software, you agree to be bound by the following terms
+                    and conditions. If you do not agree, you must not use the software.</p>
+
+                <h3>2. License Grant</h3>
+                <p>Pinaki grants you a limited, non-exclusive, non-transferable license to use the software for its
+                    intended school management purposes. Reverse engineering or unauthorized distribution is strictly
+                    prohibited.</p>
+
+                <h3>3. Data Responsibility</h3>
+                <p>This software is a self-hosted platform. All data entered into the system remains on your hardware.
+                    You are solely responsible for data backups, security, and integrity.</p>
+
+                <h3>4. Privacy Policy</h3>
+                <p>We value your privacy. The software collects no telemetry or personal data about you or your students
+                    unless explicitly shared by you for support purposes.</p>
+
+                <h3>5. Limitation of Liability</h3>
+                <p>The software is provided "as is" without any warranties. We are not liable for any data loss,
+                    financial loss, or operational interruptions resulting from the use of this software.</p>
+
+                <h3>6. Modifications</h3>
+                <p>We reserve the right to update these terms at any time. Continued use of the software after updates
+                    constitutes acceptance of the new terms.</p>
+            </div>
+
+            <form method="post" action="/setup/terms" class="auth-form">
+                {% include "partials/csrf_input.html" %}
+                <label class="wide" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                    <input type="checkbox" name="accept_terms" required style="width: 20px; height: 20px;">
+                    <span style="font-size: 0.95rem; font-weight: 700;">I have read and agree to the Terms and
+                        Conditions</span>
+                </label>
+                <button class="btn btn-primary auth-submit" type="submit">Accept and Continue</button>
+            </form>
+        </section>
+    </main>
+</body>
+
+</html>

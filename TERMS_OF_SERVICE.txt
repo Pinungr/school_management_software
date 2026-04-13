@@ -1,0 +1,23 @@
+PINAKI SCHOOL MANAGEMENT SYSTEM - TERMS AND CONDITIONS
+
+1. ACCEPTANCE OF TERMS
+By installing and using the Pinaki School Management software, you agree to be bound by these terms. If you do not agree, do not install or use the software.
+
+2. LICENSE GRANT
+Pinaki grants you a limited, non-exclusive license to use the software for institutional management purposes. You may not distribute, modify, or reverse engineer the core binaries.
+
+3. DATA OWNERSHIP AND PRIVACY
+Pinaki is a self-hosted application. All data entered into the system is stored locally on your machine or private server. No sensitive student data is transmitted to Pinaki's central servers unless explicitly requested for technical support. You are responsible for maintaining backups and securing your local data.
+
+4. LIMITATION OF LIABILITY
+The software is provided "as is". Pinaki and its developers are not liable for any data loss, financial loss, or operational downtime resulting from the software's use or misuse.
+
+5. COMPLIANCE
+You are responsible for ensuring your use of the software complies with all applicable local, state, and national regulations regarding student data and educational record keeping.
+
+6. UPDATES
+We may provide software updates which may include bug fixes or new features. Installation of updates may require re-acceptance of terms.
+
+---
+Signature of Approval:
+The administrator accepts these terms by proceeding with the installation.

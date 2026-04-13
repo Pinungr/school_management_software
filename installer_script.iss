@@ -16,6 +16,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=installer_output
 OutputBaseFilename=Pinaki-Setup
+LicenseFile=TERMS_OF_SERVICE.txt
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

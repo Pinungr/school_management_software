@@ -128,6 +128,19 @@ def migration_settings_add_setup_completed(session: Session) -> None:
     )
 
 
+def migration_settings_add_terms_accepted(session: Session) -> None:
+    columns = column_names(session, "settings")
+    if not columns:
+        return
+    if "terms_accepted" not in columns:
+        session.execute(text("ALTER TABLE settings ADD COLUMN terms_accepted INTEGER DEFAULT 0"))
+    if "terms_accepted_at" not in columns:
+        session.execute(text("ALTER TABLE settings ADD COLUMN terms_accepted_at TEXT"))
+    session.execute(
+        text("UPDATE settings SET terms_accepted = COALESCE(terms_accepted, 0)")
+    )
+
+
 def migration_payments_add_service_name(session: Session) -> None:
     columns = column_names(session, "payments")
     if not columns:
@@ -709,6 +722,7 @@ MIGRATIONS: list[MigrationStep] = [
     ("20260407_payments_add_receipt_snapshot_columns", migration_payments_add_receipt_snapshot_columns),
     ("20260407_payments_backfill_receipt_snapshots", migration_payments_backfill_receipt_snapshots),
     ("20260407_create_large_dataset_indexes", migration_create_large_dataset_indexes),
+    ("20260413_settings_add_terms_accepted", migration_settings_add_terms_accepted),
 ]
 
 

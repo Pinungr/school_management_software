@@ -809,6 +809,38 @@ tbody td a {
     font-weight: 700;
 }
 
+.students-summary-table tbody td {
+    padding: 12px 14px;
+    vertical-align: middle;
+}
+
+.students-summary-table tbody tr {
+    transition: background 0.18s ease;
+}
+
+.student-course-cell,
+.student-contact-cell {
+    display: grid;
+    gap: 2px;
+    line-height: 1.35;
+}
+
+.student-course-cell strong,
+.student-contact-cell span {
+    font-size: 0.92rem;
+}
+
+.student-course-cell small,
+.student-contact-cell small {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.students-action-cell {
+    min-width: 100px;
+    text-align: left;
+}
+
 .actions {
     min-width: 230px;
 }
@@ -1160,6 +1192,177 @@ tbody td a {
     font-size: 0.9rem;
 }
 
+.student-detail-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(24, 36, 51, 0.26);
+    z-index: 38;
+}
+
+.student-detail-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(560px, 100vw);
+    height: 100vh;
+    z-index: 39;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(249, 243, 234, 0.98));
+    border-left: 1px solid rgba(214, 201, 182, 0.96);
+    box-shadow: -22px 0 44px rgba(31, 45, 61, 0.18);
+}
+
+.student-detail-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid rgba(214, 201, 182, 0.86);
+}
+
+.student-detail-kicker {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--primary-deep);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.student-detail-header h3 {
+    margin: 0;
+    font-size: 1.42rem;
+}
+
+.student-detail-subtitle {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.student-detail-body {
+    overflow-y: auto;
+    padding: 20px 24px 26px;
+}
+
+.student-detail-section {
+    padding: 0 0 18px;
+    margin: 0 0 18px;
+    border-bottom: 1px solid rgba(214, 201, 182, 0.72);
+}
+
+.student-detail-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.student-detail-section h4 {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.student-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 14px;
+}
+
+.student-detail-grid span,
+.student-payment-summary-grid span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.student-detail-grid strong {
+    display: block;
+    line-height: 1.4;
+}
+
+.student-detail-grid strong small {
+    display: block;
+    font-size: 0.82rem;
+}
+
+.service-fee-list {
+    display: grid;
+    gap: 10px;
+}
+
+.service-fee-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(223, 211, 194, 0.72);
+}
+
+.service-fee-item:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.service-fee-item strong {
+    font-size: 0.95rem;
+}
+
+.service-fee-item p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.service-fee-amounts {
+    text-align: right;
+}
+
+.service-fee-amounts strong {
+    display: block;
+    font-size: 0.9rem;
+}
+
+.service-fee-amounts small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.student-payment-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.student-payment-summary-grid strong {
+    font-size: 1.02rem;
+}
+
+.student-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.student-detail-actions form {
+    margin: 0;
+}
+
+.is-disabled {
+    pointer-events: none;
+    opacity: 0.56;
+}
+
 @media (max-width: 1320px) {
     .app-shell {
         grid-template-columns: 252px minmax(0, 1fr);
@@ -1181,6 +1384,10 @@ tbody td a {
     }
 
     .section-intro-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .student-payment-summary-grid {
         grid-template-columns: 1fr;
     }
 }
@@ -1232,5 +1439,13 @@ tbody td a {
 
     .actions {
         min-width: 0;
+    }
+
+    .student-detail-drawer {
+        width: 100vw;
+    }
+
+    .student-detail-grid {
+        grid-template-columns: 1fr;
     }
 }

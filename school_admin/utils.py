@@ -211,6 +211,11 @@ def is_setup_complete(session: Session) -> bool:
     return bool(settings and settings.setup_completed)
 
 
+def is_terms_accepted(session: Session) -> bool:
+    settings = get_settings(session)
+    return bool(settings and settings.terms_accepted)
+
+
 def get_csrf_token(request: Request) -> str:
     token = str(request.session.get(CSRF_SESSION_KEY, "")).strip()
     if token:
@@ -240,19 +245,21 @@ async def form_with_csrf(
     return form, None
 
 
-def setup_redirect() -> RedirectResponse:
+def setup_redirect(session: Session | None = None) -> RedirectResponse:
+    if session and not is_terms_accepted(session):
+        return redirect("/setup/terms")
     return redirect("/setup")
 
 
 def login_redirect(session: Session, request: Request) -> RedirectResponse:
     if not is_setup_complete(session):
-        return setup_redirect()
+        return setup_redirect(session)
     return redirect(f"/login?next={quote(request.url.path, safe='')}")
 
 
 def require_user(session: Session, request: Request) -> tuple[User | None, RedirectResponse | None]:
     if not is_setup_complete(session):
-        return None, setup_redirect()
+        return None, setup_redirect(session)
     current_user = get_current_user(session, request)
     if not current_user:
         return None, login_redirect(session, request)

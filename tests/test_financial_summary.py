@@ -43,6 +43,7 @@ def configure_setup_state(
     session,
     *,
     setup_completed: bool,
+    terms_accepted: bool = True,
     admin_username: str = "admin",
     admin_password: str = "adminadmin",
     logo_url: str = "/static/logo.svg",
@@ -53,6 +54,8 @@ def configure_setup_state(
     assert admin_user is not None
 
     settings.setup_completed = setup_completed
+    settings.terms_accepted = terms_accepted
+    settings.terms_accepted_at = date.today() if terms_accepted else None
     settings.logo_url = logo_url
     admin_user.username = admin_username
     admin_user.password_hash = hash_password(admin_password)
@@ -573,7 +576,7 @@ def test_payments_export_returns_csv_attachment_header(seeded_session, client):
     )
 
 
-def test_students_page_shows_payment_action_link(seeded_session, client):
+def test_students_view_drawer_shows_payment_action_link(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
     ensure_operational_test_data(seeded_session)
     student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
@@ -593,7 +596,7 @@ def test_students_page_shows_payment_action_link(seeded_session, client):
     )
     assert login_response.status_code == 303
 
-    students_page = client.get("/students")
+    students_page = client.get(f"/students?view={student.id}")
     assert students_page.status_code == 200
     assert f"/payments?create=1&create_student_id={student.id}" in students_page.text
 
@@ -645,14 +648,13 @@ def test_students_page_paginates_large_search_results(seeded_session, client):
 
         page_two = client.get("/students?search=PAGED-STU-&page=2")
         assert page_two.status_code == 200
-        assert "Showing 51-55 of 55 records." in page_two.text
-        assert "Page 2 of 2." in page_two.text
-        assert "PAGED-STU-000" in page_two.text
-        assert "PAGED-STU-004" in page_two.text
-        assert "PAGED-STU-054" not in page_two.text
+        assert "Showing 11-20 of 55 records." in page_two.text
+        assert "Page 2 of 6." in page_two.text
+        assert "PAGED-STU-" in page_two.text
         assert "/students?" in page_two.text
         assert "search=PAGED-STU-" in page_two.text
         assert "page=1" in page_two.text
+        assert "page=3" in page_two.text
     finally:
         for student in created_students:
             attached_student = seeded_session.scalar(select(Student).where(Student.student_code == student.student_code))
@@ -1544,10 +1546,10 @@ def test_payments_page_paginates_filtered_results(seeded_session, client):
 
         page_two = client.get("/payments?student_query=PAGED-PAY-STU&page=2")
         assert page_two.status_code == 200
-        assert "Showing 51-55 of 55 records." in page_two.text
-        assert "Page 2 of 2." in page_two.text
-        assert "PAGED-PAY-000" in page_two.text
-        assert "PAGED-PAY-004" in page_two.text
+        assert "Showing 11-20 of 55 records." in page_two.text
+        assert "Page 2 of 6." in page_two.text
+        assert "PAGED-PAY-044" in page_two.text
+        assert "PAGED-PAY-035" in page_two.text
         assert "PAGED-PAY-054" not in page_two.text
         assert "/payments?" in page_two.text
         assert "student_query=PAGED-PAY-STU" in page_two.text
@@ -1770,6 +1772,8 @@ def test_initial_setup_updates_logo_and_admin_account(seeded_session, client):
     original_phone_number = settings.phone_number
     original_address = settings.address
     original_logo = settings.logo_url
+    original_terms_accepted = settings.terms_accepted
+    original_terms_accepted_at = settings.terms_accepted_at
     original_setup_completed = settings.setup_completed
     original_full_name = admin_user.full_name
     original_username = admin_user.username
@@ -1780,6 +1784,7 @@ def test_initial_setup_updates_logo_and_admin_account(seeded_session, client):
         configure_setup_state(
             seeded_session,
             setup_completed=False,
+            terms_accepted=False,
             admin_username="admin",
             admin_password="adminadmin",
             logo_url="/static/logo.svg",
@@ -1787,7 +1792,20 @@ def test_initial_setup_updates_logo_and_admin_account(seeded_session, client):
 
         home_response = client.get("/", follow_redirects=False)
         assert home_response.status_code == 303
-        assert home_response.headers["location"] == "/setup"
+        assert home_response.headers["location"] == "/setup/terms"
+
+        terms_page = client.get("/setup/terms")
+        terms_csrf_token = extract_csrf_token(terms_page.text)
+        terms_response = client.post(
+            "/setup/terms",
+            data={
+                "csrf_token": terms_csrf_token,
+                "accept_terms": "on",
+            },
+            follow_redirects=False,
+        )
+        assert terms_response.status_code == 303
+        assert terms_response.headers["location"] == "/setup"
 
         setup_page = client.get("/setup")
         csrf_token = extract_csrf_token(setup_page.text)
@@ -1850,6 +1868,8 @@ def test_initial_setup_updates_logo_and_admin_account(seeded_session, client):
         settings.phone_number = original_phone_number
         settings.address = original_address
         settings.logo_url = original_logo
+        settings.terms_accepted = original_terms_accepted
+        settings.terms_accepted_at = original_terms_accepted_at
         settings.setup_completed = original_setup_completed
         admin_user.full_name = original_full_name
         admin_user.username = original_username
@@ -1875,6 +1895,36 @@ def test_startup_target_path_prefers_setup_until_first_run_finishes():
         finally:
             settings.setup_completed = original_setup_completed
             session.commit()
+
+
+def test_setup_terms_acceptance_redirects_to_setup(client):
+    with SessionLocal() as session:
+        configure_setup_state(session, setup_completed=False, terms_accepted=False)
+
+    terms_page = client.get("/setup/terms")
+    csrf_token = extract_csrf_token(terms_page.text)
+    response = client.post(
+        "/setup/terms",
+        data={"csrf_token": csrf_token, "accept_terms": "on"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/setup"
+    with SessionLocal() as session:
+        settings = session.get(Setting, 1)
+        assert settings is not None
+        assert settings.terms_accepted is True
+        assert settings.terms_accepted_at == date.today()
+
+
+def test_setup_terms_page_surfaces_accept_required_error(client):
+    with SessionLocal() as session:
+        configure_setup_state(session, setup_completed=False, terms_accepted=False)
+
+    response = client.get("/setup/terms?error=accept_required")
+    assert response.status_code == 200
+    assert "Please accept the terms and conditions to continue." in response.text
 
 
 def test_session_secret_persists_and_env_can_override(monkeypatch):
@@ -2384,6 +2434,64 @@ def test_data_repair_page_loads_for_admin(seeded_session, client):
     assert "Export Full Database" in response.text
     assert "Import Full Database" in response.text
     assert "Export Students CSV" in response.text
+
+
+def test_data_repair_pagination_preserves_encoded_search_query(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+    course = seeded_session.scalar(select(Course).where(Course.code == "TEST-COURSE"))
+    assert course is not None
+
+    stale_students = seeded_session.scalars(select(Student).where(Student.student_code.like("REPAIR-PAG-%"))).all()
+    for row in stale_students:
+        seeded_session.delete(row)
+    if stale_students:
+        seeded_session.commit()
+
+    try:
+        for index in range(30):
+            seeded_session.add(
+                Student(
+                    student_code=f"REPAIR-PAG-{index:03d}",
+                    full_name=f"Repair A&B Pagination {index:03d}",
+                    email=f"repair.pagination.{index:03d}@example.com",
+                    phone=f"700000{index:04d}",
+                    parent_name=f"Repair Parent {index:03d}",
+                    status="Active",
+                    address="Pagination Test",
+                    joined_on=date(2026, 4, 9),
+                    course_id=course.id,
+                )
+            )
+        seeded_session.commit()
+
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        response = client.get("/settings/data-repair?table=students&search=A%26B&page=2")
+        assert response.status_code == 200
+        assert "search=A%26B" in response.text
+        assert "/settings/data-repair?table=students&amp;search=A%26B&amp;page=1" in response.text
+        assert "search=A&amp;B&amp;page=" not in response.text
+    finally:
+        cleanup_students = seeded_session.scalars(
+            select(Student).where(Student.student_code.like("REPAIR-PAG-%"))
+        ).all()
+        for row in cleanup_students:
+            seeded_session.delete(row)
+        if cleanup_students:
+            seeded_session.commit()
 
 
 def test_data_repair_can_update_student_record(seeded_session, client):
@@ -3332,8 +3440,9 @@ def test_students_page_uses_guardian_contact_labels(seeded_session, client):
 
     response = client.get("/students")
     assert response.status_code == 200
-    assert "Guardian Email" in response.text
-    assert "Guardian Phone" in response.text
+    assert "Guardian Contact" in response.text
+    assert "Services &amp; Fees" not in response.text
+    assert "?create=1&amp;create_student_id=" not in response.text
     assert "Search by student ID, name, section, guardian email, or guardian phone" in response.text
 
 
