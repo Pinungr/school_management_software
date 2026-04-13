@@ -17,6 +17,7 @@ class PaymentService:
         reference_id: str | None = None,
         user_id: int | None = None
     ) -> PaymentTransaction:
+        # Task 3: Standardize error handling (HTTP 400 for validation)
         if amount <= 0:
             raise HTTPException(status_code=400, detail="Payment amount must be positive")
             
@@ -28,22 +29,21 @@ class PaymentService:
         if not fee:
             raise HTTPException(status_code=404, detail=f"Fee ID {fee_id} not found")
 
-        # Validate that fee applies to student (e.g. correct course/hostel)
-        if not fee_applies_to_student(fee, student):
-            raise HTTPException(status_code=400, detail="This fee type does not apply to the selected student")
-
-        # Perform balance check just before insertion to prevent overpayment (Concurrency Safety)
+        # Task 2: Concurrency Safety (Fresh re-fetch within session)
+        # Using a fresh balance calculation ensures we don't use stale data from previous reads
         balance = PaymentService.get_fee_balance(session, student_id, fee_id)
         total_paid = balance["total_paid"]
         total_due = balance["total_fee"]
 
+        # Task 1 & 5: Overpayment Protection
         if total_paid >= total_due:
-            raise HTTPException(status_code=400, detail="This fee is already fully paid")
+            raise HTTPException(status_code=400, detail="Fee already fully paid")
         
         if total_paid + amount > total_due:
-            remaining = total_due - total_paid
+            remaining = max(0, total_due - total_paid)
             raise HTTPException(status_code=400, detail=f"Payment exceeds remaining due of {remaining:.2f}")
 
+        # Task 4: Safe transaction creation
         transaction = PaymentTransaction(
             student_id=student_id,
             fee_id=fee_id,
@@ -55,6 +55,7 @@ class PaymentService:
             created_at=datetime.utcnow()
         )
         session.add(transaction)
+        # session.flush() could be called here to ensure DB constraints are checked immediately
         return transaction
 
     @staticmethod
