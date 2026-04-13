@@ -27,7 +27,7 @@
     <div class="detail-grid">
         <div><span>Category</span><strong>{{ view_fee.category }}</strong></div>
         <div><span>Amount</span><strong>{{ view_fee.amount|money }}</strong></div>
-        <div><span>Frequency</span><strong>{{ view_fee.frequency }}</strong></div>
+        <div><span>Frequency</span><strong>{{ view_fee.frequency or "One Time" }}</strong></div>
         <div><span>Target Group</span><strong>{{ view_fee.target_type }}</strong></div>
         <div><span>Linked To</span><strong>{{ view_fee_target }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_fee.status }}</strong></div>
@@ -74,7 +74,7 @@
             <span>Frequency</span>
             <select name="frequency" id="fee_frequency">
                 {% for option in fee_frequencies %}
-                <option value="{{ option }}" {% if form_fee and form_fee.frequency == option %}selected{% elif not form_fee and option == "One Time" %}selected{% endif %}>{{ option }}</option>
+                <option value="{{ option }}" {% if form_fee and (form_fee.frequency == option or (form_fee.is_one_time and option == "One Time")) %}selected{% elif not form_fee and option == "One Time" %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
             </select>
         </label>
@@ -141,7 +141,7 @@
                     <td>{{ fee.name }}</td>
                     <td>{{ fee.category }}</td>
                     <td>{{ fee.amount|money }}</td>
-                    <td>{{ fee.frequency }}</td>
+                    <td>{{ fee.frequency or "One Time" }}</td>
                     <td>{{ fee.target_type }}{% if fee.target_type != "General" %}<br><small class="text-muted">{{ fee_targets.get(fee.id) }}</small>{% endif %}</td>
                     <td><span class="badge">{{ fee.status }}</span></td>
                     <td class="actions">

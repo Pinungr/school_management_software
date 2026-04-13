@@ -8,25 +8,44 @@ from typing import Any
 PERMISSIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         "ADMIN": (
+            "student.view",
             "student.create",
             "student.update",
             "student.delete",
             "student.update.course",
-            "settings.update",
+            "catalog.view",
+            "catalog.manage",
+            "payment.view",
+            "payment.manage",
+            "settings.view",
+            "settings.manage",
+            "user.view",
+            "user.manage",
+            "system.manage",
         ),
         "CLERK": (
-            "student.create",
+            "student.view",
             "student.update",
             "student.delete",
             "student.update.course",
+            "catalog.view",
+            "payment.view",
         ),
-        # SuperAdmin is constrained by route-level path guards; keep broad permission coverage.
         "SUPERADMIN": (
+            "student.view",
             "student.create",
             "student.update",
             "student.delete",
             "student.update.course",
-            "settings.update",
+            "catalog.view",
+            "catalog.manage",
+            "payment.view",
+            "payment.manage",
+            "settings.view",
+            "settings.manage",
+            "user.view",
+            "user.manage",
+            "system.manage",
         ),
     }
 )

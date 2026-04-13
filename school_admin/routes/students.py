@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from school_admin.database import SessionLocal
-from school_admin.models import Course, Fee, Hostel, Payment, Section, Setting, Student, TransportRoute
+from school_admin.models import Course, Fee, FeeType, Hostel, Payment, Section, Setting, Student, TransportRoute
 from school_admin.permissions import has_permission
 from school_admin.utils import (
     active_lookups,
@@ -28,6 +28,7 @@ from school_admin.utils import (
     optional_int,
     redirect,
     render_page,
+    require_permission,
     require_user,
     student_payment_summary,
 )
@@ -170,11 +171,17 @@ def normalize_reminder_due_data(
 ) -> dict[str, float | list[dict[str, object]]]:
     if "breakdown" in due_data:
         total_due = float(due_data.get("total_due", 0.0) or 0.0)
+        breakdown = list(due_data.get("breakdown", []))
+        
+        # For simplified breakdown, we sum admission and recurring separately for the summary lines
+        current_cycle_amount = sum(float(item["amount"]) for item in breakdown if item["type"] != "ADMISSION")
+        previous_balance = sum(float(item["amount"]) for item in breakdown if item["type"] == "ADMISSION")
+
         return {
             "total_due": total_due,
-            "breakdown": list(due_data.get("breakdown", [])),
-            "current_cycle_amount": 0.0,
-            "previous_pending_amount": 0.0,
+            "breakdown": breakdown,
+            "current_cycle_amount": current_cycle_amount,
+            "previous_pending_amount": previous_balance, # Reuse this slot for Admission/One-time balance
         }
 
     converted_breakdown: list[dict[str, object]] = []
@@ -208,7 +215,7 @@ def normalize_reminder_due_data(
 def reminder_breakdown_lines(due_data: dict[str, float | list[dict[str, object]]]) -> list[str]:
     lines: list[str] = []
     for item in due_data["breakdown"]:
-        lines.append(f"{item['type']} - {item['name']}: {float(item['amount']):.2f}")
+        lines.append(f"{item['type']}: {float(item['amount']):.2f}")
     return lines
 
 
@@ -238,16 +245,6 @@ def reminder_message(settings: Setting, student: Student, due_data: dict[str, ob
         "",
         *reminder_breakdown_lines(normalized_due_data),
         "",
-        (
-            f"This Month's Charges: {float(normalized_due_data['current_cycle_amount']):.2f}"
-            if float(normalized_due_data["current_cycle_amount"]) > 0
-            else ""
-        ),
-        (
-            f"Earlier Pending Balance: {float(normalized_due_data['previous_pending_amount']):.2f}"
-            if float(normalized_due_data["previous_pending_amount"]) > 0
-            else ""
-        ),
         f"Total Due: {currency} {float(normalized_due_data['total_due']):.2f}",
         "",
         "Please arrange payment at the earliest.",
@@ -272,7 +269,7 @@ def open_external_target(url: str) -> None:
 
 
 def first_applicable_admission_fee(session, student: Student) -> Fee | None:
-    admission_fees = applicable_fees_for_student(session, student, category="Admission")
+    admission_fees = applicable_fees_for_student(session, student, fee_type=FeeType.ADMISSION)
     admission_fees.sort(
         key=lambda fee: (
             0 if str(fee.target_type or "").strip() == "Course" and fee.target_id is not None else 1,
@@ -354,7 +351,7 @@ def render_student_workspace(
     if create and not allow_manual_create and not error:
         error = "students_read_only"
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "student.view")
         if response:
             return response
         permissions = {
@@ -554,15 +551,13 @@ async def admissions_page(
 @router.post("/students/create")
 async def create_student(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "student.create")
         if response:
             return response
         form, response = await form_with_csrf(request, "/students")
         if response:
             return response
         return_path = sanitized_return_path(form.get("return_path"), "/students")
-        if not has_permission(current_user, "student.create"):
-            return redirect(f"{return_path}?error=permission_denied")
         if return_path != "/admissions":
             return redirect("/students?error=students_read_only")
         promotion_source_student_id = optional_int(str(form.get("promotion_source_student_id", "")))
@@ -716,15 +711,13 @@ async def create_student(request: Request):
 @router.post("/students/{student_id}/edit")
 async def edit_student(student_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "student.update")
         if response:
             return response
         form, response = await form_with_csrf(request, "/students")
         if response:
             return response
         return_path = sanitized_return_path(form.get("return_path"), "/students")
-        if not has_permission(current_user, "student.update"):
-            return redirect(f"{return_path}?error=permission_denied")
         student = session.get(Student, student_id)
         if not student:
             return redirect(return_path)
@@ -808,15 +801,13 @@ async def edit_student(student_id: int, request: Request):
 @router.post("/students/{student_id}/delete")
 async def delete_student(student_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "student.delete")
         if response:
             return response
         form, response = await form_with_csrf(request, "/students")
         if response:
             return response
         return_path = sanitized_return_path(form.get("return_path"), "/students")
-        if not has_permission(current_user, "student.delete"):
-            return redirect(f"{return_path}?error=permission_denied")
         student = session.scalar(
             select(Student)
             .options(joinedload(Student.payments))

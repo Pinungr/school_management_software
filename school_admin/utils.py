@@ -18,7 +18,19 @@ from sqlalchemy.orm import Session, joinedload
 from .branding import DEVELOPER_EMAIL, DEVELOPER_NAME, DEVELOPER_PHONE
 from .database import Base, DATABASE_PATH, SessionLocal, TEMPLATES_DIR, engine
 from .migrations import run_migrations
-from .models import Course, Fee, Hostel, Payment, Section, Setting, Student, TransportRoute, User
+from .models import (
+    Course,
+    Fee,
+    FeeType,
+    Hostel,
+    Payment,
+    Section,
+    Setting,
+    Student,
+    TransportRoute,
+    User,
+    normalize_fee_type,
+)
 from .permissions import has_permission
 from .seed import seed_database
 
@@ -290,6 +302,17 @@ def require_superadmin(session: Session, request: Request) -> tuple[User | None,
     return current_user, None
 
 
+def require_permission(
+    session: Session, request: Request, permission: str
+) -> tuple[User | None, RedirectResponse | None]:
+    current_user, response = require_user(session, request)
+    if response:
+        return None, response
+    if not has_permission(current_user, permission):
+        return None, redirect(home_path_for_user(current_user))
+    return current_user, None
+
+
 def render_public(request: Request, template_name: str, **context) -> HTMLResponse:
     return templates.TemplateResponse(
         name=template_name,
@@ -373,9 +396,22 @@ def current_month_amount(
 
 
 def is_one_time_fee(fee: Fee) -> bool:
+    if bool(fee.is_one_time):
+        return True
+    if normalize_fee_type(fee.type, category=fee.category) == FeeType.ADMISSION:
+        return True
     if str(fee.frequency or "").strip() == "One Time":
         return True
-    return normalize_fee_category(fee.category) == "Admission"
+    return False
+
+
+def payment_type_for_fee(fee: Fee) -> str:
+    fee_type = normalize_fee_type(fee.type, category=fee.category)
+    if fee_type == FeeType.ADMISSION:
+        return "admission"
+    if fee_type == FeeType.TRANSPORT:
+        return "transport"
+    return normalize_payment_type(fee.category)
 
 
 def is_due_this_cycle(start_date: date, frequency: str, as_of: date | None = None) -> bool:
@@ -485,11 +521,14 @@ def applicable_fees_for_student(
     student: Student,
     *,
     category: str = "",
+    fee_type: FeeType | None = None,
     include_inactive: bool = False,
 ) -> list[Fee]:
     statement = select(Fee).order_by(Fee.category, Fee.name, Fee.id)
     if not include_inactive:
         statement = statement.where(Fee.status == "Active")
+    if fee_type is not None:
+        statement = statement.where(Fee.type == fee_type)
     if category.strip():
         statement = statement.where(Fee.category == category.strip().title())
     fees = session.scalars(statement).all()
@@ -632,46 +671,46 @@ def calculate_student_due_breakdown(
     fees = applicable_fees_for_student(session, student)
     paid_by_fee = paid_payment_totals_by_fee(session, student.id)
 
-    due_items: list[dict[str, object]] = []
+    # Aggregate amounts by normalized upper-case type
+    breakdown_map: dict[str, float] = {}
+
     for fee in fees:
-        normalized_category = normalize_fee_category(fee.category)
-        fee_payment_type = "admission" if normalized_category == "Admission" else normalize_payment_type(
-            normalized_category
-        )
+        normalized_category = normalize_fee_category(fee.category).upper()
+        fee_payment_type = payment_type_for_fee(fee)
         paid_for_fee = float(paid_by_fee.get((fee.id, fee_payment_type), 0.0))
         is_one_time = is_one_time_fee(fee)
         due_amount = 0.0
 
         if is_one_time:
+            # For one-time fees (like Admission), include once until paid
             due_amount = max(float(fee.amount or 0.0) - paid_for_fee, 0.0)
         else:
+            # For recurring fees, only include if due this month/cycle
             if not is_due_this_cycle(student.joined_on, fee.frequency, as_of):
                 continue
+            
+            # Use monthly portion for reminders even for Yearly/Quarterly to avoid inflation
+            monthly_portion = monthly_equivalent_amount(fee.amount, fee.frequency)
+            
             cycle_number = cycle_index_for_frequency(student.joined_on, fee.frequency, as_of)
             expected_total_by_cycle = cycle_number * float(fee.amount or 0.0)
-            current_cycle_due = max(expected_total_by_cycle - paid_for_fee, 0.0)
-            # Reminder should focus on this cycle amount, not roll up all historical backlog.
-            due_amount = min(current_cycle_due, float(fee.amount or 0.0))
+            cycle_backlog = max(expected_total_by_cycle - paid_for_fee, 0.0)
+            
+            # Include only the unpaid portion for this cycle, capped at monthly equivalent
+            due_amount = min(cycle_backlog, monthly_portion)
 
-        if due_amount <= 0:
-            continue
+        if due_amount > 0:
+            breakdown_map[normalized_category] = breakdown_map.get(normalized_category, 0.0) + due_amount
 
-        due_items.append(
-            {
-                "fee_id": fee.id,
-                "name": fee.name,
-                "type": normalized_category,
-                "frequency": fee.frequency,
-                "is_one_time": is_one_time,
-                "amount": due_amount,
-                "target_name": fee_target_display_name_for_student(fee, student),
-            }
-        )
-
-    total_due = sum(float(item["amount"]) for item in due_items)
+    # Convert map to the requested structured breakdown
+    breakdown = [
+        {"type": fee_type, "amount": float(amount)}
+        for fee_type, amount in sorted(breakdown_map.items())
+    ]
+    
     return {
-        "total_due": total_due,
-        "breakdown": due_items,
+        "total_due": sum(item["amount"] for item in breakdown),
+        "breakdown": breakdown,
     }
 
 
@@ -931,7 +970,7 @@ def active_lookups(session: Session, *, include_students: bool = False) -> dict[
 def payment_service_maps(session: Session) -> dict[str, dict[int, str]]:
     service_maps: dict[str, dict[int, str]] = {}
     for fee in session.scalars(select(Fee).order_by(Fee.category, Fee.name)).all():
-        service_maps.setdefault(fee.category.lower(), {})[fee.id] = fee.name
+        service_maps.setdefault(payment_type_for_fee(fee), {})[fee.id] = fee.name
     service_maps["__legacy_course__"] = {
         course.id: course.name for course in session.scalars(select(Course).order_by(Course.name)).all()
     }
@@ -983,7 +1022,7 @@ def validate_service_for_type(
         return False
     fee = session.get(Fee, service_id)
     if fee is not None:
-        if normalize_payment_type(fee.category) != normalize_payment_type(service_type):
+        if payment_type_for_fee(fee) != normalize_payment_type(service_type):
             return False
         if student is not None and not fee_applies_to_student(fee, student):
             return False

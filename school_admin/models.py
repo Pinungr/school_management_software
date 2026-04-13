@@ -1,11 +1,64 @@
 from __future__ import annotations
 
 from datetime import date
+from enum import Enum
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Index, Integer, String, Text, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
+
+
+class FeeType(str, Enum):
+    ADMISSION = "ADMISSION"
+    TUITION = "TUITION"
+    TRANSPORT = "TRANSPORT"
+
+
+class FeeFrequency(str, Enum):
+    MONTHLY = "Monthly"
+    YEARLY = "Yearly"
+
+
+def fee_type_for_category(category: str | None) -> FeeType:
+    normalized_category = str(category or "").strip().title()
+    if normalized_category == "Admission":
+        return FeeType.ADMISSION
+    if normalized_category == "Transport":
+        return FeeType.TRANSPORT
+    return FeeType.TUITION
+
+
+def normalize_fee_type(value: object | None, *, category: str | None = None) -> FeeType:
+    if isinstance(value, FeeType):
+        return value
+
+    normalized_value = str(value or "").strip().upper()
+    if normalized_value in {item.value for item in FeeType}:
+        return FeeType(normalized_value)
+    if normalized_value == "ADMISSION":
+        return FeeType.ADMISSION
+    if normalized_value == "TRANSPORT":
+        return FeeType.TRANSPORT
+    if normalized_value in {"TUITION", "COURSE", "HOSTEL", "OTHER", "GENERAL"}:
+        return FeeType.TUITION
+    if category is not None:
+        return fee_type_for_category(category)
+    return FeeType.TUITION
+
+
+def normalize_fee_frequency(value: object | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, FeeFrequency):
+        return value.value
+
+    normalized_value = str(value).strip().lower()
+    if not normalized_value or normalized_value in {"one time", "one-time", "onetime", "none"}:
+        return None
+    if normalized_value in {"yearly", "annual", "annually"}:
+        return FeeFrequency.YEARLY.value
+    return FeeFrequency.MONTHLY.value
 
 
 class Setting(Base):
@@ -110,12 +163,40 @@ class Fee(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
     category: Mapped[str] = mapped_column(String(30), default="Other")
+    type: Mapped[str] = mapped_column(String(30), default=FeeType.TUITION.value)
+    is_one_time: Mapped[bool] = mapped_column(Boolean, default=False)
     amount: Mapped[float] = mapped_column(Float, default=0)
-    frequency: Mapped[str] = mapped_column(String(30), default="One Time")
+    frequency: Mapped[str | None] = mapped_column(String(30), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="Active")
     target_type: Mapped[str] = mapped_column(String(30), default="General")
     target_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str] = mapped_column(Text, default="")
+
+
+def apply_fee_business_rules(fee: Fee) -> None:
+    normalized_type = normalize_fee_type(fee.type, category=fee.category)
+    fee.type = normalized_type.value
+    if normalized_type == FeeType.ADMISSION:
+        fee.is_one_time = True
+        fee.frequency = None
+        return
+    if normalized_type == FeeType.TUITION:
+        fee.is_one_time = False
+        fee.frequency = normalize_fee_frequency(fee.frequency) or FeeFrequency.MONTHLY.value
+        return
+
+    fee.is_one_time = False
+    fee.frequency = normalize_fee_frequency(fee.frequency) or FeeFrequency.MONTHLY.value
+
+
+@event.listens_for(Fee, "before_insert")
+def _fee_before_insert(_mapper, _connection, target: Fee) -> None:
+    apply_fee_business_rules(target)
+
+
+@event.listens_for(Fee, "before_update")
+def _fee_before_update(_mapper, _connection, target: Fee) -> None:
+    apply_fee_business_rules(target)
 
 
 class Student(Base):

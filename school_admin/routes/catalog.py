@@ -8,7 +8,17 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from school_admin.database import SessionLocal
-from school_admin.models import Course, Fee, Hostel, Section, Student, TransportRoute
+from school_admin.models import (
+    Course,
+    Fee,
+    FeeFrequency,
+    FeeType,
+    Hostel,
+    Section,
+    Student,
+    TransportRoute,
+    fee_type_for_category,
+)
 from school_admin.utils import (
     FEE_CATEGORIES,
     FEE_FREQUENCIES,
@@ -21,6 +31,7 @@ from school_admin.utils import (
     redirect,
     render_page,
     require_admin,
+    require_permission,
     require_user,
 )
 
@@ -78,7 +89,8 @@ def resolve_fee_target(
     raw_target_id: str,
 ) -> tuple[str, int | None, bool]:
     target_id = optional_int(raw_target_id)
-    if str(category or "").strip().title() == "Admission":
+    fee_type = fee_type_for_category(category)
+    if fee_type == FeeType.ADMISSION:
         if target_id is None:
             return "General", None, True
         return "Course", target_id, session.get(Course, target_id) is not None
@@ -97,10 +109,16 @@ def resolve_fee_target(
     return normalized_target_type, None, False
 
 
-def normalized_fee_frequency(category: str, frequency: str) -> str:
-    if str(category or "").strip().title() == "Admission":
-        return "One Time"
-    return str(frequency or "Monthly").strip()
+def normalized_fee_frequency(category: str, frequency: str) -> str | None:
+    fee_type = fee_type_for_category(category)
+    if fee_type == FeeType.ADMISSION:
+        return None
+    if fee_type == FeeType.TUITION:
+        return FeeFrequency.MONTHLY.value
+    normalized_frequency = str(frequency or "").strip().title()
+    if normalized_frequency == FeeFrequency.YEARLY.value:
+        return FeeFrequency.YEARLY.value
+    return FeeFrequency.MONTHLY.value
 
 
 @router.get("/fees", response_class=HTMLResponse)
@@ -114,10 +132,10 @@ async def fees_page(
     error: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "catalog.view")
         if response:
             return response
-        can_manage_catalog = current_user.role == "Admin"
+        can_manage_catalog = has_permission(current_user, "catalog.manage")
         statement = select(Fee).order_by(Fee.id.desc())
         if search.strip():
             query = search.strip()
@@ -188,7 +206,7 @@ async def fees_page(
 @router.post("/fees/create")
 async def create_fee(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/fees")
@@ -198,7 +216,10 @@ async def create_fee(request: Request):
         name = str(form.get("name", "")).strip()
         category = str(form.get("category", "Other")).strip().title()
         amount = non_negative_float(str(form.get("amount", "")))
-        frequency = normalized_fee_frequency(category, str(form.get("frequency", "One Time")))
+        raw_frequency = str(form.get("frequency", "One Time")).strip()
+        frequency = normalized_fee_frequency(category, raw_frequency)
+        fee_type = fee_type_for_category(category)
+        is_one_time = fee_type == FeeType.ADMISSION
         status = str(form.get("status", "Active")).strip()
         target_type, target_id, valid_target = resolve_fee_target(
             session,
@@ -212,7 +233,7 @@ async def create_fee(request: Request):
             return redirect("/fees?create=1&error=invalid_category")
         if amount is None:
             return redirect("/fees?create=1&error=invalid_amount")
-        if frequency not in FEE_FREQUENCIES:
+        if raw_frequency not in FEE_FREQUENCIES:
             return redirect("/fees?create=1&error=invalid_frequency")
         if target_type not in FEE_TARGET_TYPES or not valid_target:
             return redirect("/fees?create=1&error=invalid_target")
@@ -223,6 +244,8 @@ async def create_fee(request: Request):
             Fee(
                 name=name,
                 category=category,
+                type=fee_type.value,
+                is_one_time=is_one_time,
                 amount=amount,
                 frequency=frequency,
                 status=status,
@@ -238,7 +261,7 @@ async def create_fee(request: Request):
 @router.post("/fees/{fee_id}/edit")
 async def edit_fee(fee_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/fees")
@@ -251,7 +274,10 @@ async def edit_fee(fee_id: int, request: Request):
         name = str(form.get("name", "")).strip()
         category = str(form.get("category", "Other")).strip().title()
         amount = non_negative_float(str(form.get("amount", "")))
-        frequency = normalized_fee_frequency(category, str(form.get("frequency", "One Time")))
+        raw_frequency = str(form.get("frequency", "One Time")).strip()
+        frequency = normalized_fee_frequency(category, raw_frequency)
+        fee_type = fee_type_for_category(category)
+        is_one_time = fee_type == FeeType.ADMISSION
         status = str(form.get("status", "Active")).strip()
         target_type, target_id, valid_target = resolve_fee_target(
             session,
@@ -265,7 +291,7 @@ async def edit_fee(fee_id: int, request: Request):
             return redirect(f"/fees?edit={fee_id}&error=invalid_category")
         if amount is None:
             return redirect(f"/fees?edit={fee_id}&error=invalid_amount")
-        if frequency not in FEE_FREQUENCIES:
+        if raw_frequency not in FEE_FREQUENCIES:
             return redirect(f"/fees?edit={fee_id}&error=invalid_frequency")
         if target_type not in FEE_TARGET_TYPES or not valid_target:
             return redirect(f"/fees?edit={fee_id}&error=invalid_target")
@@ -274,6 +300,8 @@ async def edit_fee(fee_id: int, request: Request):
 
         fee.name = name
         fee.category = category
+        fee.type = fee_type.value
+        fee.is_one_time = is_one_time
         fee.amount = amount
         fee.frequency = frequency
         fee.status = status
@@ -287,7 +315,7 @@ async def edit_fee(fee_id: int, request: Request):
 @router.post("/fees/{fee_id}/delete")
 async def delete_fee(fee_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/fees")
@@ -316,10 +344,10 @@ async def courses_page(
     error: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "catalog.view")
         if response:
             return response
-        can_manage_catalog = current_user.role == "Admin"
+        can_manage_catalog = has_permission(current_user, "catalog.manage")
         section_courses = session.scalars(select(Course).order_by(Course.name)).all()
         
         # Course Pagination
@@ -425,7 +453,7 @@ async def courses_page(
 @router.post("/courses/create")
 async def create_course(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/courses")
@@ -461,7 +489,7 @@ async def create_course(request: Request):
 @router.post("/courses/{course_id}/edit")
 async def edit_course(course_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/courses")
@@ -494,7 +522,7 @@ async def edit_course(course_id: int, request: Request):
 @router.post("/courses/{course_id}/delete")
 async def delete_course(course_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/courses")
@@ -519,7 +547,7 @@ async def delete_course(course_id: int, request: Request):
 @router.post("/sections/create")
 async def create_section(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/courses")
@@ -552,7 +580,7 @@ async def create_section(request: Request):
 @router.post("/sections/{section_id}/edit")
 async def edit_section(section_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/courses")
@@ -587,7 +615,7 @@ async def edit_section(section_id: int, request: Request):
 @router.post("/sections/{section_id}/delete")
 async def delete_section(section_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/courses")
@@ -613,10 +641,10 @@ async def hostels_page(
     error: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "catalog.view")
         if response:
             return response
-        can_manage_catalog = current_user.role == "Admin"
+        can_manage_catalog = has_permission(current_user, "catalog.manage")
         statement = select(Hostel).order_by(Hostel.id.desc())
         if search.strip():
             statement = statement.where(
@@ -674,7 +702,7 @@ async def hostels_page(
 @router.post("/hostels/create")
 async def create_hostel(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/hostels")
@@ -706,7 +734,7 @@ async def create_hostel(request: Request):
 @router.post("/hostels/{hostel_id}/edit")
 async def edit_hostel(hostel_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/hostels")
@@ -736,7 +764,7 @@ async def edit_hostel(hostel_id: int, request: Request):
 @router.post("/hostels/{hostel_id}/delete")
 async def delete_hostel(hostel_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/hostels")
@@ -766,10 +794,10 @@ async def transport_page(
     error: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "catalog.view")
         if response:
             return response
-        can_manage_catalog = current_user.role == "Admin"
+        can_manage_catalog = has_permission(current_user, "catalog.manage")
         statement = select(TransportRoute).order_by(TransportRoute.id.desc())
         if search.strip():
             statement = statement.where(
@@ -830,7 +858,7 @@ async def transport_page(
 @router.post("/transport/create")
 async def create_route(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/transport")
@@ -861,7 +889,7 @@ async def create_route(request: Request):
 @router.post("/transport/{route_id}/edit")
 async def edit_route(route_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/transport")
@@ -889,7 +917,7 @@ async def edit_route(route_id: int, request: Request):
 @router.post("/transport/{route_id}/delete")
 async def delete_route(route_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "catalog.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/transport")

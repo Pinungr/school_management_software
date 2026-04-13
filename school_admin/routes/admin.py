@@ -20,7 +20,7 @@ from school_admin.data_repair import (
 from school_admin.media import delete_uploaded_logo, sanitize_logo_url, store_uploaded_logo, with_logo_cache_bust
 from school_admin.models import User
 from school_admin.permissions import has_permission
-from school_admin.utils import form_with_csrf, get_settings, redirect, render_page, require_admin
+from school_admin.utils import form_with_csrf, get_settings, redirect, render_page, require_admin, require_permission
 
 
 router = APIRouter()
@@ -76,7 +76,7 @@ async def users_page(
     error: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "user.view")
         if response:
             return response
         statement = select(User).where(User.role != "SuperAdmin").order_by(User.id.desc())
@@ -138,7 +138,7 @@ async def users_page(
 @router.post("/users/create")
 async def create_user(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "user.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/users")
@@ -176,7 +176,7 @@ async def create_user(request: Request):
 @router.post("/users/{user_id}/edit")
 async def edit_user(user_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "user.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/users")
@@ -228,7 +228,7 @@ async def edit_user(user_id: int, request: Request):
 @router.post("/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "user.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/users")
@@ -256,7 +256,7 @@ async def delete_user(user_id: int, request: Request):
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, error: str = "", success: str = ""):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "settings.view")
         if response:
             return response
         return render_page(
@@ -281,7 +281,7 @@ async def data_repair_page(
     success: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         return render_page(
@@ -305,7 +305,7 @@ async def data_repair_page(
 @router.post("/settings/data-repair/{table}/{row_id}/update")
 async def update_data_repair_row(table: str, row_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         failure_url = f"/settings/data-repair?table={get_table_spec(table).key}&edit={row_id}"
@@ -331,7 +331,7 @@ async def update_data_repair_row(table: str, row_id: int, request: Request):
 @router.get("/settings/data-repair/{table}/export")
 async def export_data_repair_table(table: str, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         file_bytes, filename = export_table_csv(session, table)
@@ -345,7 +345,7 @@ async def export_data_repair_table(table: str, request: Request):
 @router.post("/settings/data-repair/{table}/import")
 async def import_data_repair_table(table: str, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         failure_url = f"/settings/data-repair?table={get_table_spec(table).key}"
@@ -367,7 +367,7 @@ async def import_data_repair_table(table: str, request: Request):
 @router.post("/settings/data-repair/database/export")
 async def export_data_repair_database(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/settings/data-repair?table=students")
@@ -384,7 +384,7 @@ async def export_data_repair_database(request: Request):
 @router.post("/settings/data-repair/database/import")
 async def import_data_repair_database(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/settings/data-repair?table=students")
@@ -404,11 +404,9 @@ async def import_data_repair_database(request: Request):
 @router.post("/settings")
 async def update_settings(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "settings.manage")
         if response:
             return response
-        if not has_permission(current_user, "settings.update"):
-            return redirect("/dashboard")
         form, response = await form_with_csrf(request, "/settings")
         if response:
             return response
@@ -452,7 +450,7 @@ async def update_settings(request: Request):
 @router.post("/settings/backup")
 async def backup_settings(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/settings")
@@ -470,7 +468,7 @@ async def backup_settings(request: Request):
 @router.post("/settings/restore")
 async def restore_settings_backup(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_admin(session, request)
+        current_user, response = require_permission(session, request, "system.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/settings")

@@ -25,7 +25,7 @@ def sanitize_logo_url(logo_url: str | None, fallback: str = DEFAULT_LOGO_URL) ->
 
 def with_logo_cache_bust(logo_url: str | None, *, stamp: int | None = None) -> str:
     normalized_logo_url = sanitize_logo_url(logo_url)
-    if not normalized_logo_url.startswith("/static/"):
+    if not normalized_logo_url.startswith("/static/") and not normalized_logo_url.startswith("/media/"):
         return normalized_logo_url
     base_logo_url = normalized_logo_url.split("?", 1)[0]
     cache_stamp = int(stamp if stamp is not None else time.time())

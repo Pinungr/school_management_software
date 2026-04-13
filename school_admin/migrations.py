@@ -225,8 +225,10 @@ def migration_create_fees_table(session: Session) -> None:
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
                 category TEXT NOT NULL DEFAULT 'Other',
+                type TEXT NOT NULL DEFAULT 'TUITION',
+                is_one_time INTEGER NOT NULL DEFAULT 0,
                 amount REAL NOT NULL DEFAULT 0,
-                frequency TEXT NOT NULL DEFAULT 'One Time',
+                frequency TEXT DEFAULT 'Monthly',
                 status TEXT NOT NULL DEFAULT 'Active',
                 target_type TEXT NOT NULL DEFAULT 'General',
                 target_id INTEGER,
@@ -728,6 +730,158 @@ def migration_fees_normalize_frequency_rules(session: Session) -> None:
     )
 
 
+def migration_fees_add_type_and_schedule_fields(session: Session) -> None:
+    if not table_exists(session, "fees"):
+        return
+
+    columns = column_names(session, "fees")
+    if not columns:
+        return
+    if "type" not in columns:
+        session.execute(text("ALTER TABLE fees ADD COLUMN type TEXT DEFAULT 'TUITION'"))
+    if "is_one_time" not in columns:
+        session.execute(text("ALTER TABLE fees ADD COLUMN is_one_time INTEGER DEFAULT 0"))
+
+    session.execute(
+        text(
+            """
+            UPDATE fees
+            SET type = CASE
+                WHEN upper(trim(coalesce(type, ''))) IN ('ADMISSION', 'TUITION', 'TRANSPORT')
+                    THEN upper(trim(type))
+                WHEN lower(trim(coalesce(category, ''))) = 'admission'
+                    THEN 'ADMISSION'
+                WHEN lower(trim(coalesce(category, ''))) = 'transport'
+                    THEN 'TRANSPORT'
+                ELSE 'TUITION'
+            END
+            """
+        )
+    )
+
+    session.execute(
+        text(
+            """
+            UPDATE fees
+            SET is_one_time = 1,
+                frequency = NULL
+            WHERE type = 'ADMISSION'
+            """
+        )
+    )
+
+    session.execute(
+        text(
+            """
+            UPDATE fees
+            SET is_one_time = 0,
+                frequency = 'Monthly'
+            WHERE type = 'TUITION'
+            """
+        )
+    )
+
+    session.execute(
+        text(
+            """
+            UPDATE fees
+            SET is_one_time = 0,
+                frequency = CASE
+                    WHEN lower(trim(coalesce(frequency, ''))) = 'yearly' THEN 'Yearly'
+                    ELSE 'Monthly'
+                END
+            WHERE type = 'TRANSPORT'
+            """
+        )
+    )
+
+
+def migration_fees_make_frequency_nullable(session: Session) -> None:
+    if not table_exists(session, "fees"):
+        return
+
+    columns = session.execute(text("PRAGMA table_info(fees)")).fetchall()
+    frequency_column = next((row for row in columns if row[1] == "frequency"), None)
+    if frequency_column is None:
+        return
+    frequency_is_not_null = bool(frequency_column[3])
+    if not frequency_is_not_null:
+        return
+
+    session.execute(text("DROP TABLE IF EXISTS fees__tmp"))
+    session.execute(
+        text(
+            """
+            CREATE TABLE IF NOT EXISTS fees__tmp (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'Other',
+                type TEXT NOT NULL DEFAULT 'TUITION',
+                is_one_time INTEGER NOT NULL DEFAULT 0,
+                amount REAL NOT NULL DEFAULT 0,
+                frequency TEXT DEFAULT 'Monthly',
+                status TEXT NOT NULL DEFAULT 'Active',
+                target_type TEXT NOT NULL DEFAULT 'General',
+                target_id INTEGER,
+                description TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
+    )
+    session.execute(
+        text(
+            """
+            INSERT INTO fees__tmp (
+                id,
+                name,
+                category,
+                type,
+                is_one_time,
+                amount,
+                frequency,
+                status,
+                target_type,
+                target_id,
+                description
+            )
+            SELECT
+                id,
+                name,
+                category,
+                CASE
+                    WHEN upper(trim(coalesce(type, ''))) IN ('ADMISSION', 'TUITION', 'TRANSPORT')
+                        THEN upper(trim(type))
+                    WHEN lower(trim(coalesce(category, ''))) = 'admission'
+                        THEN 'ADMISSION'
+                    WHEN lower(trim(coalesce(category, ''))) = 'transport'
+                        THEN 'TRANSPORT'
+                    ELSE 'TUITION'
+                END,
+                CASE
+                    WHEN upper(trim(coalesce(type, ''))) = 'ADMISSION'
+                      OR lower(trim(coalesce(category, ''))) = 'admission'
+                        THEN 1
+                    ELSE coalesce(is_one_time, 0)
+                END,
+                amount,
+                CASE
+                    WHEN upper(trim(coalesce(type, ''))) = 'ADMISSION'
+                      OR lower(trim(coalesce(category, ''))) = 'admission'
+                        THEN NULL
+                    ELSE frequency
+                END,
+                status,
+                target_type,
+                target_id,
+                description
+            FROM fees
+            """
+        )
+    )
+    session.execute(text("DROP TABLE fees"))
+    session.execute(text("ALTER TABLE fees__tmp RENAME TO fees"))
+
+
 MIGRATIONS: list[MigrationStep] = [
     ("20260405_users_add_username", migration_users_add_username),
     ("20260405_users_backfill_username_and_unique_index", migration_users_backfill_username_and_unique_index),
@@ -750,6 +904,8 @@ MIGRATIONS: list[MigrationStep] = [
     ("20260407_create_large_dataset_indexes", migration_create_large_dataset_indexes),
     ("20260413_settings_add_terms_accepted", migration_settings_add_terms_accepted),
     ("20260413_fees_normalize_frequency_rules", migration_fees_normalize_frequency_rules),
+    ("20260413_fees_add_type_and_schedule_fields", migration_fees_add_type_and_schedule_fields),
+    ("20260413_fees_make_frequency_nullable", migration_fees_make_frequency_nullable),
 ]
 
 

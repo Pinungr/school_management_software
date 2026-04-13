@@ -26,6 +26,7 @@ from school_admin.utils import (
     payment_summary,
     redirect,
     render_page,
+    require_permission,
     require_user,
     validate_service_for_type,
     years_for_filter,
@@ -242,9 +243,10 @@ async def payments_page(
     error: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "payment.view")
         if response:
             return response
+        can_manage_payments = has_permission(current_user, "payment.manage")
         statement = (
             select(Payment)
             .options(joinedload(Payment.student))
@@ -409,7 +411,7 @@ async def payment_student_search(request: Request, q: str = ""):
 @router.post("/payments/create")
 async def create_payment(request: Request):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "payment.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/payments")
@@ -463,7 +465,7 @@ async def create_payment(request: Request):
 @router.post("/payments/{payment_id}/edit")
 async def edit_payment(payment_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "payment.manage")
         if response:
             return response
         form, response = await form_with_csrf(request, "/payments")
@@ -523,7 +525,7 @@ def cancel_payment_record(payment: Payment) -> None:
 @router.post("/payments/{payment_id}/cancel")
 async def cancel_payment(payment_id: int, request: Request):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "payment.manage")
         if response:
             return response
         _, response = await form_with_csrf(request, "/payments")
@@ -712,7 +714,7 @@ async def export_payments(
     payment_status: str = "",
 ):
     with SessionLocal() as session:
-        current_user, response = require_user(session, request)
+        current_user, response = require_permission(session, request, "payment.view")
         if response:
             return response
     export_file = build_payment_export_file(
