@@ -16,10 +16,12 @@ from sqlalchemy.orm import joinedload
 
 from school_admin.database import SessionLocal
 from school_admin.models import Course, Fee, Hostel, Payment, Section, Setting, Student, TransportRoute
+from school_admin.permissions import has_permission
 from school_admin.utils import (
     active_lookups,
     applicable_fees_for_student,
     calculate_fee_snapshots_for_students,
+    calculate_student_due_breakdown,
     calculate_student_fees_and_payments,
     form_with_csrf,
     optional_date,
@@ -49,6 +51,8 @@ STUDENT_ERROR_MESSAGES = {
     "missing_guardian_email": "Add the guardian email address before opening Gmail.",
     "promotion_student_missing": "The selected student record for promotion could not be found.",
     "promotion_course_unavailable": "No higher active course is available for this student.",
+    "permission_denied": "You do not have permission to perform this action.",
+    "course_update_denied": "You do not have permission to change the student's course.",
 }
 ALLOWED_RETURN_PATHS = {"/students", "/admissions"}
 
@@ -161,22 +165,50 @@ def student_workspace_labels(active_page: str) -> dict[str, str]:
     }
 
 
-def reminder_breakdown_lines(student: Student, fees_data: dict[str, float]) -> list[str]:
-    lines: list[str] = []
-    for item in fees_data["fee_items"]:
-        current_month_amount = float(item["current_month_amount"])
-        if current_month_amount <= 0:
+def normalize_reminder_due_data(
+    due_data: dict[str, object],
+) -> dict[str, float | list[dict[str, object]]]:
+    if "breakdown" in due_data:
+        total_due = float(due_data.get("total_due", 0.0) or 0.0)
+        return {
+            "total_due": total_due,
+            "breakdown": list(due_data.get("breakdown", [])),
+            "current_cycle_amount": 0.0,
+            "previous_pending_amount": 0.0,
+        }
+
+    converted_breakdown: list[dict[str, object]] = []
+    for item in due_data.get("fee_items", []):
+        current_cycle_amount = float(item.get("current_month_amount", 0.0) or 0.0)
+        if current_cycle_amount <= 0:
             continue
-        item_name = str(item["name"])
-        frequency = str(item["frequency"])
+        item_name = str(item.get("name", "Fee"))
+        frequency = str(item.get("frequency", "")).strip()
         if frequency in {"Quarterly", "Half-Yearly", "Yearly"}:
             item_name = f"{item_name} (monthly from {frequency.lower()} plan)"
-        lines.append(f"{item_name}: {current_month_amount:.2f}")
-    lines.append(f"This Month's Charges: {fees_data['current_cycle_amount']:.2f}")
-    if fees_data["previous_pending_amount"] > 0:
-        lines.append(f"Earlier Pending Balance: {fees_data['previous_pending_amount']:.2f}")
-    lines.append(f"Amount Paid So Far: {fees_data['paid_amount']:.2f}")
-    lines.append(f"Outstanding Balance: {fees_data['remaining_balance']:.2f}")
+        converted_breakdown.append(
+            {
+                "type": item.get("category", "Other"),
+                "name": item_name,
+                "amount": current_cycle_amount,
+            }
+        )
+
+    total_due = float(due_data.get("remaining_balance", 0.0) or 0.0)
+    if total_due <= 0:
+        total_due = sum(float(item["amount"]) for item in converted_breakdown)
+    return {
+        "total_due": total_due,
+        "breakdown": converted_breakdown,
+        "current_cycle_amount": float(due_data.get("current_cycle_amount", 0.0) or 0.0),
+        "previous_pending_amount": float(due_data.get("previous_pending_amount", 0.0) or 0.0),
+    }
+
+
+def reminder_breakdown_lines(due_data: dict[str, float | list[dict[str, object]]]) -> list[str]:
+    lines: list[str] = []
+    for item in due_data["breakdown"]:
+        lines.append(f"{item['type']} - {item['name']}: {float(item['amount']):.2f}")
     return lines
 
 
@@ -185,7 +217,8 @@ def reminder_subject(settings: Setting, student: Student) -> str:
     return f"Payment Reminder - {school_name} - {student.student_code}"
 
 
-def reminder_message(settings: Setting, student: Student, fees_data: dict[str, float]) -> str:
+def reminder_message(settings: Setting, student: Student, due_data: dict[str, object]) -> str:
+    normalized_due_data = normalize_reminder_due_data(due_data)
     school_name = settings.school_name or "School"
     school_phone = settings.phone_number or ""
     school_email = settings.school_email or ""
@@ -201,11 +234,23 @@ def reminder_message(settings: Setting, student: Student, fees_data: dict[str, f
             f"({student.student_code}) for the academic year {academic_year}."
         ),
         "",
-        "The amount below shows this month's charges and any unpaid earlier balance.",
+        "Pending Fees:",
         "",
-        *reminder_breakdown_lines(student, fees_data),
+        *reminder_breakdown_lines(normalized_due_data),
         "",
-        f"Please arrange payment of {currency} {fees_data['remaining_balance']:.2f} at the earliest.",
+        (
+            f"This Month's Charges: {float(normalized_due_data['current_cycle_amount']):.2f}"
+            if float(normalized_due_data["current_cycle_amount"]) > 0
+            else ""
+        ),
+        (
+            f"Earlier Pending Balance: {float(normalized_due_data['previous_pending_amount']):.2f}"
+            if float(normalized_due_data["previous_pending_amount"]) > 0
+            else ""
+        ),
+        f"Total Due: {currency} {float(normalized_due_data['total_due']):.2f}",
+        "",
+        "Please arrange payment at the earliest.",
     ]
     if school_phone or school_email:
         lines.extend(
@@ -312,6 +357,21 @@ def render_student_workspace(
         current_user, response = require_user(session, request)
         if response:
             return response
+        permissions = {
+            "student_create": has_permission(current_user, "student.create"),
+            "student_update": has_permission(current_user, "student.update"),
+            "student_delete": has_permission(current_user, "student.delete"),
+            "student_update_course": has_permission(current_user, "student.update.course"),
+        }
+        if create and not permissions["student_create"] and not error:
+            create = None
+            error = "permission_denied"
+        if edit and not permissions["student_update"] and not error:
+            edit = None
+            error = "permission_denied"
+        if promote and not (permissions["student_create"] and permissions["student_update_course"]) and not error:
+            promote = None
+            error = "permission_denied"
         lookups = active_lookups(session)
         promotion_next_courses = next_course_map(lookups["courses"])
         statement = (
@@ -416,9 +476,10 @@ def render_student_workspace(
             base_path=base_path,
             return_path=base_path,
             labels=labels,
-            allow_manual_create=allow_manual_create,
+            allow_manual_create=allow_manual_create and permissions["student_create"],
             admission_payment_methods=sorted(ADMISSION_PAYMENT_METHODS),
             list_query=urlencode(list_query_params),
+            permissions=permissions,
             promotion_context={
                 "source_student": promote_student,
                 "next_course": promote_next_course,
@@ -500,6 +561,8 @@ async def create_student(request: Request):
         if response:
             return response
         return_path = sanitized_return_path(form.get("return_path"), "/students")
+        if not has_permission(current_user, "student.create"):
+            return redirect(f"{return_path}?error=permission_denied")
         if return_path != "/admissions":
             return redirect("/students?error=students_read_only")
         promotion_source_student_id = optional_int(str(form.get("promotion_source_student_id", "")))
@@ -513,6 +576,14 @@ async def create_student(request: Request):
                 student_form_redirect_url(
                     return_path,
                     "promotion_student_missing",
+                    promotion_source_student_id=promotion_source_student_id,
+                )
+            )
+        if promotion_source_student_id is not None and not has_permission(current_user, "student.update.course"):
+            return redirect(
+                student_form_redirect_url(
+                    return_path,
+                    "course_update_denied",
                     promotion_source_student_id=promotion_source_student_id,
                 )
             )
@@ -652,6 +723,8 @@ async def edit_student(student_id: int, request: Request):
         if response:
             return response
         return_path = sanitized_return_path(form.get("return_path"), "/students")
+        if not has_permission(current_user, "student.update"):
+            return redirect(f"{return_path}?error=permission_denied")
         student = session.get(Student, student_id)
         if not student:
             return redirect(return_path)
@@ -684,6 +757,8 @@ async def edit_student(student_id: int, request: Request):
             or (transport_id is not None and session.get(TransportRoute, transport_id) is None)
         ):
             return redirect(f"{return_path}?edit={student_id}&error=invalid_lookup")
+        if previous_course_id != course_id and not has_permission(current_user, "student.update.course"):
+            return redirect(f"{return_path}?edit={student_id}&error=course_update_denied")
         previous_course = session.get(Course, previous_course_id) if previous_course_id is not None else None
         student.student_code = student_code
         student.full_name = full_name
@@ -740,6 +815,8 @@ async def delete_student(student_id: int, request: Request):
         if response:
             return response
         return_path = sanitized_return_path(form.get("return_path"), "/students")
+        if not has_permission(current_user, "student.delete"):
+            return redirect(f"{return_path}?error=permission_denied")
         student = session.scalar(
             select(Student)
             .options(joinedload(Student.payments))
@@ -782,8 +859,8 @@ async def notify_guardian(student_id: int, request: Request):
         if not student:
             return redirect(return_path)
 
-        fees_data = calculate_student_fees_and_payments(session, student)
-        if fees_data["remaining_balance"] <= 0:
+        due_data = calculate_student_due_breakdown(session, student)
+        if float(due_data["total_due"]) <= 0:
             return redirect(return_path)
 
         settings = session.get(Setting, 1) or Setting()
@@ -801,19 +878,14 @@ async def notify_guardian(student_id: int, request: Request):
         student_email = escape(student.email or "")
 
         fee_rows = []
-        for item in fees_data["fee_items"]:
-            current_month_amount = float(item["current_month_amount"])
-            if current_month_amount <= 0:
-                continue
+        for item in due_data["breakdown"]:
             item_label = escape(str(item["name"]))
-            frequency = str(item["frequency"])
-            if frequency in {"Quarterly", "Half-Yearly", "Yearly"}:
-                item_label = f"{item_label} (monthly from {escape(frequency.lower())} plan)"
+            item_type = escape(str(item["type"]))
             fee_rows.append(
                 f"""
                         <tr>
-                            <td>{item_label}</td>
-                            <td>{current_month_amount:.2f}</td>
+                            <td>{item_type} - {item_label}</td>
+                            <td>{float(item["amount"]):.2f}</td>
                         </tr>"""
             )
         fee_rows_html = "".join(fee_rows)
@@ -860,7 +932,7 @@ async def notify_guardian(student_id: int, request: Request):
 
             <div class="fee-breakdown">
                 <h3>Fee Breakdown</h3>
-                <p>This reminder shows this month's amount plus any unpaid earlier balance.</p>
+                <p>This reminder includes one-time pending fees and current cycle recurring fees only.</p>
                 <table class="fee-table">
                     <thead>
                         <tr>
@@ -870,17 +942,9 @@ async def notify_guardian(student_id: int, request: Request):
                     </thead>
                     <tbody>
                         {fee_rows_html}
-                        <tr>
-                            <td>This Month's Charges</td>
-                            <td>{fees_data['current_cycle_amount']:.2f}</td>
-                        </tr>
-                        <tr>
-                            <td>Earlier Pending Balance</td>
-                            <td>{fees_data['previous_pending_amount']:.2f}</td>
-                        </tr>
                         <tr class="total-row">
-                            <td>Total Outstanding Balance</td>
-                            <td>{fees_data['remaining_balance']:.2f}</td>
+                            <td>Total Due</td>
+                            <td>{float(due_data['total_due']):.2f}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -889,10 +953,10 @@ async def notify_guardian(student_id: int, request: Request):
             <div>
                 <p>Dear {parent_name},</p>
 
-                <p>This is to inform you that there is an outstanding balance of <strong>{school_currency} {fees_data['remaining_balance']:.2f}</strong>
+                <p>This is to inform you that there is a pending balance of <strong>{school_currency} {float(due_data['total_due']):.2f}</strong>
                 for your ward {student_name} (Student Code: {student_code}) for the academic year {academic_year}.</p>
 
-                <p>The amount shown above combines this month's charges and any unpaid previous balance, so the reminder total is the amount currently due.</p>
+                <p>The reminder total above reflects pending one-time fees and current cycle recurring fees.</p>
 
                 <p>Please arrange to clear the outstanding amount at the earliest to avoid any disruption in services.
                 Payment can be made through cash, bank transfer, or other accepted payment methods.</p>
@@ -929,8 +993,8 @@ async def notify_guardian_whatsapp(student_id: int, request: Request, return_to:
         if not student:
             return redirect(return_path)
 
-        fees_data = calculate_student_fees_and_payments(session, student)
-        if fees_data["remaining_balance"] <= 0:
+        due_data = calculate_student_due_breakdown(session, student)
+        if float(due_data["total_due"]) <= 0:
             return redirect(f"{return_path}?view={student_id}")
 
         phone = normalized_whatsapp_phone(student.phone)
@@ -938,7 +1002,7 @@ async def notify_guardian_whatsapp(student_id: int, request: Request, return_to:
             return redirect(f"{return_path}?view={student_id}&error=missing_guardian_phone")
 
         settings = session.get(Setting, 1) or Setting()
-        message = reminder_message(settings, student, fees_data)
+        message = reminder_message(settings, student, due_data)
     open_external_target(f"whatsapp://send?phone={phone}&text={quote(message)}")
     return redirect(f"{return_path}?view={student_id}")
 
@@ -955,8 +1019,8 @@ async def notify_guardian_gmail(student_id: int, request: Request, return_to: st
         if not student:
             return redirect(return_path)
 
-        fees_data = calculate_student_fees_and_payments(session, student)
-        if fees_data["remaining_balance"] <= 0:
+        due_data = calculate_student_due_breakdown(session, student)
+        if float(due_data["total_due"]) <= 0:
             return redirect(f"{return_path}?view={student_id}")
 
         recipient_email = str(student.email or "").strip()
@@ -965,7 +1029,7 @@ async def notify_guardian_gmail(student_id: int, request: Request, return_to: st
 
         settings = session.get(Setting, 1) or Setting()
         subject = reminder_subject(settings, student)
-        body = reminder_message(settings, student, fees_data)
+        body = reminder_message(settings, student, due_data)
     gmail_url = (
         "https://mail.google.com/mail/?view=cm&fs=1"
         f"&to={quote(recipient_email)}"

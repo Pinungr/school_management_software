@@ -17,8 +17,9 @@ from school_admin.data_repair import (
     get_table_spec,
     import_table_csv,
 )
-from school_admin.media import delete_uploaded_logo, sanitize_logo_url, store_uploaded_logo
+from school_admin.media import delete_uploaded_logo, sanitize_logo_url, store_uploaded_logo, with_logo_cache_bust
 from school_admin.models import User
+from school_admin.permissions import has_permission
 from school_admin.utils import form_with_csrf, get_settings, redirect, render_page, require_admin
 
 
@@ -406,6 +407,8 @@ async def update_settings(request: Request):
         current_user, response = require_admin(session, request)
         if response:
             return response
+        if not has_permission(current_user, "settings.update"):
+            return redirect("/dashboard")
         form, response = await form_with_csrf(request, "/settings")
         if response:
             return response
@@ -435,7 +438,7 @@ async def update_settings(request: Request):
         settings.school_name = school_name
         settings.school_email = str(form.get("school_email", "")).strip()
         settings.phone_number = str(form.get("phone_number", "")).strip()
-        settings.logo_url = logo_url
+        settings.logo_url = with_logo_cache_bust(logo_url)
         settings.address = str(form.get("address", "")).strip()
         settings.academic_year = str(form.get("academic_year", "")).strip()
         settings.financial_year = str(form.get("financial_year", "")).strip()

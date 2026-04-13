@@ -90,21 +90,25 @@
             <h4>Actions</h4>
             <div class="student-detail-actions">
                 <a class="btn btn-small btn-primary" href="/payments?create=1&create_student_id={{ view_student.id }}">Payment</a>
+                {% if permissions.student_update %}
                 <a class="btn btn-small btn-light" href="{{ base_path }}?edit={{ view_student.id }}">Edit</a>
-                {% if view_student_next_course %}
+                {% endif %}
+                {% if permissions.student_create and permissions.student_update_course and view_student_next_course %}
                 <a class="btn btn-small btn-light" href="/admissions?promote={{ view_student.id }}">Promote</a>
-                {% else %}
+                {% elif permissions.student_create and permissions.student_update_course %}
                 <span class="btn btn-small btn-light is-disabled" aria-disabled="true">Promote</span>
                 {% endif %}
                 <a class="btn btn-small btn-warning" href="/students/{{ view_student.id }}/notify/whatsapp?return_to={{ base_path }}">WhatsApp</a>
                 <a class="btn btn-small btn-light" href="/students/{{ view_student.id }}/notify/gmail?return_to={{ base_path }}">Gmail</a>
+                {% if permissions.student_delete %}
                 <form method="post" action="/students/{{ view_student.id }}/delete" onsubmit="return confirm('Delete this student?');">
                     {% include "partials/csrf_input.html" %}
                     <input type="hidden" name="return_path" value="{{ return_path }}">
                     <button class="btn btn-small btn-danger" type="submit">Delete</button>
                 </form>
+                {% endif %}
             </div>
-            {% if not view_student_next_course %}
+            {% if permissions.student_create and permissions.student_update_course and not view_student_next_course %}
             <p class="auth-copy">Promotion is available once the next active class is configured.</p>
             {% endif %}
         </section>

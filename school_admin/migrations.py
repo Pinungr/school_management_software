@@ -702,6 +702,32 @@ def migration_create_large_dataset_indexes(session: Session) -> None:
         session.execute(text(sql))
 
 
+def migration_fees_normalize_frequency_rules(session: Session) -> None:
+    if not table_exists(session, "fees"):
+        return
+
+    session.execute(
+        text(
+            """
+            UPDATE fees
+            SET frequency = 'One Time'
+            WHERE lower(trim(category)) = 'admission'
+              AND trim(coalesce(frequency, '')) != 'One Time'
+            """
+        )
+    )
+    session.execute(
+        text(
+            """
+            UPDATE fees
+            SET frequency = 'Monthly'
+            WHERE lower(trim(category)) != 'admission'
+              AND trim(coalesce(frequency, '')) = ''
+            """
+        )
+    )
+
+
 MIGRATIONS: list[MigrationStep] = [
     ("20260405_users_add_username", migration_users_add_username),
     ("20260405_users_backfill_username_and_unique_index", migration_users_backfill_username_and_unique_index),
@@ -723,6 +749,7 @@ MIGRATIONS: list[MigrationStep] = [
     ("20260407_payments_backfill_receipt_snapshots", migration_payments_backfill_receipt_snapshots),
     ("20260407_create_large_dataset_indexes", migration_create_large_dataset_indexes),
     ("20260413_settings_add_terms_accepted", migration_settings_add_terms_accepted),
+    ("20260413_fees_normalize_frequency_rules", migration_fees_normalize_frequency_rules),
 ]
 
 

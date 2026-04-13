@@ -21,7 +21,12 @@ from school_admin.migrations import index_rows, run_migrations
 from school_admin.models import Course, Fee, Payment, Section, Setting, Student, TransportRoute, User
 from school_admin.routes.students import reminder_message
 from school_admin.seed import SUPERADMIN_PASSWORD, SUPERADMIN_USERNAME, seed_database
-from school_admin.utils import calculate_student_fees_and_payments, dashboard_metrics, payment_summary
+from school_admin.utils import (
+    calculate_student_due_breakdown,
+    calculate_student_fees_and_payments,
+    dashboard_metrics,
+    payment_summary,
+)
 from main import app, startup_target_path
 
 
@@ -2191,6 +2196,145 @@ def test_clerk_cannot_manage_catalog_records(seeded_session, client):
     assert response.status_code == 303
     assert response.headers["location"] == "/dashboard"
     assert seeded_session.scalar(select(Fee).where(Fee.name == "Blocked Clerk Fee")) is None
+
+
+def test_viewer_role_cannot_delete_students(seeded_session, client):
+    ensure_operational_test_data(seeded_session)
+    configure_setup_state(seeded_session, setup_completed=True)
+    viewer = seeded_session.scalar(select(User).where(User.username == "vieweruser"))
+    if viewer is None:
+        viewer = User(
+            full_name="Read Only Viewer",
+            username="vieweruser",
+            email="vieweruser@school.local",
+            password_hash=hash_password("ViewerPass@2026"),
+            role="Viewer",
+            status="Active",
+        )
+        seeded_session.add(viewer)
+        seeded_session.commit()
+
+    student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
+    assert student is not None
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page.text)
+    login_response = client.post(
+        "/login",
+        data={
+            "csrf_token": csrf_token,
+            "identifier": "vieweruser",
+            "password": "ViewerPass@2026",
+            "next_path": "/dashboard",
+        },
+        follow_redirects=False,
+    )
+    assert login_response.status_code == 303
+
+    students_page = client.get("/students")
+    students_csrf_token = extract_csrf_token(students_page.text)
+    response = client.post(
+        f"/students/{student.id}/delete",
+        data={
+            "csrf_token": students_csrf_token,
+            "return_path": "/students",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/students?error=permission_denied"
+    assert seeded_session.get(Student, student.id) is not None
+
+
+def test_due_breakdown_excludes_paid_one_time_fee(seeded_session):
+    configure_setup_state(seeded_session, setup_completed=True)
+
+    temp_course = Course(
+        name="Reminder Test Course",
+        code="REMINDER-COURSE",
+        fees=0.0,
+        frequency="Monthly",
+        status="Active",
+        description="Temporary course for due breakdown tests.",
+    )
+    temp_student = Student(
+        student_code="REM-DUE-001",
+        full_name="Reminder Due Student",
+        email="reminder.due.student@example.com",
+        phone="9999912345",
+        parent_name="Reminder Parent",
+        status="Active",
+        address="Reminder Address",
+        joined_on=date(2026, 4, 1),
+        course=temp_course,
+    )
+    admission_fee = Fee(
+        name="Reminder Admission Fee",
+        category="Admission",
+        amount=700.0,
+        frequency="One Time",
+        status="Active",
+        target_type="General",
+        description="One-time fee for reminder test.",
+    )
+    tuition_fee = Fee(
+        name="Reminder Tuition Fee",
+        category="Course",
+        amount=1500.0,
+        frequency="Monthly",
+        status="Active",
+        target_type="Course",
+        description="Recurring fee for reminder test.",
+    )
+    seeded_session.add_all([temp_course, temp_student, admission_fee, tuition_fee])
+    seeded_session.flush()
+
+    tuition_fee.target_id = temp_course.id
+    paid_admission = Payment(
+        student_id=temp_student.id,
+        student_code=temp_student.student_code,
+        student_name=temp_student.full_name,
+        parent_name=temp_student.parent_name,
+        service_type="admission",
+        service_id=admission_fee.id,
+        service_name=admission_fee.name,
+        amount=700.0,
+        payment_date=date(2026, 4, 1),
+        method="Cash",
+        reference="REMINDER-ADMISSION-PAID",
+        notes="Admission paid in full.",
+        status="Paid",
+    )
+    seeded_session.add(paid_admission)
+    seeded_session.commit()
+
+    try:
+        due_data = calculate_student_due_breakdown(seeded_session, temp_student, as_of=date(2026, 4, 20))
+        due_names = {item["name"] for item in due_data["breakdown"]}
+        tuition_item = next(item for item in due_data["breakdown"] if item["name"] == "Reminder Tuition Fee")
+
+        assert "Reminder Admission Fee" not in due_names
+        assert "Reminder Tuition Fee" in due_names
+        assert float(tuition_item["amount"]) == pytest.approx(1500.0)
+        assert float(due_data["total_due"]) >= 1500.0
+    finally:
+        cleanup_payment = seeded_session.scalar(
+            select(Payment).where(Payment.reference == "REMINDER-ADMISSION-PAID")
+        )
+        if cleanup_payment is not None:
+            seeded_session.delete(cleanup_payment)
+        cleanup_student = seeded_session.scalar(select(Student).where(Student.student_code == "REM-DUE-001"))
+        if cleanup_student is not None:
+            seeded_session.delete(cleanup_student)
+        for fee_name in ("Reminder Admission Fee", "Reminder Tuition Fee"):
+            cleanup_fee = seeded_session.scalar(select(Fee).where(Fee.name == fee_name))
+            if cleanup_fee is not None:
+                seeded_session.delete(cleanup_fee)
+        cleanup_course = seeded_session.scalar(select(Course).where(Course.code == "REMINDER-COURSE"))
+        if cleanup_course is not None:
+            seeded_session.delete(cleanup_course)
+        seeded_session.commit()
 
 
 def test_settings_rejects_remote_logo_url_and_accepts_uploaded_logo(seeded_session, client):

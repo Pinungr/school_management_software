@@ -15,6 +15,7 @@ from school_admin.media import (
     delete_uploaded_logo,
     sanitize_logo_url,
     store_uploaded_logo,
+    with_logo_cache_bust,
 )
 from school_admin.models import User
 from school_admin.utils import (
@@ -206,7 +207,7 @@ async def setup_submit(request: Request):
         settings.school_email = school_email or settings.school_email
         settings.phone_number = phone_number or settings.phone_number
         settings.address = address or settings.address
-        settings.logo_url = logo_url
+        settings.logo_url = with_logo_cache_bust(logo_url)
         settings.setup_completed = True
         admin_user.full_name = admin_full_name
         admin_user.username = admin_username

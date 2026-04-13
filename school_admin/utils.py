@@ -19,6 +19,7 @@ from .branding import DEVELOPER_EMAIL, DEVELOPER_NAME, DEVELOPER_PHONE
 from .database import Base, DATABASE_PATH, SessionLocal, TEMPLATES_DIR, engine
 from .migrations import run_migrations
 from .models import Course, Fee, Hostel, Payment, Section, Setting, Student, TransportRoute, User
+from .permissions import has_permission
 from .seed import seed_database
 
 NAV_ITEMS = [
@@ -116,6 +117,7 @@ templates.env.filters["money"] = format_money
 templates.env.filters["datefmt"] = format_date
 templates.env.filters["escapejs"] = escapejs
 templates.env.filters["monthly_equivalent"] = monthly_equivalent_amount
+templates.env.globals["has_permission"] = has_permission
 
 
 @asynccontextmanager
@@ -370,6 +372,34 @@ def current_month_amount(
     return monthly_equivalent_amount(amount, frequency)
 
 
+def is_one_time_fee(fee: Fee) -> bool:
+    if str(fee.frequency or "").strip() == "One Time":
+        return True
+    return normalize_fee_category(fee.category) == "Admission"
+
+
+def is_due_this_cycle(start_date: date, frequency: str, as_of: date | None = None) -> bool:
+    as_of = as_of or date.today()
+    if as_of < start_date:
+        return False
+    interval_months = frequency_months(frequency)
+    if interval_months <= 0:
+        return month_difference(start_date, as_of) == 0
+    elapsed_months = month_difference(start_date, as_of)
+    return elapsed_months % interval_months == 0
+
+
+def cycle_index_for_frequency(start_date: date, frequency: str, as_of: date | None = None) -> int:
+    as_of = as_of or date.today()
+    if as_of < start_date:
+        return 0
+    interval_months = frequency_months(frequency)
+    elapsed_months = month_difference(start_date, as_of)
+    if interval_months <= 0:
+        return 1
+    return (elapsed_months // interval_months) + 1
+
+
 def fee_applies_to_student(fee: Fee, student: Student) -> bool:
     target_type = str(fee.target_type or "General").strip()
     if target_type == "General":
@@ -574,6 +604,75 @@ def paid_payment_totals_by_student(session: Session, student_ids: list[int]) -> 
         .group_by(Payment.student_id)
     ).all()
     return {int(student_id): float(total or 0.0) for student_id, total in rows}
+
+
+def paid_payment_totals_by_fee(session: Session, student_id: int) -> dict[tuple[int, str], float]:
+    rows = session.execute(
+        select(Payment.service_id, Payment.service_type, func.coalesce(func.sum(Payment.amount), 0.0))
+        .where(
+            Payment.student_id == student_id,
+            Payment.status == "Paid",
+            Payment.service_id.is_not(None),
+        )
+        .group_by(Payment.service_id, Payment.service_type)
+    ).all()
+    return {
+        (int(service_id), normalize_payment_type(service_type)): float(total or 0.0)
+        for service_id, service_type, total in rows
+        if service_id is not None
+    }
+
+
+def calculate_student_due_breakdown(
+    session: Session,
+    student: Student,
+    as_of: date | None = None,
+) -> dict[str, float | list[dict[str, object]]]:
+    as_of = as_of or date.today()
+    fees = applicable_fees_for_student(session, student)
+    paid_by_fee = paid_payment_totals_by_fee(session, student.id)
+
+    due_items: list[dict[str, object]] = []
+    for fee in fees:
+        normalized_category = normalize_fee_category(fee.category)
+        fee_payment_type = "admission" if normalized_category == "Admission" else normalize_payment_type(
+            normalized_category
+        )
+        paid_for_fee = float(paid_by_fee.get((fee.id, fee_payment_type), 0.0))
+        is_one_time = is_one_time_fee(fee)
+        due_amount = 0.0
+
+        if is_one_time:
+            due_amount = max(float(fee.amount or 0.0) - paid_for_fee, 0.0)
+        else:
+            if not is_due_this_cycle(student.joined_on, fee.frequency, as_of):
+                continue
+            cycle_number = cycle_index_for_frequency(student.joined_on, fee.frequency, as_of)
+            expected_total_by_cycle = cycle_number * float(fee.amount or 0.0)
+            current_cycle_due = max(expected_total_by_cycle - paid_for_fee, 0.0)
+            # Reminder should focus on this cycle amount, not roll up all historical backlog.
+            due_amount = min(current_cycle_due, float(fee.amount or 0.0))
+
+        if due_amount <= 0:
+            continue
+
+        due_items.append(
+            {
+                "fee_id": fee.id,
+                "name": fee.name,
+                "type": normalized_category,
+                "frequency": fee.frequency,
+                "is_one_time": is_one_time,
+                "amount": due_amount,
+                "target_name": fee_target_display_name_for_student(fee, student),
+            }
+        )
+
+    total_due = sum(float(item["amount"]) for item in due_items)
+    return {
+        "total_due": total_due,
+        "breakdown": due_items,
+    }
 
 
 def calculate_student_fees_and_payments_from_data(
