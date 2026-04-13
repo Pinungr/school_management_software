@@ -801,3 +801,70 @@ async def api_get_student_ledger(student_id: int, request: Request):
             if isinstance(t["date"], datetime):
                 t["date"] = t["date"].isoformat()
         return JSONResponse(ledger)
+
+
+@router.get("/api/v1/receipts/{receipt_id}")
+async def api_get_receipt(receipt_id: int, request: Request):
+    with SessionLocal() as session:
+        _, response = require_user(session, request)
+        if response:
+            return response
+            
+        receipt = session.get(Receipt, receipt_id)
+        if not receipt:
+            return JSONResponse({"error": "Receipt not found"}, status_code=404)
+            
+        return JSONResponse({
+            "id": receipt.id,
+            "receipt_number": receipt.receipt_number,
+            "amount": receipt.amount_paid,
+            "date": receipt.payment_date.isoformat(),
+            "generated_at": receipt.generated_at.isoformat()
+        })
+
+
+@router.get("/api/v1/receipts/{receipt_id}/pdf")
+async def api_get_receipt_pdf(receipt_id: int, request: Request):
+    from fastapi.responses import FileResponse
+    with SessionLocal() as session:
+        _, response = require_user(session, request)
+        if response:
+            return response
+            
+        from school_admin.services import ReceiptService
+        try:
+            file_path = ReceiptService.generate_receipt_pdf(session, receipt_id)
+            if not os.path.exists(file_path):
+                return JSONResponse({"error": "Failed to generate PDF"}, status_code=500)
+            
+            return FileResponse(
+                path=file_path,
+                filename=os.path.basename(file_path),
+                media_type="application/pdf"
+            )
+        except ValueError as e:
+            return JSONResponse({"error": str(e)}, status_code=404)
+
+
+@router.get("/api/v1/students/{student_id}/receipts")
+async def api_get_student_receipts(student_id: int, request: Request):
+    with SessionLocal() as session:
+        _, response = require_user(session, request)
+        if response:
+            return response
+            
+        receipts = session.scalars(
+            select(Receipt)
+            .where(Receipt.student_id == student_id)
+            .order_by(Receipt.generated_at.desc())
+        ).all()
+        
+        return JSONResponse([
+            {
+                "id": r.id,
+                "receipt_number": r.receipt_number,
+                "amount": r.amount_paid,
+                "date": r.payment_date.isoformat()
+            }
+            for r in receipts
+        ])

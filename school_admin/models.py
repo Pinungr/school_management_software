@@ -295,6 +295,7 @@ class PaymentTransaction(Base):
 
     student: Mapped[Student] = relationship(back_populates="payment_transactions")
     fee: Mapped[Fee] = relationship()
+    receipt: Mapped[Receipt | None] = relationship(back_populates="payment", uselist=False)
 
 
 @event.listens_for(PaymentTransaction, "before_update")
@@ -305,3 +306,31 @@ def prevent_payment_update(mapper, connection, target):
 @event.listens_for(PaymentTransaction, "before_delete")
 def prevent_payment_delete(mapper, connection, target):
     raise RuntimeError("Payment transactions are immutable and cannot be deleted.")
+
+
+class Receipt(Base):
+    __tablename__ = "receipts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    receipt_number: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
+    payment_id: Mapped[int] = mapped_column(ForeignKey("payment_transactions.id"), unique=True)
+
+    amount_paid: Mapped[float] = mapped_column(Float)
+    payment_date: Mapped[datetime] = mapped_column(DateTime)
+
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    generated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    student: Mapped[Student] = relationship()
+    payment: Mapped[PaymentTransaction] = relationship(back_populates="receipt")
+
+
+@event.listens_for(Receipt, "before_update")
+def prevent_receipt_update(mapper, connection, target):
+    raise RuntimeError("Receipts are immutable and cannot be updated.")
+
+
+@event.listens_for(Receipt, "before_delete")
+def prevent_receipt_delete(mapper, connection, target):
+    raise RuntimeError("Receipts are immutable and cannot be deleted.")

@@ -55,7 +55,12 @@ class PaymentService:
             created_at=datetime.utcnow()
         )
         session.add(transaction)
-        # session.flush() could be called here to ensure DB constraints are checked immediately
+        session.flush()
+
+        # Task 3: Automatic Receipt Generation
+        from .receipt_service import ReceiptService
+        ReceiptService.create_receipt(session, transaction, user_id)
+
         return transaction
 
     @staticmethod
