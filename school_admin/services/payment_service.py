@@ -2,8 +2,9 @@ from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from ..models import PaymentTransaction, Fee, Student, Payment
-from ..finance_utils import fee_cycle_count
+from ..finance_utils import fee_cycle_count, fee_applies_to_student
 
 class PaymentService:
     @staticmethod
@@ -17,12 +18,32 @@ class PaymentService:
         user_id: int | None = None
     ) -> PaymentTransaction:
         if amount <= 0:
-            raise ValueError("Payment amount must be positive")
+            raise HTTPException(status_code=400, detail="Payment amount must be positive")
             
+        student = session.get(Student, student_id)
+        if not student:
+            raise HTTPException(status_code=404, detail=f"Student ID {student_id} not found")
+
         fee = session.get(Fee, fee_id)
         if not fee:
-            raise ValueError(f"Fee ID {fee_id} not found")
-            
+            raise HTTPException(status_code=404, detail=f"Fee ID {fee_id} not found")
+
+        # Validate that fee applies to student (e.g. correct course/hostel)
+        if not fee_applies_to_student(fee, student):
+            raise HTTPException(status_code=400, detail="This fee type does not apply to the selected student")
+
+        # Perform balance check just before insertion to prevent overpayment (Concurrency Safety)
+        balance = PaymentService.get_fee_balance(session, student_id, fee_id)
+        total_paid = balance["total_paid"]
+        total_due = balance["total_fee"]
+
+        if total_paid >= total_due:
+            raise HTTPException(status_code=400, detail="This fee is already fully paid")
+        
+        if total_paid + amount > total_due:
+            remaining = total_due - total_paid
+            raise HTTPException(status_code=400, detail=f"Payment exceeds remaining due of {remaining:.2f}")
+
         transaction = PaymentTransaction(
             student_id=student_id,
             fee_id=fee_id,
@@ -34,7 +55,6 @@ class PaymentService:
             created_at=datetime.utcnow()
         )
         session.add(transaction)
-        # We do not call session.commit() here to allow transaction atomicity in the caller
         return transaction
 
     @staticmethod
@@ -74,7 +94,7 @@ class PaymentService:
         ) or 0.0
         
         total_paid = float(ledger_total + legacy_total)
-        due = max(total_fee - total_paid, 0.0)
+        due = max(0.0, total_fee - total_paid)
         
         if total_paid >= total_fee:
             status = "PAID"

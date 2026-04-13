@@ -3,7 +3,19 @@ from __future__ import annotations
 from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, event
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    event,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -272,7 +284,7 @@ class PaymentTransaction(Base):
     student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
     fee_id: Mapped[int] = mapped_column(ForeignKey("fees.id"))
 
-    amount_paid: Mapped[float] = mapped_column(Float)
+    amount_paid: Mapped[float] = mapped_column(Float, CheckConstraint("amount_paid > 0"))
     payment_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     payment_mode: Mapped[str] = mapped_column(String(20))  # CASH, UPI, BANK, CARD
@@ -283,3 +295,13 @@ class PaymentTransaction(Base):
 
     student: Mapped[Student] = relationship(back_populates="payment_transactions")
     fee: Mapped[Fee] = relationship()
+
+
+@event.listens_for(PaymentTransaction, "before_update")
+def prevent_payment_update(mapper, connection, target):
+    raise RuntimeError("Payment transactions are immutable and cannot be updated.")
+
+
+@event.listens_for(PaymentTransaction, "before_delete")
+def prevent_payment_delete(mapper, connection, target):
+    raise RuntimeError("Payment transactions are immutable and cannot be deleted.")
