@@ -24,7 +24,7 @@
         {% include "partials/csrf_input.html" %}
         <label>
             <span>Full Name</span>
-            <input name="full_name" value="{{ form_user.full_name if form_user else '' }}" required>
+            <input name="full_name" value="{{ form_user.full_name if form_user else '' }}" pattern="^[A-Za-z\s]+$" title="Name can only contain letters and spaces" required>
         </label>
         <label>
             <span>Username</span>

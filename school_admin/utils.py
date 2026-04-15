@@ -628,46 +628,30 @@ def calculate_student_due_breakdown(
     student: Student,
     as_of: date | None = None,
 ) -> dict[str, float | list[dict[str, object]]]:
-    as_of = as_of or date.today()
-    fees = applicable_fees_for_student(session, student)
-    paid_by_fee = paid_payment_totals_by_fee(session, student.id)
-
+    # We leverage the exact same comprehensive calculation logic used by the UI
+    fees_data = calculate_student_fees_and_payments(session, student)
+    
     due_items: list[dict[str, object]] = []
-    for fee in fees:
-        normalized_category = normalize_fee_category(fee.category)
-        fee_payment_type = "admission" if normalized_category == "Admission" else normalize_payment_type(
-            normalized_category
-        )
-        paid_for_fee = float(paid_by_fee.get((fee.id, fee_payment_type), 0.0))
-        is_one_time = is_one_time_fee(fee)
-        due_amount = 0.0
-
-        if is_one_time:
-            due_amount = max(float(fee.amount or 0.0) - paid_for_fee, 0.0)
-        else:
-            if not is_due_this_cycle(student.joined_on, fee.frequency, as_of):
-                continue
-            cycle_number = cycle_index_for_frequency(student.joined_on, fee.frequency, as_of)
-            expected_total_by_cycle = cycle_number * float(fee.amount or 0.0)
-            current_cycle_due = max(expected_total_by_cycle - paid_for_fee, 0.0)
-            # Reminder should focus on this cycle amount, not roll up all historical backlog.
-            due_amount = min(current_cycle_due, float(fee.amount or 0.0))
-
+    
+    for item in fees_data.get("fee_items", []):
+        due_amount = float(item.get("remaining_amount", 0.0))
+        
+        # Only bill what is actually remaining due from the cascading calculation
         if due_amount <= 0:
             continue
-
+            
         due_items.append(
             {
-                "fee_id": fee.id,
-                "name": fee.name,
-                "type": normalized_category,
-                "frequency": fee.frequency,
-                "is_one_time": is_one_time,
+                "fee_id": item.get("id"),
+                "name": item.get("name"),
+                "type": item.get("category"),
+                "frequency": item.get("frequency"),
+                "is_one_time": item.get("frequency") == "One-time",
                 "amount": due_amount,
-                "target_name": fee_target_display_name_for_student(fee, student),
+                "target_name": item.get("target_name"),
             }
         )
-
+        
     total_due = sum(float(item["amount"]) for item in due_items)
     return {
         "total_due": total_due,

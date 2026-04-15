@@ -35,8 +35,8 @@ from school_admin.utils import (
 router = APIRouter()
 LIST_PAGE_SIZE = 10
 EXPORT_BATCH_SIZE = 250
-MANUAL_PAYMENT_TYPES = ("course", "hostel", "transport", "other")
-PAYMENT_TYPES = set(MANUAL_PAYMENT_TYPES)
+MANUAL_PAYMENT_TYPES = ("general", "course", "hostel", "transport", "other")
+PAYMENT_TYPES = set(MANUAL_PAYMENT_TYPES).union({"admission"})
 PAYMENT_STATUSES = {"Paid", "Pending", "Cancelled"}
 PAYMENT_METHODS = {"Cash", "UPI", "Card", "Bank Transfer"}
 PAYMENT_ERROR_MESSAGES = {
@@ -415,7 +415,7 @@ async def create_payment(request: Request):
         form, response = await form_with_csrf(request, "/payments")
         if response:
             return response
-        service_type = str(form.get("service_type", "course")).strip().lower()
+        service_type = str(form.get("service_type", "general")).strip().lower()
         if service_type not in PAYMENT_TYPES:
             return redirect("/payments?create=1&error=invalid_type")
         student_id = optional_int(str(form.get("student_id", "")))
@@ -423,7 +423,7 @@ async def create_payment(request: Request):
         if student is None:
             return redirect("/payments?create=1&error=invalid_student")
         service_id = optional_int(str(form.get("service_id", "")))
-        if not validate_service_for_type(session, service_type, service_id, student=student):
+        if service_type != "general" and not validate_service_for_type(session, service_type, service_id, student=student):
             return redirect("/payments?create=1&error=invalid_service")
         amount = positive_float(str(form.get("amount", "")))
         if amount is None:
@@ -452,9 +452,9 @@ async def create_payment(request: Request):
             status=status,
         )
         apply_student_snapshot(payment, student)
-        apply_receipt_snapshot(session, payment, student)
         session.add(payment)
         session.flush()
+        apply_receipt_snapshot(session, payment, student)
         payment_id = payment.id
         session.commit()
     return redirect(f"/payments/{payment_id}/bill")
@@ -474,7 +474,7 @@ async def edit_payment(payment_id: int, request: Request):
             return redirect("/payments")
         if payment.service_type == "admission":
             return redirect("/payments")
-        service_type = str(form.get("service_type", "course")).strip().lower()
+        service_type = str(form.get("service_type", "general")).strip().lower()
         if service_type not in PAYMENT_TYPES:
             return redirect(f"/payments?edit={payment_id}&error=invalid_type")
         student_id = optional_int(str(form.get("student_id", "")))
@@ -482,7 +482,7 @@ async def edit_payment(payment_id: int, request: Request):
         if student is None:
             return redirect(f"/payments?edit={payment_id}&error=invalid_student")
         service_id = optional_int(str(form.get("service_id", "")))
-        if not validate_service_for_type(session, service_type, service_id, student=student):
+        if service_type != "general" and not validate_service_for_type(session, service_type, service_id, student=student):
             return redirect(f"/payments?edit={payment_id}&error=invalid_service")
         amount = positive_float(str(form.get("amount", "")))
         if amount is None:
@@ -509,6 +509,7 @@ async def edit_payment(payment_id: int, request: Request):
         payment.reference = str(form.get("reference", "")).strip()
         payment.notes = str(form.get("notes", "")).strip()
         payment.status = status
+        session.flush()
         apply_receipt_snapshot(session, payment, student)
         session.commit()
     return redirect("/payments")
@@ -742,4 +743,7 @@ def escape_text(value: str) -> str:
 
 def format_amount(value: float, currency: str | None) -> str:
     prefix = (currency or "Rs").strip()
-    return f"{prefix} {float(value or 0):,.2f}"
+    val = float(value or 0)
+    if val < 0:
+        return f"{prefix} {abs(val):,.2f} (Credit)"
+    return f"{prefix} {val:,.2f}"

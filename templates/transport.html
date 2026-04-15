@@ -54,8 +54,8 @@
             </select>
         </label>
         <label><span>Vehicle No</span><input name="vehicle_no" value="{{ form_route.vehicle_no if form_route else '' }}"></label>
-        <label><span>Driver Name</span><input name="driver_name" value="{{ form_route.driver_name if form_route else '' }}"></label>
-        <label><span>Driver Phone</span><input name="driver_phone" value="{{ form_route.driver_phone if form_route else '' }}"></label>
+        <label><span>Driver Name</span><input name="driver_name" value="{{ form_route.driver_name if form_route else '' }}" pattern="^[A-Za-z\s]+$" title="Name can only contain letters and spaces"></label>
+        <label><span>Driver Phone</span><input type="tel" name="driver_phone" value="{{ form_route.driver_phone if form_route else '' }}" pattern="[0-9]{10}" inputmode="numeric" title="Please enter exactly 10 digits"></label>
         <label class="wide"><span>Pickup Points</span><textarea name="pickup_points" rows="3">{{ form_route.pickup_points if form_route else '' }}</textarea></label>
         <div class="wide form-actions"><button class="btn btn-primary" type="submit">{% if form_mode == "create" %}Save Route{% else %}Update Route{% endif %}</button></div>
     </form>

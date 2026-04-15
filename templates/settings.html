@@ -33,7 +33,7 @@
             <h3>School Information</h3>
             <label><span>School Name</span><input name="school_name" value="{{ settings.school_name }}"></label>
             <label><span>School Email</span><input type="email" name="school_email" value="{{ settings.school_email }}"></label>
-            <label><span>Phone Number</span><input name="phone_number" value="{{ settings.phone_number }}"></label>
+            <label><span>Phone Number</span><input type="tel" name="phone_number" value="{{ settings.phone_number }}" pattern="[0-9]{10}" inputmode="numeric" title="Please enter exactly 10 digits"></label>
             <input type="hidden" name="existing_logo_url" value="{{ settings.logo_url }}">
             <label>
                 <span>School Logo</span>

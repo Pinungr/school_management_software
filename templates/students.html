@@ -56,7 +56,7 @@
         </label>
         <label>
             <span>Full Name</span>
-            <input name="full_name" value="{{ form_student.full_name if form_student else '' }}" required>
+            <input name="full_name" value="{{ form_student.full_name if form_student else '' }}" pattern="^[A-Za-z\s]+$" title="Name can only contain letters and spaces" required>
         </label>
         <label>
             <span>Guardian Email</span>
@@ -64,11 +64,11 @@
         </label>
         <label>
             <span>Guardian Phone</span>
-            <input name="phone" value="{{ form_student.phone if form_student else '' }}" required>
+            <input type="tel" name="phone" value="{{ form_student.phone if form_student else '' }}" pattern="[0-9]{10}" inputmode="numeric" title="Please enter exactly 10 digits" required>
         </label>
         <label>
             <span>Parent Name</span>
-            <input name="parent_name" value="{{ form_student.parent_name if form_student else '' }}">
+            <input name="parent_name" value="{{ form_student.parent_name if form_student else '' }}" pattern="^[A-Za-z\s]+$" title="Name can only contain letters and spaces">
         </label>
         <label>
             <span>Status</span>
@@ -209,12 +209,7 @@
                 {% set fees = student_data.fees_payments %}
                 {% set balance = fees.remaining_balance %}
                 {% set total_fees = fees.total_fees %}
-                {% set balance_tone = "text-success" %}
-                {% if balance > 0 and total_fees > 0 and (balance / total_fees) >= 0.5 %}
-                {% set balance_tone = "text-danger" %}
-                {% elif balance > 0 and total_fees > 0 and (balance / total_fees) > 0.15 %}
-                {% set balance_tone = "text-warning" %}
-                {% endif %}
+                {% set balance_tone = "text-danger" if balance > 0 else ("text-success" if balance < 0 else "") %}
                 <tr>
                     <td>{{ student.student_code }}</td>
                     <td>{{ student.full_name }}</td>
@@ -235,6 +230,8 @@
                     <td>
                         {% if fees.remaining_balance > 0 %}
                         <span class="{{ balance_tone }}"><strong>{{ fees.remaining_balance|money }}</strong></span>
+                        {% elif fees.remaining_balance < 0 %}
+                        <span class="text-success"><strong>{{ (fees.remaining_balance * -1)|money }} (Credit)</strong></span>
                         {% else %}
                         <span class="text-success"><strong>Paid</strong></span>
                         {% endif %}

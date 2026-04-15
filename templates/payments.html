@@ -66,23 +66,8 @@
                 {% endfor %}
             </select>
         </label>
-        <label>
-            <span>Payment Type</span>
-            <select name="service_type" id="service_type">
-                {% for option in manual_payment_types %}
-                <option value="{{ option }}" {% if form_payment and form_payment.service_type == option %}selected{% elif not form_payment and loop.first %}selected{% endif %}>{{ option.title() }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Fee Item</span>
-            <select name="service_id" id="service_id" required>
-                <option value="">Select a fee item...</option>
-                {% for fee in form_available_fees %}
-                <option value="{{ fee.id }}" {% if form_service_id == fee.id %}selected{% endif %}>{{ fee.name }} ({{ fee.amount|monthly_equivalent(fee.frequency)|money }} / month{% if fee.frequency != "Monthly" %} from {{ fee.amount|money }} {{ fee.frequency|lower }} fee{% endif %})</option>
-                {% endfor %}
-            </select>
-        </label>
+        <input type="hidden" name="service_type" value="general">
+        <input type="hidden" name="service_id" value="">
         <label><span>Amount</span><input type="number" step="0.01" name="amount" value="{{ form_payment.amount if form_payment else '' }}" required></label>
         <label><span>Payment Date</span><input type="date" name="payment_date" value="{{ form_payment.payment_date.isoformat() if form_payment else today.isoformat() }}"></label>
         <label>
@@ -117,9 +102,11 @@
         <form method="get" class="filter-row">
             <select name="payment_type">
                 <option value="">All Types</option>
-                {% for option in manual_payment_types %}
-                <option value="{{ option }}" {% if filters.payment_type == option %}selected{% endif %}>{{ option.title() }}</option>
-                {% endfor %}
+                <option value="general" {% if filters.payment_type == 'general' %}selected{% endif %}>General</option>
+                <option value="admission" {% if filters.payment_type == 'admission' %}selected{% endif %}>Admission</option>
+                <option value="course" {% if filters.payment_type == 'course' %}selected{% endif %}>Course</option>
+                <option value="hostel" {% if filters.payment_type == 'hostel' %}selected{% endif %}>Hostel</option>
+                <option value="transport" {% if filters.payment_type == 'transport' %}selected{% endif %}>Transport</option>
             </select>
             <input type="text" name="student_query" value="{{ filters.student_query }}" placeholder="Search by student ID or name">
             <select name="payment_status">
@@ -221,11 +208,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const studentSelect = document.getElementById("student_id");
     const studentLookupInput = document.getElementById("student_lookup");
     const studentLookupOptions = document.getElementById("payment-student-lookup-options");
-    const serviceTypeSelect = document.getElementById("service_type");
-    const serviceIdSelect = document.getElementById("service_id");
     const amountInput = document.querySelector('input[name="amount"]');
 
-    if (!studentSelect || !studentLookupInput || !studentLookupOptions || !serviceTypeSelect || !serviceIdSelect) {
+    if (!studentSelect || !studentLookupInput || !studentLookupOptions) {
         return;
     }
 
@@ -293,22 +278,22 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    async function searchStudents(query) {
+    function searchStudents(query) {
         const trimmed = query.trim();
         if (!trimmed) {
             lookupResults = [];
             renderLookupOptions([]);
             return;
         }
-        const response = await fetch(`/payments/student-search?q=${encodeURIComponent(trimmed)}`, {
+        return fetch(`/payments/student-search?q=${encodeURIComponent(trimmed)}`, {
             headers: { "X-Requested-With": "fetch" },
+        }).then(response => {
+            if (!response.ok) return;
+            return response.json().then(payload => {
+                lookupResults = payload.results || [];
+                renderLookupOptions(lookupResults);
+            });
         });
-        if (!response.ok) {
-            return;
-        }
-        const payload = await response.json();
-        lookupResults = payload.results || [];
-        renderLookupOptions(lookupResults);
     }
 
     function syncSelectedStudentFromLookup() {
@@ -322,63 +307,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         ensureStudentOption(student);
         studentSelect.value = String(student.id);
-        serviceIdSelect.dataset.initialized = "";
-        updateFeeOptions();
-    }
-
-    function applicableFees() {
-        const student = students[studentSelect.value];
-        const paymentType = serviceTypeSelect.value;
-        if (!student) {
-            return [];
-        }
-        return fees.filter((fee) => {
-            if (fee.category !== paymentType) {
-                return false;
-            }
-            if (fee.target_type === "general") {
-                return true;
-            }
-            if (fee.target_type === "course") {
-                return Number(student.course_id) === Number(fee.target_id);
-            }
-            if (fee.target_type === "hostel") {
-                return Number(student.hostel_id) === Number(fee.target_id);
-            }
-            if (fee.target_type === "transport") {
-                return Number(student.transport_id) === Number(fee.target_id);
-            }
-            return false;
-        });
-    }
-
-    function updateAmount() {
-        const fee = applicableFees().find((item) => String(item.id) === String(serviceIdSelect.value));
-        if (!fee || !amountInput) {
-            return;
-        }
-        if (!amountInput.value || Number(amountInput.value) === 0) {
-            amountInput.value = fee.monthly_amount;
-        }
-    }
-
-    function updateFeeOptions() {
-        const available = applicableFees();
-        serviceIdSelect.innerHTML = '<option value="">Select a fee item...</option>';
-        available.forEach((fee) => {
-            const option = document.createElement("option");
-            option.value = fee.id;
-            const billingText = fee.frequency === "Monthly"
-                ? `Rs ${fee.monthly_amount.toLocaleString()} / month`
-                : `Rs ${fee.monthly_amount.toLocaleString()} / month from Rs ${fee.amount.toLocaleString()} ${fee.frequency.toLowerCase()} fee`;
-            option.textContent = `${fee.name} (${billingText})`;
-            if (selectedServiceId && String(fee.id) === String(selectedServiceId) && !serviceIdSelect.dataset.initialized) {
-                option.selected = true;
-            }
-            serviceIdSelect.appendChild(option);
-        });
-        serviceIdSelect.dataset.initialized = "true";
-        updateAmount();
     }
 
     studentLookupInput.addEventListener("input", () => {
@@ -388,13 +316,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 200);
     });
     studentLookupInput.addEventListener("change", syncSelectedStudentFromLookup);
-    studentSelect.addEventListener("change", updateFeeOptions);
-    serviceTypeSelect.addEventListener("change", () => {
-        serviceIdSelect.dataset.initialized = "";
-        serviceIdSelect.value = "";
-        updateFeeOptions();
-    });
-    serviceIdSelect.addEventListener("change", updateAmount);
 
     if (studentSelect.value) {
         const selectedStudent = students[studentSelect.value];
@@ -402,7 +323,6 @@ document.addEventListener("DOMContentLoaded", () => {
             studentLookupInput.value = selectedStudent.label;
         }
     }
-    updateFeeOptions();
 });
 </script>
 {% endblock %}

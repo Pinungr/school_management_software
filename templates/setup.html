@@ -87,7 +87,7 @@
                 </label>
                 <label>
                     <span>School Phone</span>
-                    <input name="phone_number" value="{{ settings.phone_number }}" placeholder="+91 9876543210">
+                    <input type="tel" name="phone_number" value="{{ settings.phone_number }}" placeholder="9876543210" pattern="[0-9]{10}" inputmode="numeric" title="Please enter exactly 10 digits">
                 </label>
                 <label class="wide">
                     <span>School Address</span>
@@ -104,7 +104,7 @@
                 </div>
                 <label>
                     <span>Admin Full Name</span>
-                    <input name="admin_full_name" value="{{ admin_full_name }}" placeholder="System Administrator" required>
+                    <input name="admin_full_name" value="{{ admin_full_name }}" placeholder="System Administrator" pattern="^[A-Za-z\s]+$" title="Name can only contain letters and spaces" required>
                 </label>
                 <label>
                     <span>Admin Email</span>

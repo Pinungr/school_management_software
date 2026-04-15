@@ -2,13 +2,7 @@
 {% set total_fees = fees_data.total_fees if fees_data else 0 %}
 {% set paid_amount = fees_data.paid_amount if fees_data else 0 %}
 {% set remaining_balance = fees_data.remaining_balance if fees_data else 0 %}
-{% set balance_ratio = (remaining_balance / total_fees) if total_fees > 0 else 0 %}
-{% set balance_tone = "text-success" %}
-{% if remaining_balance > 0 and balance_ratio >= 0.5 %}
-{% set balance_tone = "text-danger" %}
-{% elif remaining_balance > 0 and balance_ratio > 0.15 %}
-{% set balance_tone = "text-warning" %}
-{% endif %}
+{% set balance_tone = "text-danger" if remaining_balance > 0 else ("text-success" if remaining_balance < 0 else "") %}
 
 <a class="student-detail-backdrop" href="{{ base_path }}?{{ list_query }}" aria-label="Close student details"></a>
 <aside class="student-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="student-detail-title">
@@ -58,7 +52,11 @@
                         {% else %}
                         <strong>Pending from earlier cycles</strong>
                         {% endif %}
-                        <small>Due {{ item.due_amount|money }}</small>
+                        {% if item.remaining_amount > 0 %}
+                        <small>Due {{ item.remaining_amount|money }}</small>
+                        {% else %}
+                        <small class="text-success">Paid</small>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -81,7 +79,13 @@
                 </div>
                 <div>
                     <span>Balance</span>
-                    <strong class="{{ balance_tone }}">{{ remaining_balance|money }}</strong>
+                    <strong class="{{ balance_tone }}">
+                        {% if remaining_balance < 0 %}
+                        {{ (remaining_balance * -1)|money }} (Credit)
+                        {% else %}
+                        {{ remaining_balance|money }}
+                        {% endif %}
+                    </strong>
                 </div>
             </div>
         </section>

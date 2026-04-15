@@ -45,6 +45,7 @@ DATA_REPAIR_ERROR_MESSAGES = {
     "invalid_service_type": "Choose a valid payment service type before saving.",
     "last_admin": "Keep at least one active administrator account in the system.",
     "invalid_backup_file": "Choose a valid Pinaki backup file to restore.",
+    "database_is_locked_try_closing_app": "The database is currently in use. Please close any other open windows of Pinaki and try again.",
 }
 DATA_REPAIR_SUCCESS_MESSAGES = {
     "row_saved": "Row updated successfully.",

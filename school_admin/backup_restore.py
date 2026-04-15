@@ -113,9 +113,11 @@ def _restore_sqlite_database(database_bytes: bytes, destination_path: Path) -> N
 
 
 def _restore_database_with_retries(source_connection: sqlite3.Connection, destination_path: Path) -> None:
-    attempts = 6
+    attempts = 10
+    last_error = None
     for attempt in range(1, attempts + 1):
         try:
+            # On Windows, we need to ensure we can actually open the destination
             with closing(sqlite3.connect(str(destination_path), timeout=30)) as destination_connection:
                 destination_connection.execute("PRAGMA wal_checkpoint(FULL)")
                 destination_connection.execute("PRAGMA journal_mode=DELETE")
@@ -123,11 +125,14 @@ def _restore_database_with_retries(source_connection: sqlite3.Connection, destin
                 destination_connection.commit()
             return
         except sqlite3.OperationalError as exc:
+            last_error = exc
             # Active readers/writers can briefly lock SQLite during restore.
             if "locked" in str(exc).lower() and attempt < attempts:
-                sleep(0.15 * attempt)
+                sleep(0.3 * attempt)
                 continue
-            raise
+            raise BackupRestoreError("database_is_locked_try_closing_app") from exc
+    if last_error:
+        raise last_error
 
 
 def _validate_pinaki_database(database_bytes: bytes) -> None:

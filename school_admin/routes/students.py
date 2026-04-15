@@ -53,6 +53,7 @@ STUDENT_ERROR_MESSAGES = {
     "promotion_course_unavailable": "No higher active course is available for this student.",
     "permission_denied": "You do not have permission to perform this action.",
     "course_update_denied": "You do not have permission to change the student's course.",
+    "no_dues": "This student does not have any pending dues to remind them about.",
 }
 ALLOWED_RETURN_PATHS = {"/students", "/admissions"}
 
@@ -308,8 +309,9 @@ def create_admission_payment(
         notes=notes,
         status="Paid",
     )
-    apply_receipt_snapshot(session, payment, student)
     session.add(payment)
+    session.flush()
+    apply_receipt_snapshot(session, payment, student)
     return payment
 
 
@@ -861,7 +863,7 @@ async def notify_guardian(student_id: int, request: Request):
 
         due_data = calculate_student_due_breakdown(session, student)
         if float(due_data["total_due"]) <= 0:
-            return redirect(return_path)
+            return redirect(f"{return_path}?view={student_id}&error=no_dues")
 
         settings = session.get(Setting, 1) or Setting()
         school_name = escape(settings.school_name or "")
@@ -995,7 +997,7 @@ async def notify_guardian_whatsapp(student_id: int, request: Request, return_to:
 
         due_data = calculate_student_due_breakdown(session, student)
         if float(due_data["total_due"]) <= 0:
-            return redirect(f"{return_path}?view={student_id}")
+            return redirect(f"{return_path}?view={student_id}&error=no_dues")
 
         phone = normalized_whatsapp_phone(student.phone)
         if not phone:
@@ -1021,7 +1023,7 @@ async def notify_guardian_gmail(student_id: int, request: Request, return_to: st
 
         due_data = calculate_student_due_breakdown(session, student)
         if float(due_data["total_due"]) <= 0:
-            return redirect(f"{return_path}?view={student_id}")
+            return redirect(f"{return_path}?view={student_id}&error=no_dues")
 
         recipient_email = str(student.email or "").strip()
         if not recipient_email:
