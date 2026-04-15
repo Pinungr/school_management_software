@@ -119,8 +119,8 @@ async def fees_page(
             return response
         can_manage_catalog = current_user.role == "Admin"
         statement = select(Fee).order_by(Fee.id.desc())
-        if search.strip():
-            query = search.strip()
+        query = search.strip()
+        if query:
             statement = statement.where(
                 or_(
                     Fee.name.contains(query),
@@ -147,10 +147,10 @@ async def fees_page(
             selected_fee = session.get(Fee, edit)
         
         fee_targets = {fee.id: fee_target_display_name(session, fee) for fee in fees}
-        
+
         pagination_params = {"page": page}
-        if search.strip():
-            pagination_params["search"] = search.strip()
+        if query:
+            pagination_params["search"] = query
 
         return render_page(
             request,
@@ -618,9 +618,10 @@ async def hostels_page(
             return response
         can_manage_catalog = current_user.role == "Admin"
         statement = select(Hostel).order_by(Hostel.id.desc())
-        if search.strip():
+        query = search.strip()
+        if query:
             statement = statement.where(
-                or_(Hostel.name.contains(search.strip()), Hostel.hostel_type.contains(search.strip()))
+                or_(Hostel.name.contains(query), Hostel.hostel_type.contains(query))
             )
             
         page = max(page, 1)
@@ -641,9 +642,9 @@ async def hostels_page(
             selected_hostel = session.get(Hostel, edit)
             
         pagination_params = {"page": page}
-        if search.strip():
-            pagination_params["search"] = search.strip()
-            
+        if query:
+            pagination_params["search"] = query
+
         return render_page(
             request,
             session,
@@ -771,11 +772,12 @@ async def transport_page(
             return response
         can_manage_catalog = current_user.role == "Admin"
         statement = select(TransportRoute).order_by(TransportRoute.id.desc())
-        if search.strip():
+        query = search.strip()
+        if query:
             statement = statement.where(
                 or_(
-                    TransportRoute.route_name.contains(search.strip()),
-                    TransportRoute.pickup_points.contains(search.strip()),
+                    TransportRoute.route_name.contains(query),
+                    TransportRoute.pickup_points.contains(query),
                 )
             )
             
@@ -797,9 +799,9 @@ async def transport_page(
             selected_route = session.get(TransportRoute, edit)
             
         pagination_params = {"page": page}
-        if search.strip():
-            pagination_params["search"] = search.strip()
-            
+        if query:
+            pagination_params["search"] = query
+
         return render_page(
             request,
             session,

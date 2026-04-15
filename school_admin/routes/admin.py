@@ -80,13 +80,14 @@ async def users_page(
         if response:
             return response
         statement = select(User).where(User.role != "SuperAdmin").order_by(User.id.desc())
-        if search.strip():
+        query = search.strip()
+        if query:
             statement = statement.where(
                 or_(
-                    User.full_name.contains(search.strip()),
-                    User.username.contains(search.strip()),
-                    User.email.contains(search.strip()),
-                    User.role.contains(search.strip()),
+                    User.full_name.contains(query),
+                    User.username.contains(query),
+                    User.email.contains(query),
+                    User.role.contains(query),
                 )
             )
         
@@ -106,8 +107,8 @@ async def users_page(
             selected_user = None
             
         pagination_params = {"page": page}
-        if search.strip():
-            pagination_params["search"] = search.strip()
+        if query:
+            pagination_params["search"] = query
 
         return render_page(
             request,

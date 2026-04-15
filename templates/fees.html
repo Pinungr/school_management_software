@@ -100,14 +100,11 @@
 
 <section class="card">
     <div class="card-header">
-        <div>
-            <h3>Fee Register</h3>
-            <p>Search by fee name, category, or target group.</p>
-        </div>
         <form method="get" class="search-form">
             <input type="text" name="search" value="{{ search }}" placeholder="Search fee records">
             <button class="btn btn-light" type="submit">Search</button>
         </form>
+    </div>
     <div class="card-header">
         <p>
             Showing {{ pagination.page_start }}-{{ pagination.page_end }} of {{ pagination.total_items }} records.

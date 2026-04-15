@@ -38,9 +38,23 @@ Pinaki.exe
 
 # Test and runtime caches
 .pytest_cache/
+.pytest_tmp_*/
+.pytest_work_tmp/
+.tmp_py/
 pytest-cache-files-*/
 data/session_secret.txt
 data/launcher-cache-test/
+data/backup-direct-restore-test-*/
+data/qa-restore-check/
+data/qa-restore-direct-check/
+data/sqlite-temp-permission-check/
+data/pytest-of-*/
+data/tmp*/
+runtime-browser-profiles/
+.uploads-previous-*/
+.uploads-restore-*/
+live_restore_backups/
+tmp*/
 uploads/
 
 # Databases
