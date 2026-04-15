@@ -23,6 +23,8 @@
     --success-soft: #e4f5ea;
     --warning: #cc8b28;
     --warning-soft: #fff2dc;
+    --info: #2563eb;
+    --info-soft: #eff6ff;
     --shadow: 0 28px 60px rgba(58, 45, 28, 0.10);
     --shadow-soft: 0 14px 32px rgba(58, 45, 28, 0.08);
     --radius: 28px;
@@ -892,6 +894,16 @@ tbody td a {
 .badge-danger {
     background: var(--danger-soft);
     color: var(--danger);
+}
+
+.badge-academic {
+    background: var(--info-soft);
+    color: var(--info);
+}
+
+.badge-optional {
+    background: var(--success-soft);
+    color: var(--success);
 }
 
 .form-grid,

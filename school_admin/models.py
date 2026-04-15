@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, Float, ForeignKey, Index, Integer, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
+
+
+student_optional_courses = Table(
+    "student_optional_courses",
+    Base.metadata,
+    Column("student_id", ForeignKey("students.id", ondelete="CASCADE"), primary_key=True),
+    Column("course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class Setting(Base):
@@ -52,9 +60,13 @@ class Course(Base):
     fees: Mapped[float] = mapped_column(Float, default=0)
     frequency: Mapped[str] = mapped_column(String(30), default="Monthly")
     status: Mapped[str] = mapped_column(String(20), default="Active")
+    course_type: Mapped[str] = mapped_column(String(20), default="ACADEMIC")
     description: Mapped[str] = mapped_column(Text, default="")
 
     students: Mapped[list["Student"]] = relationship(back_populates="course")
+    extra_students: Mapped[list["Student"]] = relationship(
+        secondary=student_optional_courses, back_populates="extra_courses"
+    )
     sections: Mapped[list["Section"]] = relationship(back_populates="course")
 
 
@@ -142,6 +154,9 @@ class Student(Base):
     )
 
     course: Mapped[Course | None] = relationship(back_populates="students")
+    extra_courses: Mapped[list[Course]] = relationship(
+        secondary=student_optional_courses, back_populates="extra_students"
+    )
     section: Mapped[Section | None] = relationship(back_populates="students")
     hostel: Mapped[Hostel | None] = relationship(back_populates="students")
     transport_route: Mapped[TransportRoute | None] = relationship(back_populates="students")

@@ -728,6 +728,29 @@ def migration_fees_normalize_frequency_rules(session: Session) -> None:
     )
 
 
+def migration_courses_add_course_type(session: Session) -> None:
+    columns = column_names(session, "courses")
+    if columns and "course_type" not in columns:
+        session.execute(text("ALTER TABLE courses ADD COLUMN course_type TEXT DEFAULT 'ACADEMIC'"))
+
+
+def migration_create_student_enrollments(session: Session) -> None:
+    if not table_exists(session, "student_optional_courses"):
+        session.execute(
+            text(
+                """
+                CREATE TABLE student_optional_courses (
+                    student_id INTEGER NOT NULL,
+                    course_id INTEGER NOT NULL,
+                    PRIMARY KEY (student_id, course_id),
+                    FOREIGN KEY(student_id) REFERENCES students (id) ON DELETE CASCADE,
+                    FOREIGN KEY(course_id) REFERENCES courses (id) ON DELETE CASCADE
+                )
+                """
+            )
+        )
+
+
 MIGRATIONS: list[MigrationStep] = [
     ("20260405_users_add_username", migration_users_add_username),
     ("20260405_users_backfill_username_and_unique_index", migration_users_backfill_username_and_unique_index),
@@ -750,6 +773,8 @@ MIGRATIONS: list[MigrationStep] = [
     ("20260407_create_large_dataset_indexes", migration_create_large_dataset_indexes),
     ("20260413_settings_add_terms_accepted", migration_settings_add_terms_accepted),
     ("20260413_fees_normalize_frequency_rules", migration_fees_normalize_frequency_rules),
+    ("20260415_courses_add_course_type", migration_courses_add_course_type),
+    ("20260415_student_enrollments_create_table", migration_create_student_enrollments),
 ]
 
 

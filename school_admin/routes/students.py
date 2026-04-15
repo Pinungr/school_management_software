@@ -54,6 +54,7 @@ STUDENT_ERROR_MESSAGES = {
     "permission_denied": "You do not have permission to perform this action.",
     "course_update_denied": "You do not have permission to change the student's course.",
     "no_dues": "This student does not have any pending dues to remind them about.",
+    "multiple_academic_courses": "Only one academic course is allowed per student.",
 }
 ALLOWED_RETURN_PATHS = {"/students", "/admissions"}
 
@@ -621,9 +622,12 @@ async def create_student(request: Request):
                 )
             )
         course_id = optional_int(str(form.get("course_id", "")))
+        optional_course_ids = [optional_int(cid) for cid in form.getlist("optional_course_ids") if optional_int(cid) is not None]
+        
         section_id = optional_int(str(form.get("section_id", "")))
         hostel_id = optional_int(str(form.get("hostel_id", "")))
         transport_id = optional_int(str(form.get("transport_id", "")))
+        
         if course_id is None:
             return redirect(
                 student_form_redirect_url(
@@ -632,6 +636,21 @@ async def create_student(request: Request):
                     promotion_source_student_id=promotion_source_student_id,
                 )
             )
+            
+        # Validation Logic
+        all_assigned_course_ids = [course_id] + optional_course_ids
+        assigned_courses = session.scalars(select(Course).where(Course.id.in_(all_assigned_course_ids))).all()
+        academic_courses = [c for c in assigned_courses if c.course_type == "ACADEMIC"]
+        
+        if len(academic_courses) > 1:
+            return redirect(
+                student_form_redirect_url(
+                    return_path,
+                    "multiple_academic_courses",
+                    promotion_source_student_id=promotion_source_student_id,
+                )
+            )
+
         section = session.get(Section, section_id) if section_id is not None else None
         if (
             (course_id is not None and session.get(Course, course_id) is None)
@@ -658,6 +677,10 @@ async def create_student(request: Request):
         student.address = str(form.get("address", "")).strip()
         student.joined_on = joined_on
         student.course_id = course_id
+        
+        # Set Optional Courses
+        student.extra_courses = [c for c in assigned_courses if c.id != course_id]
+        
         student.section_id = section_id
         student.hostel_id = hostel_id
         student.transport_id = transport_id
@@ -745,11 +768,23 @@ async def edit_student(student_id: int, request: Request):
         except ValueError:
             return redirect(f"{return_path}?edit={student_id}&error=invalid_joined_on")
         course_id = optional_int(str(form.get("course_id", "")))
+        optional_course_ids = [optional_int(cid) for cid in form.getlist("optional_course_ids") if optional_int(cid) is not None]
+        
         section_id = optional_int(str(form.get("section_id", "")))
         hostel_id = optional_int(str(form.get("hostel_id", "")))
         transport_id = optional_int(str(form.get("transport_id", "")))
+        
         if course_id is None:
             return redirect(f"{return_path}?edit={student_id}&error=missing_fields")
+
+        # Validation Logic
+        all_assigned_course_ids = [course_id] + optional_course_ids
+        assigned_courses = session.scalars(select(Course).where(Course.id.in_(all_assigned_course_ids))).all()
+        academic_courses = [c for c in assigned_courses if c.course_type == "ACADEMIC"]
+        
+        if len(academic_courses) > 1:
+            return redirect(f"{return_path}?edit={student_id}&error=multiple_academic_courses")
+
         course = session.get(Course, course_id) if course_id is not None else None
         section = session.get(Section, section_id) if section_id is not None else None
         if (
@@ -771,6 +806,10 @@ async def edit_student(student_id: int, request: Request):
         student.address = str(form.get("address", "")).strip()
         student.joined_on = joined_on
         student.course_id = course_id
+        
+        # Update Optional Courses
+        student.extra_courses = [c for c in assigned_courses if c.id != course_id]
+        
         student.section_id = section_id
         student.hostel_id = hostel_id
         student.transport_id = transport_id

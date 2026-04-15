@@ -21,11 +21,23 @@
                 <div><span>Name</span><strong>{{ view_student.full_name }}</strong></div>
                 <div><span>ID</span><strong>{{ view_student.student_code }}</strong></div>
                 <div>
-                    <span>Class / Section</span>
+                    <span>Primary Course</span>
                     <strong>
                         {{ view_student.course.name if view_student.course else "Not assigned" }}
                         <small class="text-muted">{{ view_student.section.name if view_student.section else "No section" }}</small>
                     </strong>
+                </div>
+                <div>
+                    <span>Extra Courses</span>
+                    {% if view_student.extra_courses %}
+                    <div class="extra-courses-list" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+                        {% for c in view_student.extra_courses %}
+                        <span class="badge badge-optional" style="padding: 4px 8px; font-size: 0.85rem;">{{ c.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <strong class="text-muted" style="font-weight: normal; font-size: 0.9rem;">None</strong>
+                    {% endif %}
                 </div>
                 <div><span>Status</span><strong>{{ view_student.status }}</strong></div>
                 <div><span>Email</span><strong>{{ view_student.email or "N/A" }}</strong></div>

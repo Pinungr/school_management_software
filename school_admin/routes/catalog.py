@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from school_admin.database import SessionLocal
 from school_admin.models import Course, Fee, Hostel, Section, Student, TransportRoute
 from school_admin.utils import (
+    COURSE_TYPES,
     FEE_CATEGORIES,
     FEE_FREQUENCIES,
     FEE_TARGET_TYPES,
@@ -38,7 +39,9 @@ CATALOG_ERROR_MESSAGES = {
     "invalid_category": "Choose a valid fee category.",
     "invalid_target": "Choose a valid fee target.",
     "invalid_frequency": "Choose a valid fee frequency.",
+    "invalid_course_type": "Choose a valid course type.",
     "duplicate": "That code is already in use.",
+    "type_conflict": "Cannot change to Academic: some enrolled students already have an Academic course assigned.",
 }
 
 CATEGORY_TARGET_TYPE_MAP = {
@@ -397,6 +400,7 @@ async def courses_page(
             search=search,
             section_search=section_search,
             error_message=CATALOG_ERROR_MESSAGES.get(error, ""),
+            course_types=COURSE_TYPES,
             pagination={
                 "page": page,
                 "total_items": total_courses,
@@ -433,17 +437,21 @@ async def create_course(request: Request):
             return response
         name = str(form.get("name", "")).strip()
         code = str(form.get("code", "")).strip()
+        course_type = str(form.get("course_type", "ACADEMIC")).strip().upper()
         status = str(form.get("status", "Active")).strip()
         if not name:
             return redirect("/courses?create=1&error=missing_name")
         if not code:
             return redirect("/courses?create=1&error=missing_code")
+        if course_type not in COURSE_TYPES:
+            return redirect("/courses?create=1&error=invalid_course_type")
         if status not in CATALOG_STATUSES:
             return redirect("/courses?create=1&error=invalid_status")
         session.add(
             Course(
                 name=name,
                 code=code,
+                course_type=course_type,
                 fees=0,
                 frequency="Monthly",
                 status=status,
@@ -472,15 +480,31 @@ async def edit_course(course_id: int, request: Request):
             return redirect("/courses")
         name = str(form.get("name", "")).strip()
         code = str(form.get("code", "")).strip()
+        course_type = str(form.get("course_type", "ACADEMIC")).strip().upper()
         status = str(form.get("status", "Active")).strip()
         if not name:
             return redirect(f"/courses?edit={course_id}&error=missing_name")
         if not code:
             return redirect(f"/courses?edit={course_id}&error=missing_code")
+        if course_type not in COURSE_TYPES:
+            return redirect(f"/courses?edit={course_id}&error=invalid_course_type")
         if status not in CATALOG_STATUSES:
             return redirect(f"/courses?edit={course_id}&error=invalid_status")
+            
+        # Validation: Changing OPTIONAL to ACADEMIC
+        if course.course_type == "OPTIONAL" and course_type == "ACADEMIC":
+            # Check for students who have this course + another academic course
+            # This course is currently in their 'extra_courses' collection.
+            # If they also have a value in 'course_id' (Main Academic), that's a conflict.
+            has_conflict = session.query(
+                select(Student).join(Student.extra_courses).where(Course.id == course_id).where(Student.course_id.is_not(None)).exists()
+            ).scalar()
+            if has_conflict:
+                return redirect(f"/courses?edit={course_id}&error=type_conflict")
+
         course.name = name
         course.code = code
+        course.course_type = course_type
         course.status = status
         course.description = str(form.get("description", "")).strip()
         try:

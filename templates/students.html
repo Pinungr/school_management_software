@@ -83,13 +83,23 @@
             <input type="date" name="joined_on" value="{{ form_student.joined_on.isoformat() if form_student else today.isoformat() }}">
         </label>
         <label>
-            <span>Course</span>
+            <span>Primary Course</span>
             <select name="course_id" id="student_course_id" required>
-                <option value="">Select course</option>
-                {% for course in lookups.courses %}
+                <option value="">Select Primary Course</option>
+                {% for course in lookups.courses if (not course.course_type or course.course_type == 'ACADEMIC') %}
                 <option value="{{ course.id }}" {% if form_student and form_student.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
                 {% endfor %}
             </select>
+            <span class="form-helper-text">Mandatory Grade level. Only one primary course is allowed.</span>
+        </label>
+        <label>
+            <span>Extra Courses</span>
+            <select name="optional_course_ids" multiple size="4">
+                {% for course in lookups.courses if course.course_type == 'OPTIONAL' %}
+                <option value="{{ course.id }}" {% if form_student and course in form_student.extra_courses %}selected{% endif %}>{{ course.name }}</option>
+                {% endfor %}
+            </select>
+            <span class="form-helper-text">Additional optional courses (e.g. Music, Robotics). Hold Ctrl/Cmd to select multiple.</span>
         </label>
         <label>
             <span>Section</span>

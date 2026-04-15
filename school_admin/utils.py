@@ -59,6 +59,7 @@ CSRF_SESSION_KEY = "csrf_token"
 SESSION_LAST_ACTIVITY_KEY = "last_activity_at"
 SESSION_IDLE_TIMEOUT_SECONDS = 15 * 60
 FEE_CATEGORIES = ("Admission", "Course", "Hostel", "Transport", "Other")
+COURSE_TYPES = ("ACADEMIC", "OPTIONAL")
 FEE_TARGET_TYPES = ("General", "Course", "Hostel", "Transport")
 FEE_FREQUENCIES = ("One Time", "Monthly", "Quarterly", "Half-Yearly", "Yearly")
 
@@ -405,7 +406,10 @@ def fee_applies_to_student(fee: Fee, student: Student) -> bool:
     if target_type == "General":
         return True
     if target_type == "Course":
-        return student.course_id == fee.target_id
+        student_course_ids = {student.course_id} if student.course_id is not None else set()
+        if hasattr(student, "extra_courses") and student.extra_courses:
+            student_course_ids.update(c.id for c in student.extra_courses)
+        return fee.target_id in student_course_ids
     if target_type == "Hostel":
         return student.hostel_id == fee.target_id
     if target_type == "Transport":
@@ -416,25 +420,30 @@ def fee_applies_to_student(fee: Fee, student: Student) -> bool:
 def legacy_fee_items_for_student(student: Student, fees: list[Fee]) -> list[dict[str, float | int | str]]:
     fee_keys = {(fee.category, fee.target_type, fee.target_id) for fee in fees}
     legacy_items: list[dict[str, float | int | str]] = []
-    if student.course and ("Course", "Course", student.course_id) not in fee_keys and student.course.fees:
-        course_frequency = student.course.frequency or "Monthly"
-        monthly_amount = current_month_amount(student.course.fees, course_frequency, student.joined_on)
-        legacy_items.append(
-            {
-                "id": 0,
-                "name": f"{student.course.name} Course Fee",
-                "category": "Course",
-                "frequency": course_frequency,
-                "cycles_due": fee_cycle_count(student.joined_on, course_frequency),
-                "unit_amount": float(student.course.fees or 0),
-                "monthly_amount": monthly_amount,
-                "current_month_amount": monthly_amount,
-                "due_amount": monthly_amount * fee_cycle_count(student.joined_on, course_frequency),
-                "remaining_amount": 0.0,
-                "target_type": "Course",
-                "target_name": student.course.name,
-            }
-        )
+    all_courses = [student.course] if student.course else []
+    if hasattr(student, "extra_courses") and student.extra_courses:
+        all_courses.extend(student.extra_courses)
+    
+    for course in all_courses:
+        if ("Course", "Course", course.id) not in fee_keys and course.fees:
+            course_frequency = course.frequency or "Monthly"
+            monthly_amount = current_month_amount(course.fees, course_frequency, student.joined_on)
+            legacy_items.append(
+                {
+                    "id": 0,
+                    "name": f"{course.name} Course Fee",
+                    "category": "Course",
+                    "frequency": course_frequency,
+                    "cycles_due": fee_cycle_count(student.joined_on, course_frequency),
+                    "unit_amount": float(course.fees or 0),
+                    "monthly_amount": monthly_amount,
+                    "current_month_amount": monthly_amount,
+                    "due_amount": monthly_amount * fee_cycle_count(student.joined_on, course_frequency),
+                    "remaining_amount": 0.0,
+                    "target_type": "Course",
+                    "target_name": course.name,
+                }
+            )
     if student.hostel and ("Hostel", "Hostel", student.hostel_id) not in fee_keys and student.hostel.fee_amount:
         hostel_frequency = "Monthly"
         monthly_amount = current_month_amount(student.hostel.fee_amount, hostel_frequency, student.joined_on)
@@ -578,8 +587,12 @@ def applicable_fees_for_student_from_index(
     normalized_category = category.strip().title()
 
     matched_fees = list(fee_index["general"])
-    if student.course_id is not None:
-        matched_fees.extend(fees_by_target_type["Course"].get(student.course_id, []))
+    student_course_ids = {student.course_id} if student.course_id is not None else set()
+    if hasattr(student, "extra_courses") and student.extra_courses:
+        student_course_ids.update(c.id for c in student.extra_courses)
+    
+    for c_id in student_course_ids:
+        matched_fees.extend(fees_by_target_type["Course"].get(c_id, []))
     if student.hostel_id is not None:
         matched_fees.extend(fees_by_target_type["Hostel"].get(student.hostel_id, []))
     if student.transport_id is not None:

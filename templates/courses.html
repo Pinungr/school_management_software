@@ -26,6 +26,7 @@
     </div>
     <div class="detail-grid">
         <div><span>Code</span><strong>{{ view_course.code }}</strong></div>
+        <div><span>Type</span><strong>{{ view_course.course_type.title() if view_course.course_type else "Academic" }}</strong></div>
         <div><span>Status</span><strong class="badge">{{ view_course.status }}</strong></div>
         <div class="wide"><span>Description</span><strong>{{ view_course.description or "N/A" }}</strong></div>
     </div>
@@ -75,6 +76,15 @@
         {% include "partials/csrf_input.html" %}
         <label><span>Course Name</span><input name="name" value="{{ form_course.name if form_course else '' }}" required></label>
         <label><span>Course Code</span><input name="code" value="{{ form_course.code if form_course else '' }}" required></label>
+        <label>
+            <span>Course Type</span>
+            <select name="course_type">
+                {% for type in course_types %}
+                <option value="{{ type }}" {% if form_course and form_course.course_type == type %}selected{% elif not form_course and type == "ACADEMIC" %}selected{% endif %}>{{ type.title() }} Course</option>
+                {% endfor %}
+            </select>
+        </label>
+        <span class="form-helper-text wide">Academic courses are mandatory (e.g., Grade levels). Optional courses are additional (e.g., Music, Robotics).</span>
         <label>
             <span>Status</span>
             <select name="status">
@@ -158,6 +168,7 @@
                 <tr>
                     <th>Course Name</th>
                     <th>Code</th>
+                    <th>Type</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -167,6 +178,7 @@
                 <tr>
                     <td>{{ course.name }}</td>
                     <td>{{ course.code }}</td>
+                    <td><span class="badge {% if course.course_type == 'OPTIONAL' %}badge-optional{% else %}badge-academic{% endif %}">{{ course.course_type.title() if course.course_type else "Academic" }}</span></td>
                     <td><span class="badge">{{ course.status }}</span></td>
                     <td class="actions">
                         <a class="btn btn-small btn-light" href="/courses?view={{ course.id }}">View</a>
