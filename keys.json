@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-12T22:42:03.470330",
+  "updated_at": "2026-04-15T20:48:34.591851",
   "keys": {
     "PINAKI-6753-64QM-T3U3-OS62": {
       "username": "pinun",
@@ -3496,6 +3496,3506 @@
       "status": "active"
     },
     "PINAKI-EUTW-TWGU-62FC-YKWJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LXAJ-44NK-CMPF-TA45": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2XHD-6DBM-ZEDE-AT4V": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UDAS-NE2B-X76Q-YSSO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WQQA-ADF4-Z5LC-GODK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EPHA-JAHA-DRIQ-IKXQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TRL2-DD25-IH2Q-KD7T": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-46JS-CD4M-HMDW-PAMS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XO7T-3IJP-33RF-J4MC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3TCM-5S3O-XQMA-BMCJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HL3V-BTNA-CGAJ-I2U4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UUIW-AJXC-QCA2-LC2L": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IINI-JWVY-YQEF-SPGW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-T5PQ-JKNK-XKSH-B4TM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QAUH-QR5R-2GH7-JPBS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AAJ3-P6SW-JRTV-KMWC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-S75Q-LETS-C33F-V2Q3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5VLL-6L2C-746T-YZAV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2ZT2-ZXPG-GYQQ-ZROB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SCR5-OGFR-2JDT-RS76": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-A3ZA-QJG6-E3BR-VUBO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-O5CI-ZXRB-V2SI-QYX5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KKQZ-KYNC-ZGRG-ET56": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-J4DL-H4GV-HDQV-QD3H": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SYG4-5NF6-Z3LC-2BQ5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-I6SF-NFDH-SHHM-TYQR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3MNK-BFHU-36BX-HT6J": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LLLE-2LBI-QA4Z-MEA5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-43NZ-3IGY-W4P7-TXJ7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-S2AW-GF2X-NXMN-YI7C": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-L4JH-BO5T-TVXW-ZVRV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-337X-34FI-5OEJ-SPZH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MXM3-4SN7-BTO5-KET4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WMJJ-6J4G-QHGB-QDAC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XX3E-IO3V-NW2E-OV4K": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EMJW-2KDD-OFRL-7426": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YELR-KSOG-66SD-BO7E": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-J23G-SFER-2AKJ-4PJV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7HFN-ELRX-RI2X-U2PA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RTZH-HBBF-2UQK-6GR3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-JGVA-IKYX-H33W-4QWY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-45ZE-Y4HK-JOJS-JDDT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-C6PZ-SPXP-VYJM-2BX3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-N5ZH-D4ZN-TO3C-IR4H": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DRCA-MY3D-64Z3-HXJV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BDV7-DTO3-UBW6-T66L": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2QJY-C3KL-2F4M-373G": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YCZC-B2TV-WITY-ZLE3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WNWN-RSL6-SZ2Y-YYX4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SB66-4TVV-6MAB-O7GR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WXGU-K7IJ-VYK6-YDUF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-22EH-CAIE-X6UG-7DAB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EPRH-XTHB-DTE4-SNTV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OQPE-G2HN-UYKZ-HAO3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UYLS-65BD-ORQL-O44M": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CEP4-Y64C-623O-WQF2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NNGC-OEHE-BMLX-B7DL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YKGP-ET4J-ZBUL-NALW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VEDY-YHGO-MYYX-YSRT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-522I-Z67L-ND6W-UBXM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VW2L-OBFL-5F6Q-ER67": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-R37V-FPP4-4O24-EM4W": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4GV4-7YL3-5IIA-ZVUC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SUXT-2VIM-GIXF-45GX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DK5Q-FQDD-EQ5C-L2VY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FAXJ-XWIN-7ZEL-4B7R": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-THN5-EDLY-O56G-HIOG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YXW2-RFR6-UT4F-SE6D": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AJG7-VDJI-XCNQ-HTL7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-A5I6-GCFL-43BV-URK6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BEWF-EB3U-3V2R-2D2K": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CKLK-WTNW-IGWU-BGPT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FU7Q-JRKT-6NRU-NX7X": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GSSP-MU3Y-ZSB5-K4XI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UB3I-IIK7-XDLW-BJVB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NS76-6HNG-XQ6K-5VUD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NQ2A-XJF2-366E-5YEA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TJ4S-IKYK-PHNV-ZH4B": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MFON-W3S6-QHIT-VLUH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MLIU-JEVP-JUBW-VIAA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5JPY-MPHR-EQIP-MS24": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4HZ6-WNKR-363I-JPN7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4GZ5-56IB-ODAL-FGL5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6E7Q-5HPW-DQFB-4KL7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ITFT-5GLU-MS6F-VVJ7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ND4N-EH5X-RBAY-EAKK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UW5G-Q4OP-PGGS-JLRO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Z4IO-M6PB-GVIJ-I56Q": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XN5Y-KNL3-7K2Y-M2BY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KQPB-L2AZ-H3NC-GYEK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TNDM-D7DV-UHHR-JTUT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SFXP-LMTU-Y4W3-2OC7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PFHE-3YYX-JGIQ-C2LH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GXQ2-LILH-PCAS-R2YP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RCEO-FZXP-VGC7-XBT3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DW3V-SGGE-VXMN-HEBM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-G7RE-JTNV-ZT4V-JM2I": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TILK-WTZ7-DDJH-T5A7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GU64-GJAH-2YMF-Q53S": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7E6O-XMRY-VSK2-BC56": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2TNG-EPX2-NQZ3-2ZKM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OJWH-YFRS-XG4E-DE4R": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-T3OQ-IKUT-VOJ4-SW5M": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WRTB-Z5NH-U4IO-GRHU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UT5C-KOC7-OMLZ-FO5I": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4HEW-JOWB-LYYI-7MI3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5VSJ-Y6DY-XJGF-UIPA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3RBC-5KGL-GDEV-QIFL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IDKI-UMUU-LRQ7-DFRD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KN5T-ATEU-OVAE-2657": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KEMD-T2DG-2NLX-XD45": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FGL3-AWVH-OQUL-5ELR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PRXT-HT5A-IVKS-RUKM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ME2I-Z444-GXAS-ZAMG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PV25-23KA-C2KH-V2AU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2A6Q-MJFE-JD2J-XLLB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HR35-VRCB-QVCS-4WGO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HE5B-YLYK-JZJK-N67E": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PIFK-R35Z-CQRQ-5FLH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UZ4W-6G6Y-UYWN-ZPMC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UJHH-B6VU-NCLG-T7HV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3Z4R-HQUZ-2WOK-SI5Q": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GXX7-CFM7-N7NU-GLSU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OGW4-SHEY-RAOT-NXVE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HXZT-XMZG-4FBY-BRTG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZPKI-TAFG-BGJU-PUMX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SUH6-NNFD-CJZD-SBKN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZDG7-NTPP-DEM7-EQCO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PHXD-R4LZ-3YFJ-JTDE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RTEU-LJSQ-3QL5-AHWA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RY3K-LP26-LEWU-KADM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-W65G-ZPQ7-5I6E-K5GY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HL2Y-V7XG-IH5M-4I2M": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AGGO-YVD5-6LTY-WKLE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-JAVI-PMMN-CXXU-PGMJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UZTT-AS4E-VFLA-P2PR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QMPK-ZRJC-7C32-NAJQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TKMG-O3ZS-H2D4-6SSH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-A5AB-SWEX-C4NP-UYUO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KR4V-XIOM-3IWM-36M7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HJRU-OBAK-QZ7M-MFZR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-H57I-M5UU-R6QP-4T34": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MW7Q-KLAF-UVCN-WG3Y": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IEIA-OECU-BKJT-X3BN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HK76-FNW3-G6EB-DQW6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-L6K5-5DHJ-YXVO-44XY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RDFF-TFML-RBBN-WLUU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZLQ5-LKHD-V5GJ-FPD5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IWWV-Q7XU-XD3J-XWHG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FPHF-3LAY-PAZK-5ABZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-M66D-IPEN-E3R4-XGCW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BYN3-MGXA-WT6G-5O7V": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TRIM-OPOR-DPXQ-YJKS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-G4NP-AHXP-A6IF-PU6X": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Y5N6-FO3G-O6AP-SROE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-T5SN-A7PZ-4ST6-KOM6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TBDL-BMXN-KE4W-XYDJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-V5RY-SNKU-4PUD-2PSL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AJMV-UUNG-ST5W-5GNS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-T2FP-AHRV-IGKK-R5XH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HRBT-BNSW-5TJW-36PY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3ZEB-QLTH-V2NW-YAEF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FEVS-NTVL-WVKL-RJG5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YXSE-VNCA-SDFX-22LF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VDV5-EZH7-KEPW-BGEW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XUFF-CZYP-2XGG-VO42": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZDD2-GUXR-J7HP-BQCF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MGME-TF22-7CDI-HGEP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HMU3-H3MC-GU4L-6AQV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UODG-WGEH-TXVJ-XUAS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MDZH-BNEW-YSTJ-MB2P": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PA7E-MAN6-NEFM-3QWB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-47RY-I63I-JAB6-PNBN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TDZJ-RXAT-JNFO-EYMB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5BGX-ISA5-FLB7-WVQS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6Y5T-4CKR-XYEY-6P7I": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-N25G-63EQ-2DBE-7GYB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LPRB-R3D5-C63E-T4TS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EMJP-WH6G-BV7T-F4OQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CBTF-UZLC-JPCT-JKEQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-JQYA-FJ6F-P46G-ARYQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-57RJ-SB7N-M52N-ITCR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PVUM-SJSV-URPZ-4YXM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-J7SP-E2UE-LCB4-NIGN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MJE4-NRWU-5I2W-K7IU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6RUV-PF7C-EL6Q-JI6T": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-33NC-GLES-MFEL-5JJE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OWWL-NXUB-532I-FZFF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TBGQ-YUUS-PYEO-A3XN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7T33-EWP5-KYDP-VRTT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3WIF-NJXA-MJ7R-RJHS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-H2EX-V4IX-2NT2-POTH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EHTL-3OJ5-F47V-7S45": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-R4GJ-YNAZ-CLTG-ZDJS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FZKK-344F-IR2C-46L6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DHAZ-RE4H-EIPW-CO2F": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MC3W-6GOL-4Z35-FBI5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-REEJ-CXB5-2V7X-MOV4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-W7KR-OTBJ-LF5A-JYYV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Z5KF-3HYQ-5AGH-YYVX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VYFO-XWYB-FJMT-SZHJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MMEX-EFNX-HTSZ-PPRJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CJZD-5FZT-ZUHR-C2YW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QQQM-J2KQ-VBM3-P5RH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-53QU-IJIC-GVFS-XAL4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7B6O-SKHR-TAII-CWYW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-K663-WSOS-GZ35-ISOY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TYJG-YW3Z-7IFH-L5WD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZPW2-JVVR-YZ26-GVIJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6K3Q-VNOC-RME7-HZ45": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HDCE-IXGJ-4PND-Q5XZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6UR2-AOWH-MEYH-N4MY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EPIK-DDLZ-HLLE-BXHD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ULTF-QICY-F5S5-74A3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-G5T6-ORIM-MIYO-BTER": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EEQJ-AEEY-OOK6-AKQS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-G7MX-NF2O-7SCT-I3VV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZP4Y-JKZZ-BHTX-5FKZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YAOV-G33U-PMLH-HBYO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-G4RO-I6ZE-M2Z3-AKZH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7LYA-QQPH-PYDW-7U5B": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WDIM-6ONM-2JDU-COYS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WUWS-73V3-IOZ4-YKAS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3JUX-LWUB-HYQV-RN5H": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZQAN-RX25-WZWY-E3K4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PASC-7HY5-KVLI-PYRO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3ISR-AAA5-VEQ2-A274": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ONZX-QPRN-WQMU-AXQR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5VA5-ZOKU-OOQL-WJ5B": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4ZUT-2FWK-XR5H-ITH2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QIWL-52IG-VEO4-DFNR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AY2F-4P2P-P6BT-2ENK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BUHN-KLIE-4SBR-7Q2D": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-K6LX-SCKQ-22VG-WIXG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6KGM-4AY3-TTGH-QLG7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XYN6-C6LG-KPV7-Z75V": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YTIV-MWM4-PXR4-4QX4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TLMM-AZPR-WHQN-7YU6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Z4NP-7YOE-2HTM-OQYI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5PUL-XX4N-XVQW-HL5V": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6KW5-RXYQ-M2PW-25IO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-X35N-NHE4-2J5V-VWM5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CBTR-SG7M-EXI7-73GL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CQIO-VJD6-2ZUT-ELY5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WSHE-UBT6-BBOB-VK5Z": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YZB3-ZU32-JENK-KSX4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CQU7-JRER-FM47-YJ64": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-343H-ALOI-RTXG-R5FI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MSD2-NIU6-ZEDM-RYSK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YRZT-FY5A-RPRW-F64K": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6AXG-SS53-O766-XIAB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-W2J4-6RYO-5PLR-JZKB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PUN7-QZLC-VNEG-AAS4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4IXB-VTMW-3BID-GRGZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SO7W-HSKQ-J6AB-5YSF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ONNK-DUZW-36TT-SKPE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UOKV-I3FF-3O6T-EZTW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OPGN-HAF3-7DA6-73RH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-42L5-42GR-7PJQ-W57D": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-N573-B66K-BX7W-TSUO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KPRY-UKKM-5KIM-FPPL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2AIO-RP3B-6C3B-CH7U": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-INNZ-PKCY-DOBG-LWVP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NMC7-7UGB-TEPB-SVOJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FLX2-UUJX-ZDF5-XWQG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GKRL-ZZFX-WKKT-6V2C": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MXIU-JFSN-BCXQ-GBQP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ATYW-GIEE-EMDG-7CJP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GW6T-L4AH-6GE2-YGXU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BXIH-IPS2-FZBW-H3L2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XZU4-TS3T-MY62-2CQ3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2NJI-WPGO-FPET-SX3X": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PTGX-UQ43-UYZI-MZ7I": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FZX4-MRD6-DNQU-YBRA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SM5X-5Z6V-WKQO-ONEA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3HCV-XNTU-2LWR-BNM7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7L7A-W66H-QA53-RZK5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-H5SJ-DWMF-PJGF-YN66": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FDMR-QPUH-OHO4-T53H": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VGBS-2M4E-PMUO-KJQH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-24R6-5AJK-AYTG-DUK7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LSRF-OGU7-6PV2-Y5AI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-M7GT-CA6K-D42Q-QRT4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UHKW-MPVW-OVM4-ZJ4A": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OJI3-EHB3-C4OC-2WUX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-O6KA-PP2X-GXVU-BGYE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HZTH-R6UW-57TX-LAHS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-46UC-22Q5-REOS-JY2Y": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OZLJ-IIOY-VD7W-XHP3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UXFB-WH4E-RM7Y-FHLG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GGXB-45EG-AQNV-SVBG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CQJZ-QF5L-HC6W-7FT5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SCF7-MNUE-VPML-A46E": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EFWR-7P6W-7VNS-KNXP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-J7KJ-TYER-3PCB-KHUX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-E67E-7XL5-72CX-37A5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XO6A-Q4BI-ZWFV-VFWN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YYJ4-SIOY-YI2K-AC7U": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PLW5-KJUF-5B3P-4AB4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PNJO-CYSY-FSHZ-FSL2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DR72-AS3O-ZJXK-5TCG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FHBO-SK7P-2XYB-E46Y": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CYWT-GG3K-KIKU-5ONC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZF2F-JUX2-5CI6-XMSV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NKUN-4OCY-67XZ-S5EV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GMNZ-JPSA-EVAK-K3X5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-O2TR-SN3L-DANF-UQLO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RCBS-4DQL-UMTC-YRGW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-26OM-VU24-GE3V-7YI5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5C4R-74O3-4YTG-ZKEZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MV2K-T6ZI-FNLR-566S": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HYJT-XDGM-6A5E-ZC3F": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-F4VC-2ITE-SRP2-J4N5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NJBD-4HTW-MC6Z-D5J3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MKGQ-XNFP-V7Q2-RGPK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EVW5-BFJI-DKLK-GAYI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IUA7-AMGA-KBV6-O6SV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IOY6-7Q3N-YMXA-GLZN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2V7S-WCWW-VQDY-FXU3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SUCH-6WKR-FGJS-E3UN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-L2LV-FSC2-FWTM-RDFC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-REWI-56SN-ZRMT-MCQE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-V5GK-KO7X-OZMR-BVGN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HUW3-PNAZ-AFU3-G366": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZIUV-INCB-QHTW-HPUP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Z7M2-XMEU-FGKP-IYAD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GBWW-Q3NL-RGP6-U2AU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IU6R-HD2K-FMKH-EH3S": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BZF3-65YO-EXUF-GFFZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SJJL-Z6NQ-BC4A-VMQE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RRYV-Z4V6-JM2F-XCNW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UVK6-KNFK-QDAX-A2WM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-H4MS-36AE-OJMU-RMGN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TI5L-4JWZ-MJ6F-UYRX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ELM7-DSI5-GZQ7-UQ3F": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Z2AM-4D7G-EC3K-M4K6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-E2EA-IOYF-FXJT-3FVO": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RRFL-7NLY-AJRH-7DXR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HLWO-WII4-MIBE-ZMR3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UEW3-DDVZ-WOSJ-YWUQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZLRP-BL4V-XVIM-DNHY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Y4TS-WOKZ-YEF2-WBVI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SM6H-IH4P-7XKG-6S6S": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CAXF-LXEI-JE6C-3QPG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RND2-GMJA-FBI2-B4D7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OUL4-UYRX-QAJW-6I5Q": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IW5J-37QN-2Z56-KH4A": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CR3M-FU32-YG3J-QUJT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DDPU-T6W5-PNV7-54ZM": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YCNG-2ISG-OORN-YHK6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NYV5-QSY4-PE5K-VKG7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6AUY-RA3C-WJLF-IOI7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ACWH-NNZ2-IV44-VTNQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4ULK-UGCB-WTEJ-VN67": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-M7ST-NQ6Z-TB3H-DUW2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BH55-C2CP-SOAI-22QT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-COZQ-S2AN-T4PW-SS56": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CRQC-P37T-NGOA-H6DZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UCR2-AYYG-TFTF-YJ2M": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TAIK-MDGY-CMWM-5POG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VMS4-3JQ6-456Y-LEPA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FSP3-3C4F-BU6X-WOR7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-EORC-GOWZ-T3TP-WH5K": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DZOW-LOYO-FRCT-GBQB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-4L42-TJJB-7W5U-XAYS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LUQ4-I6DR-NH77-FSKZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TOZB-EYBU-KHMH-7AOP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WMF3-XMRO-KPMX-BX4Z": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NXUH-HBXT-7NJZ-J4YX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-REUO-PXGV-U6IQ-QONC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AG4R-BOQQ-63KD-QLSD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WIBG-PNIJ-VDCO-VFXW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AHZM-RPZT-ZDUS-LOOQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XJDN-CY4M-M4I7-ZUQW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VI7G-33T5-TL4G-EXUU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VHCA-MM5I-SEDF-GA73": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6LHR-OCXX-T6ML-WLYA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TGWC-KAZB-CHFT-J2FQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-DBLD-YOKP-S6YH-OFEI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7HDR-XIMV-DTMT-345P": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RSTM-B63F-AMEO-4HCT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7CAP-YDZB-ETVB-GV7Y": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-P3KA-KCXA-JU2X-TU3H": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VLVB-AOYP-D24U-5IP4": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7IJM-YJK4-4DQV-J644": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7VXM-FYZM-IRKG-TVXJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZZGJ-DAKP-Y5L4-7TJU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2J6A-3CRK-H2VJ-VMP2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SLJP-X6US-H36N-47IG": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-H23R-7I6I-NQVO-EQT6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TDIM-6MQT-LDBN-RDX5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5SWH-B3LM-52GT-S5LZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TLYI-ON6S-2LCD-DO5T": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VMSI-LSMO-EPYM-N2A2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LVSH-VKGE-K7AW-NQTP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-43NA-6MLA-WFQD-ZIBY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SIYC-DB76-JSKB-SFXT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WFYG-UPFE-7JMI-PHJ2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IKX4-XHHK-TG7C-BS3E": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HG3J-RLZK-WHOY-OI3D": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QFZ4-YK3I-TANG-YXCS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UL2N-NFQA-WJKL-4OOC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZSSC-W6WA-Q2TW-LUPU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FPXL-PFGP-YLWL-F7LI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-J6S3-YLOX-BITG-AIVY": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-C3RI-DSZX-33ZQ-EQLQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LIKJ-6J3U-JKVN-ASWJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6OKQ-66ZO-GX2L-KBBQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-XGZL-HODO-LLO2-AFRZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3V2Z-UFJ5-TGW5-PWVK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QWXP-S2ME-K7ZZ-6V5R": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-S72N-UMRI-C4JK-KTZ6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-C4HK-CLRH-XW7W-LPMI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SC47-6ZJ4-BKYS-TJZ3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-FGUO-DT7U-RZMP-ML5P": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6V5B-Q4S2-YMOW-LHOB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-X4GF-MOPW-IPW3-5LGA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-UUTG-WC6H-XNVK-YBNX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3GSZ-NK3D-UAIR-4OJZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ARO7-X4MP-2GWU-AAUK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZEJF-A7KR-V4XO-R76A": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3W4I-WDC5-QER4-SUSS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WIRW-CZ2X-5DS7-2SQ5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-P55A-7VEE-ZSD2-IRKS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-CUYF-7ZXD-D2QC-ZDXX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-K5GD-OCPB-VQYR-W3OQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-X723-FXWE-C5ST-ZIM2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OY7P-3VR3-3GNH-F6Y2": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YUFM-45PH-4FKG-5KAZ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PWCU-BYQ2-J7Y5-FUWC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PTRF-UY6S-ZUB2-H5TW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7Y3X-6P2L-6NNB-UX3T": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QBTA-R6IZ-RLIK-53QB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ICPY-64R6-YYCF-GDX6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZAIM-TBCS-UTPE-DALA": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-26O2-NZMQ-UYYT-BBEN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7XAV-P2F2-WNSD-6Z3T": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6UUS-UKZJ-RP3A-3HJS": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-TQ56-JIAF-SAP6-U2GR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6MOO-OY6T-A3TY-MJ22": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OEMG-G65V-KRBJ-RIPW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RHYH-MFQZ-YBDN-2K4B": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-OKKR-BZNR-DRBA-O5BQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-SFWF-W7TY-SR3O-LERK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QQ3S-7DD4-7MR6-2F3D": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6BM5-TXE5-7N4X-GUTX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NCUW-K7D6-PIRE-INWX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YNRB-BQUR-AD6P-MHJL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AYHA-2T3F-EFFB-RM5Y": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VBR3-ZJUY-GFFX-VCNE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-B3FC-FFDT-EJVQ-DMGV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PBQ5-MBKP-YTGF-SHKL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-J4X3-RKBE-D6BM-JIQ7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-JFBJ-MPQV-ZHCN-DVME": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7272-QDO3-FF2I-QKMP": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-54W5-HE73-E5UC-E3UL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-E5MY-7RXB-BTM4-IULU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-6ZIB-QGWZ-YCHO-M5BN": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MNQH-2PJE-R5HX-WU5E": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RTV3-EVEI-5MRY-M5GQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QIFS-75TZ-DM4E-EPJI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WDWP-ZFYN-62E3-LW7F": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NIMD-2G5M-UMKN-JY2G": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-YIEP-L7TQ-R72E-G2SC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-2A74-M5H4-GGH6-V7PU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-V5CM-NUAK-CMOY-PGZX": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-KFW6-PQCR-JVYH-6MDJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NGB2-LSKY-AA77-Q2MQ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-55VW-DKLQ-GN76-7KTU": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PRWP-5H2A-3WPI-A2DB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7IUS-5HUE-MFZU-YDGH": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZJ3R-GPNF-7KM3-BARE": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5ZOT-JOMR-T6G7-ZLR7": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-3GPE-WJUN-ZWQP-TFHL": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-D4MM-YPXB-4CEM-47QT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-Q5DV-FSVQ-OLHC-ZNP6": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-PK2T-S5KR-LZ7G-SRDD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-U5SI-RFMM-Y7EJ-MZJC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GTOE-GRNV-FWU7-76SB": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-N5MB-K6OQ-L4L3-525P": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7UDJ-IQPB-ISGH-XGWR": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-5QE3-VQMH-RZQV-66U5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-BNVX-JQSX-EDPF-MKMF": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-GZKV-RURG-42FX-TINV": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-MUJB-VSV5-AZGF-L2LD": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LZAT-FWVP-GSYF-77E3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-7S44-ROMK-WW6E-7B3L": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RHWX-A4ST-6NOB-TBP5": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-QIEZ-IKCI-HZVC-QBM3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-VH3Q-JIF6-UD3T-M6WT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-LQFJ-ZXFT-EIWJ-QZV3": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-RNQE-7BBM-7TUO-JWEJ": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-ZS64-7SN7-4J6P-5D5W": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-JUYU-VIDL-RNKD-I4DK": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-AFUE-KRR6-2HM2-JEMC": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-NFPZ-LIFF-CPMA-ML33": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-W62Z-PMOR-JMGG-BQLT": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-WFNQ-U3VH-MFYC-UEAI": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-67WG-4I7S-XL65-373H": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-HVQH-MEHR-TXC3-X5QW": {
+      "username": null,
+      "activation_date": null,
+      "expiry_date": null,
+      "machine_id": null,
+      "status": "active"
+    },
+    "PINAKI-IKIS-2XAK-DY4H-RCLO": {
       "username": null,
       "activation_date": null,
       "expiry_date": null,
