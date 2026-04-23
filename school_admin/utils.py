@@ -62,6 +62,13 @@ FEE_CATEGORIES = ("Admission", "Course", "Hostel", "Transport", "Other")
 COURSE_TYPES = ("ACADEMIC", "OPTIONAL")
 FEE_TARGET_TYPES = ("General", "Course", "Hostel", "Transport")
 FEE_FREQUENCIES = ("One Time", "Monthly", "Quarterly", "Half-Yearly", "Yearly")
+INTERNAL_STUDENT_TARGET_TYPE = "Student"
+INTERNAL_ADJUSTMENT_SERVICE_TYPE = "adjustment"
+INTERNAL_CREDIT_SERVICE_TYPE = "credit"
+INTERNAL_NON_COLLECTION_SERVICE_TYPES = {
+    INTERNAL_ADJUSTMENT_SERVICE_TYPE,
+    INTERNAL_CREDIT_SERVICE_TYPE,
+}
 
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -373,6 +380,31 @@ def current_month_amount(
     return monthly_equivalent_amount(amount, frequency)
 
 
+def choose_applicable_admission_fee(fees: list[Fee]) -> Fee | None:
+    admission_fees = [
+        fee for fee in fees if normalize_fee_category(fee.category) == "Admission"
+    ]
+    admission_fees.sort(
+        key=lambda fee: (
+            0 if str(fee.target_type or "").strip() == "Course" and fee.target_id is not None else 1,
+            fee.name,
+            fee.id,
+        )
+    )
+    return admission_fees[0] if admission_fees else None
+
+
+def enforce_single_admission_fee(fees: list[Fee]) -> list[Fee]:
+    chosen_admission_fee = choose_applicable_admission_fee(fees)
+    filtered_fees: list[Fee] = []
+    for fee in fees:
+        if normalize_fee_category(fee.category) != "Admission":
+            filtered_fees.append(fee)
+        elif chosen_admission_fee is not None and fee.id == chosen_admission_fee.id:
+            filtered_fees.append(fee)
+    return filtered_fees
+
+
 def is_one_time_fee(fee: Fee) -> bool:
     if str(fee.frequency or "").strip() == "One Time":
         return True
@@ -414,10 +446,17 @@ def fee_applies_to_student(fee: Fee, student: Student) -> bool:
         return student.hostel_id == fee.target_id
     if target_type == "Transport":
         return student.transport_id == fee.target_id
+    if target_type == INTERNAL_STUDENT_TARGET_TYPE:
+        return getattr(student, "id", None) == fee.target_id
     return False
 
 
-def legacy_fee_items_for_student(student: Student, fees: list[Fee]) -> list[dict[str, float | int | str]]:
+def legacy_fee_items_for_student(
+    student: Student,
+    fees: list[Fee],
+    *,
+    as_of: date | None = None,
+) -> list[dict[str, float | int | str]]:
     fee_keys = {(fee.category, fee.target_type, fee.target_id) for fee in fees}
     legacy_items: list[dict[str, float | int | str]] = []
     all_courses = [student.course] if student.course else []
@@ -427,39 +466,41 @@ def legacy_fee_items_for_student(student: Student, fees: list[Fee]) -> list[dict
     for course in all_courses:
         if ("Course", "Course", course.id) not in fee_keys and course.fees:
             course_frequency = course.frequency or "Monthly"
-            monthly_amount = current_month_amount(course.fees, course_frequency, student.joined_on)
+            monthly_amount = current_month_amount(course.fees, course_frequency, student.joined_on, as_of=as_of)
             legacy_items.append(
                 {
                     "id": 0,
                     "name": f"{course.name} Course Fee",
                     "category": "Course",
                     "frequency": course_frequency,
-                    "cycles_due": fee_cycle_count(student.joined_on, course_frequency),
+                    "cycles_due": fee_cycle_count(student.joined_on, course_frequency, as_of=as_of),
                     "unit_amount": float(course.fees or 0),
                     "monthly_amount": monthly_amount,
                     "current_month_amount": monthly_amount,
-                    "due_amount": monthly_amount * fee_cycle_count(student.joined_on, course_frequency),
+                    "due_amount": monthly_amount * fee_cycle_count(student.joined_on, course_frequency, as_of=as_of),
                     "remaining_amount": 0.0,
                     "target_type": "Course",
+                    "target_id": course.id,
                     "target_name": course.name,
                 }
             )
     if student.hostel and ("Hostel", "Hostel", student.hostel_id) not in fee_keys and student.hostel.fee_amount:
         hostel_frequency = "Monthly"
-        monthly_amount = current_month_amount(student.hostel.fee_amount, hostel_frequency, student.joined_on)
+        monthly_amount = current_month_amount(student.hostel.fee_amount, hostel_frequency, student.joined_on, as_of=as_of)
         legacy_items.append(
             {
                 "id": 0,
                 "name": f"{student.hostel.name} Hostel Fee",
                 "category": "Hostel",
                 "frequency": hostel_frequency,
-                "cycles_due": fee_cycle_count(student.joined_on, hostel_frequency),
+                "cycles_due": fee_cycle_count(student.joined_on, hostel_frequency, as_of=as_of),
                 "unit_amount": float(student.hostel.fee_amount or 0),
                 "monthly_amount": monthly_amount,
                 "current_month_amount": monthly_amount,
-                "due_amount": monthly_amount * fee_cycle_count(student.joined_on, hostel_frequency),
+                "due_amount": monthly_amount * fee_cycle_count(student.joined_on, hostel_frequency, as_of=as_of),
                 "remaining_amount": 0.0,
                 "target_type": "Hostel",
+                "target_id": student.hostel_id,
                 "target_name": student.hostel.name,
             }
         )
@@ -469,20 +510,21 @@ def legacy_fee_items_for_student(student: Student, fees: list[Fee]) -> list[dict
         and student.transport_route.fee_amount
     ):
         frequency = student.transport_route.frequency or "Monthly"
-        monthly_amount = current_month_amount(student.transport_route.fee_amount, frequency, student.joined_on)
+        monthly_amount = current_month_amount(student.transport_route.fee_amount, frequency, student.joined_on, as_of=as_of)
         legacy_items.append(
             {
                 "id": 0,
                 "name": f"{student.transport_route.route_name} Transport Fee",
                 "category": "Transport",
                 "frequency": frequency,
-                "cycles_due": fee_cycle_count(student.joined_on, frequency),
+                "cycles_due": fee_cycle_count(student.joined_on, frequency, as_of=as_of),
                 "unit_amount": float(student.transport_route.fee_amount or 0),
                 "monthly_amount": monthly_amount,
                 "current_month_amount": monthly_amount,
-                "due_amount": monthly_amount * fee_cycle_count(student.joined_on, frequency),
+                "due_amount": monthly_amount * fee_cycle_count(student.joined_on, frequency, as_of=as_of),
                 "remaining_amount": 0.0,
                 "target_type": "Transport",
+                "target_id": student.transport_id,
                 "target_name": student.transport_route.route_name,
             }
         )
@@ -502,7 +544,7 @@ def applicable_fees_for_student(
     if category.strip():
         statement = statement.where(Fee.category == category.strip().title())
     fees = session.scalars(statement).all()
-    return [fee for fee in fees if fee_applies_to_student(fee, student)]
+    return enforce_single_admission_fee([fee for fee in fees if fee_applies_to_student(fee, student)])
 
 
 def fee_target_display_name(session: Session, fee: Fee) -> str:
@@ -518,6 +560,9 @@ def fee_target_display_name(session: Session, fee: Fee) -> str:
     if target_type == "Transport":
         route = session.get(TransportRoute, fee.target_id)
         return route.route_name if route else "Unknown Route"
+    if target_type == INTERNAL_STUDENT_TARGET_TYPE:
+        student = session.get(Student, fee.target_id)
+        return student.full_name if student else "Unknown Student"
     return "Unknown"
 
 
@@ -535,6 +580,8 @@ def fee_target_display_name_for_student(fee: Fee, student: Student) -> str:
             if student.transport_route and student.transport_id == fee.target_id
             else "Unknown Route"
         )
+    if target_type == INTERNAL_STUDENT_TARGET_TYPE:
+        return student.full_name if student.id == fee.target_id else "Unknown Student"
     return "Unknown"
 
 
@@ -557,6 +604,7 @@ def build_fee_index(fees: list[Fee]) -> dict[str, object]:
         "Course": defaultdict(list),
         "Hostel": defaultdict(list),
         "Transport": defaultdict(list),
+        INTERNAL_STUDENT_TARGET_TYPE: defaultdict(list),
     }
     general_fees: list[Fee] = []
 
@@ -597,11 +645,13 @@ def applicable_fees_for_student_from_index(
         matched_fees.extend(fees_by_target_type["Hostel"].get(student.hostel_id, []))
     if student.transport_id is not None:
         matched_fees.extend(fees_by_target_type["Transport"].get(student.transport_id, []))
+    if student.id is not None:
+        matched_fees.extend(fees_by_target_type[INTERNAL_STUDENT_TARGET_TYPE].get(student.id, []))
 
     if normalized_category:
         matched_fees = [fee for fee in matched_fees if fee.category == normalized_category]
 
-    return sorted(matched_fees, key=lambda fee: fee_positions.get(fee.id, 0))
+    return enforce_single_admission_fee(sorted(matched_fees, key=lambda fee: fee_positions.get(fee.id, 0)))
 
 
 def paid_payment_totals_by_student(session: Session, student_ids: list[int]) -> dict[int, float]:
@@ -636,13 +686,67 @@ def paid_payment_totals_by_fee(session: Session, student_id: int) -> dict[tuple[
     }
 
 
+def paid_payment_rows_by_student(session: Session, student_ids: list[int]) -> dict[int, list[Payment]]:
+    if not student_ids:
+        return {}
+
+    rows = session.scalars(
+        select(Payment)
+        .where(
+            Payment.student_id.in_(student_ids),
+            Payment.status == "Paid",
+        )
+        .order_by(Payment.student_id, Payment.payment_date, Payment.id)
+    ).all()
+    payments_by_student: dict[int, list[Payment]] = defaultdict(list)
+    for payment in rows:
+        if payment.student_id is not None:
+            payments_by_student[int(payment.student_id)].append(payment)
+    return payments_by_student
+
+
+def payment_matches_fee_item(payment: Payment, item: dict[str, float | int | str]) -> bool:
+    service_type = normalize_payment_type(payment.service_type)
+    item_category = normalize_payment_type(str(item.get("category", "")))
+    if item_category == "other":
+        item_category = "other"
+    if service_type != item_category:
+        return False
+    if payment.service_id is None:
+        return False
+    if int(payment.service_id) == int(item.get("id") or 0):
+        return True
+    target_type = str(item.get("target_type", "") or "").strip()
+    target_id = item.get("target_id")
+    if target_type in {"Course", "Hostel", "Transport"} and target_id is not None:
+        return int(payment.service_id) == int(target_id)
+    return False
+
+
+def payment_can_fall_back_to_general_credit(payment: Payment) -> bool:
+    service_type = normalize_payment_type(payment.service_type)
+    if service_type in {"general", INTERNAL_CREDIT_SERVICE_TYPE, INTERNAL_ADJUSTMENT_SERVICE_TYPE}:
+        return True
+    if service_type == "admission":
+        return False
+    return True
+
+
+def split_fee_item_remaining_by_cycle(item: dict[str, object]) -> tuple[float, float]:
+    remaining_amount = max(float(item.get("remaining_amount", item.get("amount", 0.0)) or 0.0), 0.0)
+    current_month_amount = max(float(item.get("current_month_amount", 0.0) or 0.0), 0.0)
+    current_due_amount = min(remaining_amount, current_month_amount)
+    previous_due_amount = max(remaining_amount - current_due_amount, 0.0)
+    return current_due_amount, previous_due_amount
+
+
 def calculate_student_due_breakdown(
     session: Session,
     student: Student,
     as_of: date | None = None,
 ) -> dict[str, float | list[dict[str, object]]]:
-    # We leverage the exact same comprehensive calculation logic used by the UI
-    fees_data = calculate_student_fees_and_payments(session, student)
+    # We leverage the exact same comprehensive calculation logic used by the UI.
+    fees_data = calculate_student_fees_and_payments(session, student, as_of=as_of)
     
     due_items: list[dict[str, object]] = []
     
@@ -652,6 +756,8 @@ def calculate_student_due_breakdown(
         # Only bill what is actually remaining due from the cascading calculation
         if due_amount <= 0:
             continue
+
+        current_due_amount, previous_due_amount = split_fee_item_remaining_by_cycle(item)
             
         due_items.append(
             {
@@ -659,8 +765,11 @@ def calculate_student_due_breakdown(
                 "name": item.get("name"),
                 "type": item.get("category"),
                 "frequency": item.get("frequency"),
-                "is_one_time": item.get("frequency") == "One-time",
+                "is_one_time": item.get("frequency") == "One Time",
                 "amount": due_amount,
+                "current_month_amount": item.get("current_month_amount", 0.0),
+                "current_due_amount": current_due_amount,
+                "previous_due_amount": previous_due_amount,
                 "target_name": item.get("target_name"),
             }
         )
@@ -669,6 +778,8 @@ def calculate_student_due_breakdown(
     return {
         "total_due": total_due,
         "breakdown": due_items,
+        "current_cycle_amount": sum(float(item["current_due_amount"]) for item in due_items),
+        "previous_pending_amount": sum(float(item["previous_due_amount"]) for item in due_items),
     }
 
 
@@ -676,6 +787,9 @@ def calculate_student_fees_and_payments_from_data(
     student: Student,
     fees: list[Fee],
     paid_amount: float = 0.0,
+    *,
+    as_of: date | None = None,
+    payments: list[Payment] | None = None,
 ) -> dict[str, float]:
     fee_items: list[dict[str, float | int | str]] = []
     category_totals = {
@@ -688,8 +802,8 @@ def calculate_student_fees_and_payments_from_data(
     current_cycle_amount = 0.0
 
     for fee in fees:
-        cycle_count = fee_cycle_count(student.joined_on, fee.frequency)
-        current_cycle_fee = current_month_amount(fee.amount, fee.frequency, student.joined_on)
+        cycle_count = fee_cycle_count(student.joined_on, fee.frequency, as_of=as_of)
+        current_cycle_fee = current_month_amount(fee.amount, fee.frequency, student.joined_on, as_of=as_of)
         due_amount = current_cycle_fee * cycle_count
         normalized_category = normalize_fee_category(fee.category)
         category_totals[normalized_category] = category_totals.get(normalized_category, 0.0) + due_amount
@@ -707,11 +821,12 @@ def calculate_student_fees_and_payments_from_data(
                 "due_amount": due_amount,
                 "remaining_amount": due_amount,
                 "target_type": fee.target_type,
+                "target_id": fee.target_id,
                 "target_name": fee_target_display_name_for_student(fee, student),
             }
         )
 
-    fee_items.extend(legacy_fee_items_for_student(student, fees))
+    fee_items.extend(legacy_fee_items_for_student(student, fees, as_of=as_of))
     total_fees = sum(float(item["due_amount"]) for item in fee_items)
     category_totals = {
         "Admission": 0.0,
@@ -726,12 +841,49 @@ def calculate_student_fees_and_payments_from_data(
         category_totals[normalized_category] = category_totals.get(normalized_category, 0.0) + float(item["due_amount"])
         current_cycle_amount += float(item["current_month_amount"])
 
-    remaining_paid = float(paid_amount or 0.0)
-    for item in fee_items:
-        due_amount = float(item["due_amount"])
-        covered = min(due_amount, remaining_paid)
-        item["remaining_amount"] = due_amount - covered
-        remaining_paid -= covered
+    if payments is not None:
+        paid_amount = sum(float(payment.amount or 0.0) for payment in payments)
+
+    if payments is not None and not any(
+        normalize_payment_type(payment.service_type) == INTERNAL_ADJUSTMENT_SERVICE_TYPE
+        for payment in payments
+    ):
+        general_paid = 0.0
+        exact_paid_by_index: dict[int, float] = defaultdict(float)
+        for payment in payments:
+            payment_amount = float(payment.amount or 0.0)
+            matched_index = None
+            if payment_amount > 0:
+                for index, item in enumerate(fee_items):
+                    if payment_matches_fee_item(payment, item):
+                        matched_index = index
+                        break
+            if matched_index is None:
+                if payment_can_fall_back_to_general_credit(payment):
+                    general_paid += payment_amount
+            else:
+                exact_paid_by_index[matched_index] += payment_amount
+
+        for index, exact_paid in exact_paid_by_index.items():
+            item = fee_items[index]
+            due_amount = float(item["due_amount"])
+            covered = min(due_amount, exact_paid)
+            item["remaining_amount"] = due_amount - covered
+            general_paid += max(exact_paid - covered, 0.0)
+
+        remaining_paid = general_paid
+        for item in fee_items:
+            due_amount = float(item["remaining_amount"])
+            covered = min(due_amount, remaining_paid)
+            item["remaining_amount"] = due_amount - covered
+            remaining_paid -= covered
+    else:
+        remaining_paid = float(paid_amount or 0.0)
+        for item in fee_items:
+            due_amount = float(item["due_amount"])
+            covered = min(due_amount, remaining_paid)
+            item["remaining_amount"] = due_amount - covered
+            remaining_paid -= covered
 
     remaining_balance = total_fees - float(paid_amount or 0.0)
     previous_pending_amount = max(remaining_balance - current_cycle_amount, 0.0)
@@ -762,13 +914,13 @@ def calculate_fee_snapshots_for_students(
         select(Fee).where(Fee.status == "Active").order_by(Fee.category, Fee.name, Fee.id)
     ).all()
     fee_index = build_fee_index(active_fees)
-    paid_amounts = paid_payment_totals_by_student(session, [student.id for student in students])
+    payment_rows = paid_payment_rows_by_student(session, [student.id for student in students])
 
     return {
         student.id: calculate_student_fees_and_payments_from_data(
             student,
             applicable_fees_for_student_from_index(student, fee_index),
-            paid_amounts.get(student.id, 0.0),
+            payments=payment_rows.get(student.id, []),
         )
         for student in students
     }
@@ -800,7 +952,10 @@ def _calculate_dashboard_metrics(session: Session) -> dict[str, float | int]:
         select(func.count()).select_from(Course).where(Course.status == "Active")
     ) or 0
     total_collected = session.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status == "Paid")
+        select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+            Payment.status == "Paid",
+            Payment.service_type.not_in(INTERNAL_NON_COLLECTION_SERVICE_TYPES),
+        )
     ) or 0.0
     pending_by_category = {
         "Admission": 0.0,
@@ -862,7 +1017,10 @@ def dashboard_metrics(session: Session) -> dict[str, float | int]:
 def payment_summary(session: Session) -> dict[str, float]:
     summary = {
         "total": session.scalar(
-            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status == "Paid")
+            select(func.coalesce(func.sum(Payment.amount), 0.0)).where(
+                Payment.status == "Paid",
+                Payment.service_type.not_in(INTERNAL_NON_COLLECTION_SERVICE_TYPES),
+            )
         )
         or 0.0,
     }
@@ -894,10 +1052,18 @@ def student_payment_summary(session: Session, student_id: int) -> dict[str, floa
     }
 
 
-def calculate_student_fees_and_payments(session: Session, student: Student) -> dict[str, float]:
+def calculate_student_fees_and_payments(
+    session: Session,
+    student: Student,
+    as_of: date | None = None,
+) -> dict[str, float]:
     fees = applicable_fees_for_student(session, student)
-    payments = student_payment_summary(session, student.id)
-    return calculate_student_fees_and_payments_from_data(student, fees, payments["paid"])
+    payments = session.scalars(
+        select(Payment)
+        .where(Payment.student_id == student.id, Payment.status == "Paid")
+        .order_by(Payment.payment_date, Payment.id)
+    ).all()
+    return calculate_student_fees_and_payments_from_data(student, fees, as_of=as_of, payments=payments)
 
 
 def active_lookups(session: Session, *, include_students: bool = False) -> dict[str, list]:

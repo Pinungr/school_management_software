@@ -18,6 +18,8 @@ from school_admin.database import SessionLocal
 from school_admin.models import Course, Fee, Hostel, Payment, Section, Setting, Student, TransportRoute
 from school_admin.permissions import has_permission
 from school_admin.utils import (
+    INTERNAL_ADJUSTMENT_SERVICE_TYPE,
+    INTERNAL_STUDENT_TARGET_TYPE,
     active_lookups,
     applicable_fees_for_student,
     calculate_fee_snapshots_for_students,
@@ -25,10 +27,12 @@ from school_admin.utils import (
     calculate_student_fees_and_payments,
     form_with_csrf,
     optional_date,
+    optional_float,
     optional_int,
     redirect,
     render_page,
     require_user,
+    split_fee_item_remaining_by_cycle,
     student_payment_summary,
 )
 from school_admin.routes.payments import apply_receipt_snapshot
@@ -55,6 +59,9 @@ STUDENT_ERROR_MESSAGES = {
     "course_update_denied": "You do not have permission to change the student's course.",
     "no_dues": "This student does not have any pending dues to remind them about.",
     "multiple_academic_courses": "Only one academic course is allowed per student.",
+    "promotion_dues_pending": "Clear pending dues before promotion, or ask an admin to promote with dues carried forward.",
+    "invalid_admission_amount": "Enter a valid non-negative admission amount.",
+    "insufficient_admission_amount": "The admission fee is not fully covered. Collect the remaining admission amount before saving.",
 }
 ALLOWED_RETURN_PATHS = {"/students", "/admissions"}
 
@@ -172,18 +179,43 @@ def normalize_reminder_due_data(
 ) -> dict[str, float | list[dict[str, object]]]:
     if "breakdown" in due_data:
         total_due = float(due_data.get("total_due", 0.0) or 0.0)
+        normalized_breakdown: list[dict[str, object]] = []
+        for raw_item in due_data.get("breakdown", []):
+            item = dict(raw_item)
+            amount = float(item.get("amount", item.get("remaining_amount", 0.0)) or 0.0)
+            item["amount"] = amount
+            has_split = "current_due_amount" in item or "previous_due_amount" in item
+            has_cycle_basis = "current_month_amount" in item
+            if has_split:
+                current_due_amount = float(item.get("current_due_amount", 0.0) or 0.0)
+                previous_due_amount = float(item.get("previous_due_amount", 0.0) or 0.0)
+            elif has_cycle_basis:
+                current_due_amount, previous_due_amount = split_fee_item_remaining_by_cycle(item)
+            else:
+                current_due_amount = amount
+                previous_due_amount = 0.0
+            item["current_due_amount"] = current_due_amount
+            item["previous_due_amount"] = previous_due_amount
+            normalized_breakdown.append(item)
+        if normalized_breakdown:
+            current_cycle_amount = sum(float(item["current_due_amount"]) for item in normalized_breakdown)
+            previous_pending_amount = sum(float(item["previous_due_amount"]) for item in normalized_breakdown)
+        else:
+            current_cycle_amount = float(due_data.get("current_cycle_amount", 0.0) or 0.0)
+            previous_pending_amount = float(due_data.get("previous_pending_amount", 0.0) or 0.0)
         return {
             "total_due": total_due,
-            "breakdown": list(due_data.get("breakdown", [])),
-            "current_cycle_amount": 0.0,
-            "previous_pending_amount": 0.0,
+            "breakdown": normalized_breakdown,
+            "current_cycle_amount": current_cycle_amount,
+            "previous_pending_amount": previous_pending_amount,
         }
 
     converted_breakdown: list[dict[str, object]] = []
     for item in due_data.get("fee_items", []):
-        current_cycle_amount = float(item.get("current_month_amount", 0.0) or 0.0)
-        if current_cycle_amount <= 0:
+        remaining_amount = float(item.get("remaining_amount", 0.0) or 0.0)
+        if remaining_amount <= 0:
             continue
+        current_due_amount, previous_due_amount = split_fee_item_remaining_by_cycle(item)
         item_name = str(item.get("name", "Fee"))
         frequency = str(item.get("frequency", "")).strip()
         if frequency in {"Quarterly", "Half-Yearly", "Yearly"}:
@@ -192,7 +224,10 @@ def normalize_reminder_due_data(
             {
                 "type": item.get("category", "Other"),
                 "name": item_name,
-                "amount": current_cycle_amount,
+                "amount": remaining_amount,
+                "current_month_amount": float(item.get("current_month_amount", 0.0) or 0.0),
+                "current_due_amount": current_due_amount,
+                "previous_due_amount": previous_due_amount,
             }
         )
 
@@ -202,15 +237,30 @@ def normalize_reminder_due_data(
     return {
         "total_due": total_due,
         "breakdown": converted_breakdown,
-        "current_cycle_amount": float(due_data.get("current_cycle_amount", 0.0) or 0.0),
-        "previous_pending_amount": float(due_data.get("previous_pending_amount", 0.0) or 0.0),
+        "current_cycle_amount": sum(float(item["current_due_amount"]) for item in converted_breakdown),
+        "previous_pending_amount": sum(float(item["previous_due_amount"]) for item in converted_breakdown),
     }
 
 
 def reminder_breakdown_lines(due_data: dict[str, float | list[dict[str, object]]]) -> list[str]:
     lines: list[str] = []
     for item in due_data["breakdown"]:
-        lines.append(f"{item['type']} - {item['name']}: {float(item['amount']):.2f}")
+        item_name = str(item.get("name", "Fee"))
+        frequency = str(item.get("frequency", "")).strip()
+        if frequency in {"Quarterly", "Half-Yearly", "Yearly"} and "monthly from" not in item_name.lower():
+            item_name = f"{item_name} (monthly from {frequency.lower()} plan)"
+        current_due_amount = float(item.get("current_due_amount", 0.0) or 0.0)
+        previous_due_amount = float(item.get("previous_due_amount", 0.0) or 0.0)
+        if current_due_amount > 0:
+            lines.append(
+                f"{item['type']} - {item_name} (this month's installment): {current_due_amount:.2f}"
+            )
+        if previous_due_amount > 0:
+            lines.append(
+                f"{item['type']} - {item_name} (earlier unpaid balance): {previous_due_amount:.2f}"
+            )
+        if current_due_amount <= 0 and previous_due_amount <= 0 and float(item.get("amount", 0.0) or 0.0) > 0:
+            lines.append(f"{item['type']} - {item_name}: {float(item['amount']):.2f}")
     return lines
 
 
@@ -294,6 +344,7 @@ def create_admission_payment(
     method: str,
     reference: str,
     notes: str = "",
+    amount: float | None = None,
 ) -> Payment:
     payment = Payment(
         student_id=student.id,
@@ -303,7 +354,7 @@ def create_admission_payment(
         service_type="admission",
         service_id=admission_fee.id,
         service_name=admission_fee.name,
-        amount=float(admission_fee.amount or 0),
+        amount=float(admission_fee.amount if amount is None else amount or 0),
         payment_date=payment_date,
         method=method,
         reference=reference,
@@ -314,6 +365,68 @@ def create_admission_payment(
     session.flush()
     apply_receipt_snapshot(session, payment, student)
     return payment
+
+
+def admission_amount_from_form(raw_value: object | None, default: float) -> tuple[float | None, str]:
+    value = str(raw_value or "").strip()
+    if not value:
+        return float(default or 0.0), ""
+    try:
+        amount = optional_float(value)
+    except ValueError:
+        return None, "invalid_admission_amount"
+    if amount < 0:
+        return None, "invalid_admission_amount"
+    return float(amount), ""
+
+
+def create_promotion_carry_forward_entries(
+    session,
+    student: Student,
+    *,
+    prior_balance_data: dict[str, float],
+    promotion_date: date,
+    reference_suffix: str,
+) -> None:
+    prior_due = max(float(prior_balance_data.get("remaining_balance", 0.0) or 0.0), 0.0)
+    prior_paid = max(float(prior_balance_data.get("paid_amount", 0.0) or 0.0), 0.0)
+    if prior_due <= 0:
+        return
+
+    carry_fee = Fee(
+        name=f"Previous Dues Carried Forward - {student.student_code} - {promotion_date.isoformat()}",
+        category="Other",
+        amount=prior_due,
+        frequency="One Time",
+        status="Active",
+        target_type=INTERNAL_STUDENT_TARGET_TYPE,
+        target_id=student.id,
+        description=(
+            "Internal student-specific balance preserved during promotion. "
+            f"Prior total fees: {float(prior_balance_data.get('total_fees', 0.0) or 0.0):.2f}; "
+            f"prior paid/credit applied before promotion: {prior_paid:.2f}."
+        ),
+    )
+    session.add(carry_fee)
+
+    if prior_paid > 0:
+        session.add(
+            Payment(
+                student_id=student.id,
+                student_code=student.student_code,
+                student_name=student.full_name,
+                parent_name=student.parent_name or "",
+                service_type=INTERNAL_ADJUSTMENT_SERVICE_TYPE,
+                service_id=None,
+                service_name="Promotion balance adjustment",
+                amount=-prior_paid,
+                payment_date=promotion_date,
+                method="System",
+                reference=f"PROMO-ADJ-{reference_suffix}",
+                notes="Internal adjustment so prior payments do not become new-grade credit after dues are carried forward.",
+                status="Paid",
+            )
+        )
 
 
 def apply_student_search(statement, search: str, *, broad: bool = False):
@@ -418,6 +531,7 @@ def render_student_workspace(
             promote_next_course,
         )
         promote_form_student = None
+        promotion_finance_context = None
         if promote and promote_student is None and not error:
             error = "promotion_student_missing"
         elif promote and promote_next_course is None and not error:
@@ -428,6 +542,22 @@ def render_student_workspace(
                 promote_next_course,
                 promote_next_section,
             )
+            promotion_fee_preview = first_applicable_admission_fee(session, promote_form_student)
+            promotion_prior_balance = calculate_student_fees_and_payments(
+                session,
+                promote_student,
+                as_of=promote_form_student.joined_on,
+            )
+            promotion_balance_amount = float(promotion_prior_balance.get("remaining_balance", 0.0) or 0.0)
+            promotion_credit_available = max(-promotion_balance_amount, 0.0)
+            promotion_admission_amount = float(promotion_fee_preview.amount or 0.0) if promotion_fee_preview else 0.0
+            promotion_finance_context = {
+                "prior_balance": promotion_balance_amount,
+                "credit_available": promotion_credit_available,
+                "admission_fee": promotion_admission_amount,
+                "remaining_admission_amount": max(promotion_admission_amount - promotion_credit_available, 0.0),
+                "admin_can_carry": current_user.role == "Admin",
+            }
         student_payment_summary_data = (
             student_payment_summary(session, selected_student.id) if selected_student else {}
         )
@@ -487,6 +617,7 @@ def render_student_workspace(
                 "source_student": promote_student,
                 "next_course": promote_next_course,
                 "next_section": promote_next_section,
+                "finance": promotion_finance_context,
             }
             if promote_form_student is not None
             else None,
@@ -665,6 +796,26 @@ async def create_student(request: Request):
                     promotion_source_student_id=promotion_source_student_id,
                 )
             )
+
+        prior_balance_data = None
+        prior_credit_available = 0.0
+        if promotion_source_student is not None:
+            prior_balance_data = calculate_student_fees_and_payments(
+                session,
+                promotion_source_student,
+                as_of=joined_on,
+            )
+            prior_balance = float(prior_balance_data.get("remaining_balance", 0.0) or 0.0)
+            if prior_balance > 0 and current_user.role != "Admin":
+                return redirect(
+                    student_form_redirect_url(
+                        return_path,
+                        "promotion_dues_pending",
+                        promotion_source_student_id=promotion_source_student_id,
+                    )
+                )
+            prior_credit_available = max(-prior_balance, 0.0)
+
         student = promotion_source_student or Student()
         if promotion_source_student is None:
             session.add(student)
@@ -707,6 +858,15 @@ async def create_student(request: Request):
                 )
             )
 
+        if prior_balance_data is not None and float(prior_balance_data.get("remaining_balance", 0.0) or 0.0) > 0:
+            create_promotion_carry_forward_entries(
+                session,
+                student,
+                prior_balance_data=prior_balance_data,
+                promotion_date=joined_on,
+                reference_suffix=f"{student.student_code}-{date.today().strftime('%Y%m%d')}",
+            )
+
         method = str(form.get("admission_method", "Cash")).strip() or "Cash"
         if method not in ADMISSION_PAYMENT_METHODS:
             session.rollback()
@@ -718,19 +878,60 @@ async def create_student(request: Request):
                 )
             )
 
+        admission_fee_amount = float(admission_fee.amount or 0.0)
+        required_cash_amount = max(admission_fee_amount - prior_credit_available, 0.0)
+        collected_amount, admission_amount_error = admission_amount_from_form(
+            form.get("admission_amount"),
+            required_cash_amount,
+        )
+        if admission_amount_error or collected_amount is None:
+            session.rollback()
+            return redirect(
+                student_form_redirect_url(
+                    return_path,
+                    admission_amount_error or "invalid_admission_amount",
+                    promotion_source_student_id=promotion_source_student_id,
+                )
+            )
+        if collected_amount + prior_credit_available < admission_fee_amount:
+            session.rollback()
+            return redirect(
+                student_form_redirect_url(
+                    return_path,
+                    "insufficient_admission_amount",
+                    promotion_source_student_id=promotion_source_student_id,
+                )
+            )
+
+        credit_applied = min(prior_credit_available, admission_fee_amount)
+        admission_notes = str(form.get("admission_notes", "")).strip()
+        if credit_applied > 0:
+            credit_note = (
+                f"Credit applied to admission fee: {credit_applied:.2f}. "
+                f"Amount collected now: {collected_amount:.2f}."
+            )
+            admission_notes = f"{admission_notes}\n{credit_note}".strip()
+        if prior_balance_data is not None and float(prior_balance_data.get("remaining_balance", 0.0) or 0.0) > 0:
+            carry_note = (
+                "Admin promotion preserved prior dues as carried-forward balance: "
+                f"{float(prior_balance_data.get('remaining_balance', 0.0) or 0.0):.2f}."
+            )
+            admission_notes = f"{admission_notes}\n{carry_note}".strip()
+
+        admission_reference = str(form.get("admission_reference", "")).strip() or (
+            f"ADM-PROM-{student.student_code}"
+            if promotion_source_student_id is not None
+            else f"ADM-{student.student_code}"
+        )
         payment = create_admission_payment(
             session,
             student,
             admission_fee,
             payment_date=joined_on,
-            method=method,
-            reference=str(form.get("admission_reference", "")).strip()
-            or (
-                f"ADM-PROM-{student.student_code}"
-                if promotion_source_student_id is not None
-                else f"ADM-{student.student_code}"
-            ),
-            notes=str(form.get("admission_notes", "")).strip(),
+            method="Credit" if collected_amount <= 0 and credit_applied > 0 else method,
+            reference=admission_reference,
+            notes=admission_notes,
+            amount=collected_amount,
         )
         session.flush()
         payment_id = payment.id
@@ -903,6 +1104,7 @@ async def notify_guardian(student_id: int, request: Request):
         due_data = calculate_student_due_breakdown(session, student)
         if float(due_data["total_due"]) <= 0:
             return redirect(f"{return_path}?view={student_id}&error=no_dues")
+        due_data = normalize_reminder_due_data(due_data)
 
         settings = session.get(Setting, 1) or Setting()
         school_name = escape(settings.school_name or "")
@@ -922,14 +1124,48 @@ async def notify_guardian(student_id: int, request: Request):
         for item in due_data["breakdown"]:
             item_label = escape(str(item["name"]))
             item_type = escape(str(item["type"]))
-            fee_rows.append(
-                f"""
+            current_due_amount = float(item.get("current_due_amount", 0.0) or 0.0)
+            previous_due_amount = float(item.get("previous_due_amount", 0.0) or 0.0)
+            if current_due_amount > 0:
+                fee_rows.append(
+                    f"""
+                        <tr>
+                            <td>{item_type} - {item_label} (this month's installment)</td>
+                            <td>{current_due_amount:.2f}</td>
+                        </tr>"""
+                )
+            if previous_due_amount > 0:
+                fee_rows.append(
+                    f"""
+                        <tr>
+                            <td>{item_type} - {item_label} (earlier unpaid balance)</td>
+                            <td>{previous_due_amount:.2f}</td>
+                        </tr>"""
+                )
+            if current_due_amount <= 0 and previous_due_amount <= 0 and float(item.get("amount", 0.0) or 0.0) > 0:
+                fee_rows.append(
+                    f"""
                         <tr>
                             <td>{item_type} - {item_label}</td>
                             <td>{float(item["amount"]):.2f}</td>
                         </tr>"""
-            )
+                )
         fee_rows_html = "".join(fee_rows)
+        current_cycle_amount = float(due_data.get("current_cycle_amount", 0.0) or 0.0)
+        previous_pending_amount = float(due_data.get("previous_pending_amount", 0.0) or 0.0)
+        cycle_summary_rows = ""
+        if current_cycle_amount > 0:
+            cycle_summary_rows += f"""
+                        <tr>
+                            <td>This Month's Charges</td>
+                            <td>{current_cycle_amount:.2f}</td>
+                        </tr>"""
+        if previous_pending_amount > 0:
+            cycle_summary_rows += f"""
+                        <tr>
+                            <td>Earlier Pending Balance</td>
+                            <td>{previous_pending_amount:.2f}</td>
+                        </tr>"""
 
         notification_html = f"""
         <!DOCTYPE html>
@@ -973,7 +1209,7 @@ async def notify_guardian(student_id: int, request: Request):
 
             <div class="fee-breakdown">
                 <h3>Fee Breakdown</h3>
-                <p>This reminder includes one-time pending fees and current cycle recurring fees only.</p>
+                <p>This reminder includes one-time pending fees, monthly recurring installments, and earlier unpaid balances.</p>
                 <table class="fee-table">
                     <thead>
                         <tr>
@@ -983,6 +1219,7 @@ async def notify_guardian(student_id: int, request: Request):
                     </thead>
                     <tbody>
                         {fee_rows_html}
+                        {cycle_summary_rows}
                         <tr class="total-row">
                             <td>Total Due</td>
                             <td>{float(due_data['total_due']):.2f}</td>
@@ -997,7 +1234,7 @@ async def notify_guardian(student_id: int, request: Request):
                 <p>This is to inform you that there is a pending balance of <strong>{school_currency} {float(due_data['total_due']):.2f}</strong>
                 for your ward {student_name} (Student Code: {student_code}) for the academic year {academic_year}.</p>
 
-                <p>The reminder total above reflects pending one-time fees and current cycle recurring fees.</p>
+                <p>The reminder total above reflects pending one-time fees, monthly recurring installments, and earlier unpaid balances.</p>
 
                 <p>Please arrange to clear the outstanding amount at the earliest to avoid any disruption in services.
                 Payment can be made through cash, bank transfer, or other accepted payment methods.</p>

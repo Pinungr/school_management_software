@@ -132,11 +132,32 @@
         {% if allow_manual_create and form_mode == "create" %}
         <div class="wide auth-copy">
             {% if promotion_context %}
-            Saving this promotion will update the student to the new class, record a fresh admission fee automatically, and open the receipt.
+            Saving this promotion will update the student to the new class, record a fresh admission fee, and open the receipt.
+            {% if promotion_context.finance %}
+                {% if promotion_context.finance.prior_balance > 0 %}
+                    {% if promotion_context.finance.admin_can_carry %}
+                    Prior dues of {{ promotion_context.finance.prior_balance|money }} will be carried forward.
+                    {% else %}
+                    Prior dues of {{ promotion_context.finance.prior_balance|money }} must be cleared before promotion.
+                    {% endif %}
+                {% elif promotion_context.finance.credit_available > 0 %}
+                Available credit of {{ promotion_context.finance.credit_available|money }} will be applied to the admission fee. Collect {{ promotion_context.finance.remaining_admission_amount|money }} if the credit is not enough.
+                {% endif %}
+            {% endif %}
             {% else %}
             The admission fee is mandatory for every new admission. Saving this form will record that fee automatically and open the receipt.
             {% endif %}
         </div>
+        <label>
+            <span>Admission Amount Collected</span>
+            <input
+                type="number"
+                step="0.01"
+                name="admission_amount"
+                value="{% if promotion_context and promotion_context.finance %}{{ promotion_context.finance.remaining_admission_amount }}{% endif %}"
+                placeholder="{% if promotion_context and promotion_context.finance %}Remaining admission amount{% else %}Leave blank to collect the full admission fee{% endif %}"
+            >
+        </label>
         <label>
             <span>Admission Payment Method</span>
             <select name="admission_method">

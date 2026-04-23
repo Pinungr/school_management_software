@@ -97,6 +97,50 @@ def apply_receipt_snapshot(session, payment: Payment, student: Student | None) -
     payment.snapshot_remaining_balance = float(fees_data["remaining_balance"] or 0)
 
 
+def admission_payment_settlement_html(session, payment: Payment, settings: Setting) -> str:
+    if str(payment.service_type or "").strip().lower() != "admission":
+        return ""
+
+    fee = session.get(Fee, payment.service_id) if payment.service_id is not None else None
+    admission_fee_amount = float((fee.amount if fee else None) or payment.amount or 0.0)
+    amount_collected = max(float(payment.amount or 0.0), 0.0)
+    used_credit = (
+        "credit applied" in str(payment.notes or "").lower()
+        or str(payment.method or "").strip().lower() == "credit"
+    )
+    credit_applied = max(admission_fee_amount - amount_collected, 0.0) if used_credit else 0.0
+    remaining_admission_amount = max(admission_fee_amount - credit_applied - amount_collected, 0.0)
+    remaining_credit_balance = max(-float(payment.snapshot_remaining_balance or 0.0), 0.0)
+
+    credit_row = ""
+    if credit_applied > 0:
+        credit_row = (
+            "<tr><td>Credit Applied</td>"
+            f"<td>{format_amount(credit_applied, settings.currency)}</td></tr>"
+        )
+    remaining_credit_row = ""
+    if remaining_credit_balance > 0:
+        remaining_credit_row = (
+            "<tr><td>Student Credit Balance After Receipt</td>"
+            f"<td>{format_amount(-remaining_credit_balance, settings.currency)}</td></tr>"
+        )
+
+    return f"""
+            <div class="summary">
+                <h3>Admission Fee Settlement</h3>
+                <table>
+                    <tbody>
+                        <tr><td>Admission Fee</td><td>{format_amount(admission_fee_amount, settings.currency)}</td></tr>
+                        {credit_row}
+                        <tr><td>Amount Collected Now</td><td>{format_amount(amount_collected, settings.currency)}</td></tr>
+                        <tr><td>Remaining Admission Amount</td><td>{format_amount(remaining_admission_amount, settings.currency)}</td></tr>
+                        {remaining_credit_row}
+                    </tbody>
+                </table>
+            </div>
+    """
+
+
 def apply_payment_filters(
     statement,
     *,
@@ -423,11 +467,11 @@ async def create_payment(request: Request):
         if student is None:
             return redirect("/payments?create=1&error=invalid_student")
         service_id = optional_int(str(form.get("service_id", "")))
-        if service_type != "general" and not validate_service_for_type(session, service_type, service_id, student=student):
-            return redirect("/payments?create=1&error=invalid_service")
         amount = positive_float(str(form.get("amount", "")))
         if amount is None:
             return redirect("/payments?create=1&error=invalid_amount")
+        if service_type != "general" and not validate_service_for_type(session, service_type, service_id, student=student):
+            return redirect("/payments?create=1&error=invalid_service")
         try:
             payment_date = optional_date(str(form.get("payment_date", "")) or None)
         except ValueError:
@@ -571,6 +615,7 @@ async def payment_bill(payment_id: int, request: Request):
         }
 
         payment_label = payment.service_name or payment.service_type.title()
+        admission_settlement_html = admission_payment_settlement_html(session, payment, settings)
         if payment.status == "Paid":
             bill_title = "Payment Receipt"
             status_color = "#1f8a4d"
@@ -664,6 +709,8 @@ async def payment_bill(payment_id: int, request: Request):
                     </tbody>
                 </table>
             </div>
+
+            {admission_settlement_html}
 
             <div class="summary">
                 <h3>Student Balance Snapshot</h3>

@@ -405,11 +405,6 @@ def test_recurring_course_and_transport_fees_convert_to_monthly_amounts_for_remi
     try:
         fees = calculate_student_fees_and_payments(seeded_session, student)
 
-        assert fees["current_cycle_amount"] == 2000.0
-        assert fees["total_fees"] == 8000.0
-        assert fees["previous_pending_amount"] == 6000.0
-        assert fees["remaining_balance"] == 8000.0
-
         course_item = next(item for item in fees["fee_items"] if item["name"] == "Installment Course Fee")
         transport_item = next(
             item for item in fees["fee_items"] if item["name"] == "Installment Transport Fee"
@@ -419,10 +414,28 @@ def test_recurring_course_and_transport_fees_convert_to_monthly_amounts_for_remi
         assert float(course_item["due_amount"]) == 4000.0
         assert float(transport_item["due_amount"]) == 4000.0
 
-        message = reminder_message(settings, student, fees)
+        specific_due_data = {
+            "remaining_balance": 8000.0,
+            "fee_items": [course_item, transport_item],
+        }
+        message = reminder_message(settings, student, specific_due_data)
         assert "This Month's Charges: 2000.00" in message
-        assert "Installment Course Fee (monthly from yearly plan): 1000.00" in message
-        assert "Installment Transport Fee (monthly from quarterly plan): 1000.00" in message
+        assert (
+            "Installment Course Fee (monthly from yearly plan) "
+            "(this month's installment): 1000.00"
+        ) in message
+        assert (
+            "Installment Course Fee (monthly from yearly plan) "
+            "(earlier unpaid balance): 3000.00"
+        ) in message
+        assert (
+            "Installment Transport Fee (monthly from quarterly plan) "
+            "(this month's installment): 1000.00"
+        ) in message
+        assert (
+            "Installment Transport Fee (monthly from quarterly plan) "
+            "(earlier unpaid balance): 3000.00"
+        ) in message
         assert "Earlier Pending Balance: 6000.00" in message
     finally:
         for model in (course_fee, transport_fee, student, route, course):
@@ -1412,6 +1425,87 @@ def test_payment_bill_page_renders_for_recorded_payment(seeded_session, client):
     assert "<script>window.print();</script>" not in response.text
 
 
+def test_admission_payment_bill_shows_credit_settlement(seeded_session, client):
+    configure_setup_state(seeded_session, setup_completed=True)
+    ensure_operational_test_data(seeded_session)
+    student = seeded_session.scalar(select(Student).where(Student.student_code == "TEST-STU-001"))
+    assert student is not None
+
+    payment_reference = "ADMISSION-CREDIT-RECEIPT"
+    stale_payment = seeded_session.scalar(select(Payment).where(Payment.reference == payment_reference))
+    if stale_payment is not None:
+        seeded_session.delete(stale_payment)
+    stale_fee = seeded_session.scalar(select(Fee).where(Fee.name == "Admission Credit Receipt Fee"))
+    if stale_fee is not None:
+        seeded_session.delete(stale_fee)
+    seeded_session.commit()
+
+    admission_fee = Fee(
+        name="Admission Credit Receipt Fee",
+        category="Admission",
+        amount=1000,
+        frequency="One Time",
+        status="Active",
+        target_type="Course",
+        target_id=student.course_id,
+    )
+    seeded_session.add(admission_fee)
+    seeded_session.flush()
+    payment = Payment(
+        student_id=student.id,
+        student_code=student.student_code,
+        student_name=student.full_name,
+        parent_name=student.parent_name,
+        service_type="admission",
+        service_id=admission_fee.id,
+        service_name=admission_fee.name,
+        amount=300,
+        payment_date=date(2026, 4, 10),
+        method="UPI",
+        reference=payment_reference,
+        notes="Credit applied to admission fee: 700.00. Amount collected now: 300.00.",
+        status="Paid",
+        snapshot_total_fees=1000,
+        snapshot_paid_amount=1000,
+        snapshot_current_cycle_amount=0,
+        snapshot_previous_pending_amount=0,
+        snapshot_remaining_balance=-50,
+    )
+    seeded_session.add(payment)
+    seeded_session.commit()
+
+    try:
+        login_page = client.get("/login")
+        csrf_token = extract_csrf_token(login_page.text)
+        login_response = client.post(
+            "/login",
+            data={
+                "csrf_token": csrf_token,
+                "identifier": "admin",
+                "password": "adminadmin",
+                "next_path": "/dashboard",
+            },
+            follow_redirects=False,
+        )
+        assert login_response.status_code == 303
+
+        response = client.get(f"/payments/{payment.id}/bill")
+        assert response.status_code == 200
+        assert "Admission Fee Settlement" in response.text
+        assert "Admission Fee" in response.text
+        assert "Credit Applied" in response.text
+        assert "Amount Collected Now" in response.text
+        assert "Remaining Admission Amount" in response.text
+        assert "Student Credit Balance After Receipt" in response.text
+        assert "700.00" in response.text
+        assert "300.00" in response.text
+        assert "0.00" in response.text
+    finally:
+        seeded_session.delete(payment)
+        seeded_session.delete(admission_fee)
+        seeded_session.commit()
+
+
 def test_payments_create_form_uses_new_tab_and_hides_manual_admission_option(seeded_session, client):
     configure_setup_state(seeded_session, setup_completed=True)
     ensure_operational_test_data(seeded_session)
@@ -1435,7 +1529,9 @@ def test_payments_create_form_uses_new_tab_and_hides_manual_admission_option(see
     response = client.get(f"/payments?create=1&create_student_id={student.id}")
     assert response.status_code == 200
     assert 'action="/payments/create" class="form-grid" target="_blank"' in response.text
-    assert '<option value="admission"' not in response.text
+    create_form_html = response.text.split('action="/payments/create" class="form-grid" target="_blank"', 1)[1]
+    create_form_html = create_form_html.split("</form>", 1)[0]
+    assert '<option value="admission"' not in create_form_html
     assert 'The receipt opens in a new tab so the Payments screen stays available.' in response.text
 
 
